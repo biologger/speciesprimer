@@ -13,19 +13,24 @@ from Bio import Entrez
 pipe_bin = os.path.abspath(__file__)
 pipe_dir = pipe_bin.split("bin")[0]
 
+
 class GeneralFunctions:
     @staticmethod
     def logger(string_to_log):
         logging.info(time.strftime(
-            "%d %b %Y %H:%M:%S: ", time.localtime())+str(string_to_log).strip())
+            "%d %b %Y %H:%M:%S: ", time.localtime())
+            + str(string_to_log).strip())
 
     @staticmethod
-    def run_subprocess(command, printcmd=True, logcmd=True, log=True, printoption=True):
+    def run_subprocess(
+            cmd, printcmd=True, logcmd=True, log=True, printoption=True):
         if logcmd:
-            GeneralFunctions().logger("Run " + " ".join(command))
+            GeneralFunctions().logger("Run " + " ".join(cmd))
         if printcmd:
-            print("Run " + " ".join(command))
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print("Run " + " ".join(cmd))
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
         def check_output():
             while True:
                 output = process.stdout.readline().decode().strip()
@@ -43,12 +48,15 @@ class GeneralFunctions:
             check_output()
 
     @staticmethod
-    def run_shell(command, printcmd=True, logcmd=True, log=True, printoption=True):
+    def run_shell(cmd, printcmd=True, logcmd=True, log=True, printoption=True):
         if logcmd:
-            GeneralFunctions().logger("Run " + command)
+            GeneralFunctions().logger("Run " + cmd)
         if printcmd:
-            print("\nRun " + command)
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+            print("\nRun " + cmd)
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, shell=True)
+
         def check_output():
             while True:
                 output = process.stdout.readline().decode().strip()
@@ -66,23 +74,25 @@ class GeneralFunctions:
             check_output()
 
     @staticmethod
-    def read_shelloutput(command, printcmd=False, logcmd=True, printoption=False):
+    def read_shelloutput(cmd, printcmd=False, logcmd=True, printoption=False):
         if logcmd:
-            GeneralFunctions().logger("Run " + command)
+            GeneralFunctions().logger("Run " + cmd)
         if printcmd:
-            print("Run " + command)
+            print("Run " + cmd)
         outputlist = []
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, shell=True)
 
         def check_output():
-               while True:
-                    output = process.stdout.readline().decode().strip()
-                    if output:
-                        outputlist.append(output)
-                        if printoption:
-                            print(output)
-                    else:
-                        break
+            while True:
+                output = process.stdout.readline().decode().strip()
+                if output:
+                    outputlist.append(output)
+                    if printoption:
+                        print(output)
+                else:
+                    break
         while process.poll() is None:
             check_output()
 
@@ -99,29 +109,37 @@ class GeneralFunctions:
             ending = 50 * " "
             print('\rprogress ' + str(0) + " % [" + str(ending) + "]", end='')
         with ProcessPool as executor:
-            if args == False:
-                future_seq = {executor.submit(function, input_item): input_item for input_item in input_list}
+            if args is False:
+                future_seq = {
+                    executor.submit(function, item):
+                    item for item in input_list}
             else:
-                future_seq = {executor.submit(function, input_item, args): input_item for input_item in input_list}
-      
+                future_seq = {
+                    executor.submit(function, item, args):
+                    item for item in input_list}
+
             for future in concurrent.futures.as_completed(future_seq):
-                    input_item = future_seq[future]
-                    try:
-                        output = future.result()
-                        outputlist.append(output)
-                        if verbosity == "bar":
-                            percent = round(100 / total * len(outputlist), 0)                            
-                            if percent == percent // 1:
-                                status = int(percent)
-                                if status%2 == 0:
-                                    bar = int(status/2)
-                                    start = bar * "*"
-                                    ending = (50 - bar) * " "
-    
-                                print('\rprogress ' + str(status) + " % [" + str(start) + str(ending) + "]", end='')
-                    except Exception as exc:
-                        print('%r generated an exception: %s' % (input_item, exc))
-                        GeneralFunctions().logger('%r generated an exception: %s' % (input_item, exc))
+                item = future_seq[future]
+                try:
+                    output = future.result()
+                    outputlist.append(output)
+                    if verbosity == "bar":
+                        percent = round(100 / total * len(outputlist), 0)
+                        if percent == percent // 1:
+                            status = int(percent)
+                            if status % 2 == 0:
+                                bar = int(status / 2)
+                                start = bar * "*"
+                                ending = (50 - bar) * " "
+                            print(
+                                '\rprogress ' + str(status) + " % ["
+                                + str(start) + str(ending) + "]", end='')
+                except Exception as exc:
+                    msg = (
+                        '%r generated an exception: %s' % (item, exc)
+                    )
+                    print(msg)
+                    GeneralFunctions().logger(msg)
 
         print("\n")
         return outputlist
@@ -134,6 +152,7 @@ class GeneralFunctions:
             except OSError:
                 if not os.path.isdir(path_to_dir):
                     raise
+
 
 class HelperFunctions:
 
@@ -205,40 +224,23 @@ class HelperFunctions:
         return name
 
     @staticmethod
-    def taxiddict(dict_path):
-        dict_spp_taxid = {}
-        GeneralFunctions().logger("Run: taxiddict()")
-        try:
-            with open(os.path.join(dict_path, "species_taxid.csv"), "r") as csvfile:
-                reader = csv.reader(csvfile, delimiter=",", quotechar='"')
-                for row in reader:
-                    species = row[0]
-                    taxid = row[1]
-                    dict_spp_taxid.update({species: taxid})
-        except OSError:
-            print("No species_taxid.csv file found")
-        return dict_spp_taxid
-
-    @staticmethod
-    def check_input(target, dict_spp_taxid, email):
+    def check_input(target, email):
         GeneralFunctions().logger("Run: check_input()")
         try:
-            taxid = dict_spp_taxid[target]
-            return taxid
-        except KeyError:
-            try:
-                Entrez.email = email
-                searchtaxid = Entrez.esearch(db="taxonomy", term=target)
-                taxidresult = Entrez.read(searchtaxid)
-                taxid = taxidresult["IdList"]
-                if len(taxid) == 1:
-                    return taxid[0]
-                else:
-                    print("No matching taxid was found in taxonomy DB")
-            except OSError:
-                print(
-                "\nERROR: \nTaxid for " + target + " not found,\n"
-                "please check spelling, internet connection or update taxid dictionary\n"
-                )
-                sys.exit()
-
+            Entrez.email = email
+            searchtaxid = Entrez.esearch(db="taxonomy", term=target)
+            taxidresult = Entrez.read(searchtaxid)
+            taxid = taxidresult["IdList"]
+            if len(taxid) == 1:
+                return taxid[0]
+            else:
+                info = "No taxid was found on NCBI"
+                print(info)
+                GeneralFunctions().logger("> " + info)
+        except OSError:
+            info = (
+                "ERROR: Taxid for " + target
+                + " not found, please check spelling and internet connection")
+            print(info)
+            GeneralFunctions().logger("> " + info)
+            sys.exit()

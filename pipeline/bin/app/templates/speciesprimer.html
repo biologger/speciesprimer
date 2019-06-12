@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form action="" method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.new() }}     Start primer design for new targets</p>
+  
+  <p>{{ form.search() }}  Search configuration files and continue primerdesign</p>
+  
+  <p>{{ form.control() }} Control the current run</p>
+  
+  <p>{{ form.change() }}  Change species configuration</p>   
+          
+{% endblock %}                

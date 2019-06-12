@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Control SpeciesPrimer runs</h1>
+<form action="" method="post" novalidate>
+{{ form.hidden_tag() }}
+ <p>{{ form.submit() }}
+ {{ form.stop() }}
+</p>
+</form>
+
+<div class="tooltip">
+<br>
+<a class ="button-link" href="http://localhost:9001" target="_blank">Stream log in new tab</a>
+<br>
+<br>
+<span class="tooltiptext">It is possible to filter the log stream. 
+e.g. filter for > to see only relevant progress infos</span>
+</div> 
+
+{% endblock %}

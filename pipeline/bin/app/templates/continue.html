@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Search and continue unfinished runs</h1>
+    <form action="" method="post">
+        {{ form.hidden_tag() }}
+        <p>Path to search for configuration files</p>
+        <p>{{ form.search_path() }}</p>
+        {% for error in form.search_path.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <p>Search only configuration files for the selected species (comma separated)</p>      
+        {{ form.selected_species() }}
+        <p>{{ form.submit() }}</p>
+
+    </form>
+{% endblock %}
