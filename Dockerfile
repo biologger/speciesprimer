@@ -17,8 +17,3 @@ RUN chmod +x /home/pipeline/ext-scripts/*.py
 
 CMD ["/boot.sh"]
 WORKDIR /home/primerdesign
-
-
-
-
-
