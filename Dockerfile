@@ -31,8 +31,9 @@ RUN apt-get update && apt-get install -y \
 	emboss \
 	python3-pip \
 	python3-dev \
-	python-pip
-
+	python-pip \
+	tzdata \
+	&& apt-get clean
 
 # create program directory
 RUN mkdir /home/programs && mkdir /home/primerdesign
@@ -43,19 +44,27 @@ RUN cpanm -f Bio::Roary
 
 # install python dependencies
 COPY requirements.txt /
+RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
+RUN pip2 install --upgrade pip
 RUN pip2 install psutil
+
+# install latest ncbi-blast
+RUN cd /home/programs && mkdir ncbi-blast && wget -nv -r --no-parent --no-directories \
+-A 'ncbi-blast-*+-x64-linux.tar.gz' ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ \
+&& tar -xzf ncbi-blast-*+-x64-linux.tar.gz -C ncbi-blast --strip-components 1
+ENV PATH="/home/programs/ncbi-blast/bin/:${PATH}"
+ENV BLASTDB="/home/blastdb"
+
+# install tbl2asn
+RUN cd /home/programs && wget -nv \
+ftp://ftp.ncbi.nih.gov/toolbox/ncbi_tools/converters/by_program/tbl2asn/linux.tbl2asn.gz \
+&& gunzip linux.tbl2asn.gz
 
 # install prokka
 RUN cd /home/programs && git clone https://github.com/tseemann/prokka.git \
 && prokka/bin/prokka --setupdb
 ENV PATH="/home/programs/prokka/bin/:${PATH}"
-
-# install blast-2.8.1+
-RUN cd /home/programs && wget \
-ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.8.1+-x64-linux.tar.gz \
-&& tar xvf ncbi-blast-2.8.1+-x64-linux.tar.gz
-ENV PATH="/home/programs/ncbi-blast-2.8.1+/bin/:${PATH}"
 
 # install primer3
 RUN cd /home/programs && git clone https://github.com/primer3-org/primer3.git primer3 \
@@ -79,11 +88,6 @@ https://github.com/quwubin/MFEprimer/archive/v2.0.tar.gz \
 && tar xvf v2.0.tar.gz
 
 ENV PATH="/home/programs/MFEprimer-2.0/:${PATH}"
-
-#install tbl2asn
-RUN cd /home/programs && wget -nv \
-ftp://ftp.ncbi.nih.gov/toolbox/ncbi_tools/converters/by_program/tbl2asn/linux.tbl2asn.gz \
-&& gunzip linux.tbl2asn.gz
 
 #install FastTreeMP
 RUN cd /home/programs && wget -nv \
