@@ -1795,8 +1795,10 @@ class CoreGeneSequences:
                 for seq in conserv_seqs:
                     f.write(seq[0])
                     f.write(seq[1])
-            PipelineStatsCollector(self.target_dir).write_stat(
-                "Number of conserved sequences: " + str(len(conserv_seqs)))
+            info = "Number of conserved sequences: " + str(len(conserv_seqs))
+            PipelineStatsCollector(self.target_dir).write_stat(info)
+            print(info)
+            G.logger("> " + info)
             return conserv_seqs
 
         else:
