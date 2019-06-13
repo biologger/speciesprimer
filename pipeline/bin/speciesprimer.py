@@ -1847,22 +1847,40 @@ class BlastParser:
             old = []
             with open(file_path) as n:
                 for line in n:
-                    new.append(line.strip())
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+
             with open(controlfile_path) as o:
                 for line in o:
-                    old.append(line.strip())
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+
             diff = list(set(new) ^ set(old))
             if len(diff) > 0:
-                info1 = "Due to changed settings primer design and quality control will start from scratch"
+                info1 = (
+                    "Due to changed settings primer design "
+                    "and quality control will start from scratch")
+                info2 = "Differences in primer3 input:"
                 G.logger(info1)
+                G.logger(info2)
                 G.logger(diff)
                 print(info1)
+                print(info2)
                 print(diff)
                 primer_dir = os.path.join(self.results_dir, "primer")
                 if os.path.isdir(primer_dir):
                     G.logger("Delete primer directory")
                     print("Delete primer directory")
                     shutil.rmtree(primer_dir)
+
                 shutil.copy(file_path, controlfile_path)
 
         else:
