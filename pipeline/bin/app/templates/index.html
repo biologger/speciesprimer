@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %} 
+<h1>Introduction</h1>
+
+<p>The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.</p>
+
+<h2>Pipeline workflow and tools</h2>
+
+<table style="width:100%">
+  <tr>
+    <th style="text-align:left">Pipeline workflow</th>
+    <th style="text-align:left">Tools</th>
+    <th style="text-align:left">Reference</th>
+  </tr>
+  <tr>
+    <td style="text-align:left"; colspan=3>Input genome assemblies</td>
+  </tr>
+  <tr>
+    <td>- download</td>
+    <td>NCBI Entrez (Biopython)</td>
+    <td><a href="https://doi.org/10.1093/bioinformatics/btp163">Cock et al. 2009</a>; <a href="https://www.ncbi.nlm.nih.gov/books/NBK25499/">Sayers 2009</a></td>
+  </tr>
+  <tr>
+    <td>- annotation</td>
+    <td>Prokka</td>
+    <td><a href="https://doi.org/10.1093/bioinformatics/btu153">Seemann 2014</a>
+  </tr>
+    <tr>
+    <td>- quality control</td>
+    <td>BLAST+</td>
+    <td><a href="https://doi.org/10.1016/s0022-2836%2805%2980360-2">Altschul et al. 1990</a></td>
+  </tr>
+   <tr>
+    <td style="text-align:left"; colspan=3>Core gene sequences</td>
+  </tr> 
+    <tr>
+    <td>- identification</td>
+    <td>Roary</td>
+    <td><a href="https://doi.org/10.1093/bioinformatics/btv421">Page et al. 2015</a></td>
+  </tr>
+    <tr>
+    <td>- phylogeny</td>
+    <td>FastTree 2</td>
+    <td><a href="https://doi.org/10.1371/journal.pone.0009490">Price et al. 2010</a></td>
+  </tr>
+    <tr>
+    <td>- selection of conserved sequences</td>
+    <td>SQlite3, Prank, consambig (EMBOSS),GNU parallel</td>
+    <td>
+      <a href="https://doi.org/10.1007/978-1-62703-646-7_10">Löytynoja 2014</a>; 
+      <a href="https://doi.org/10.1016/S0168-9525%2800%2902024-2">Rice et al. 2000</a>;
+      <a href="https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool">Tange 2011</a>
+    </td>
+  </tr>
+      <tr>
+    <td>- evaluation of specificity</td>
+    <td>BLAST+</td>
+    <td><a href="https://doi.org/10.1016/s0022-2836%2805%2980360-2">Altschul et al. 1990</a></td>
+  </tr>
+   <tr>
+    <td style="text-align:left"; colspan=3>Primer</td>
+  </tr>     
+  <tr>
+    <td>- design</td>
+    <td>Primer3</td>
+    <td><a href="https://doi.org/10.1093/nar/gks596">Untergasser et al. 2012</a></td>
+  </tr>
+      <tr>
+    <td>- quality control</td>
+    <td>BLAST+, Mfold, MFEPrimer 2.0, MPprimer</td>
+    <td>
+      <a href="https://doi.org/10.1016/s0022-2836%2805%2980360-2">Altschul et al. 1990</a>;
+      <a href="https://doi.org/10.1007/978-94-011-4485-8_2">Zuker et al. 1999</a>;
+      <a href="https://doi.org/10.1093/nar/gks552">Qu et al. 2012</a>;
+      <a href="https://doi.org/10.1186/1471-2105-11-143">Shen et al. 2010</a>
+    </td>
+  </tr>
+</table>
+
+
+<h2>SpeciesPrimer options</h2>
+<table>
+  <tr>
+    <th style="text-align:left"><strong>Section</strong></th>
+    <th style="text-align:left"><strong>Command line option [Input]</strong></th>
+    <th style="text-align:left"><strong>Description</strong></th>
+    <th style="text-align:left"><strong>Default</strong></th>
+  </tr> 
+  <tr>
+    <td>General</td>
+    <td>target [str]</td>
+    <td>Name of the target species</td>
+    <td>None (required)</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>exception [str]</td>
+    <td>Name of a non-target bacterial species for which primer binding is tolerated</td>
+    <td>None</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>path [str]</td>
+    <td>Absolute path of the working directory</td>
+    <td>Current working directory</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>offline</td>
+    <td>Work offline with local genome assemblies</td>
+    <td>False</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>skip_download</td>
+    <td>Skips download of genome assemblies from NCBI RefSeq FTP server</td>
+    <td>False</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>assemblylevel [all, complete, chromosome, scaffold, contig]</td>
+    <td>Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server</td>
+    <td>['all']</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>remote</td>
+    <td>Use the BLAST+ remote flag for BLAST searches</td>
+    <td>False</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>blastseqs [100, 500, 1000, 2000, 5000]</td>
+    <td>Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory</td>
+    <td>1000</td>
+  </tr>
+  <tr>
+    <td>Quality control</td>
+    <td>qc_gene  [rRNA, recA, dnaK, pheS, tuf]</td>
+    <td>Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies</td>
+    <td>['rRNA']</td>
+  </tr>  
+  <tr>
+    <td></td>
+    <td>ignore_qc</td>
+    <td>Keep genome assemblies, which fail to meet the criteria of the quality control step</td>
+    <td>False</td>
+  </tr>
+  <tr>
+    <td>Pan-genome analysis</td>
+    <td>skip_tree</td>
+    <td>Skips core gene alignment (Roary) and core gene phylogeny (FastTree)</td>
+    <td>False</td>
+  </tr>
+  <tr>
+    <td>Primer design</td>
+    <td>minsize [int]</td>
+    <td>Minimal accepted amplicon size of PCR primer pairs</td>
+    <td>70</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>maxsize [int]</td>
+    <td>Maximal accepted amplicon size of PCR primer pairs</td>
+    <td>200</td>
+  </tr>
+  <tr>
+    <td>Primer quality control</td>
+    <td>mfold [float]</td>
+    <td>Set the ΔG threshold (max. ΔG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold</td>
+    <td>-3.5</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>mpprimer [float]</td>
+    <td>Set the ΔG threshold (max. ΔG)  for the primer-primer 3’-end binding, calculated by MPprimer</td>
+    <td>-3.0</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>mfethreshold [int]</td>
+    <td>Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: selct for better coverage for target and lower coverage for for non-target sequences (recommended range 80-100)</td>
+    <td>90</td>
+  </tr>
+</table>
+
+{% endblock %}

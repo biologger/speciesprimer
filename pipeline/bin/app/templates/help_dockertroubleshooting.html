@@ -1,0 +1,259 @@
+{% extends "help.html" %}{% block content %}<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Troubleshooting Docker</title>
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
+  </head>
+  <body>
+    <article class="markdown-body"><h2 id="troubleshooting-docker"><a class="header-link" href="#troubleshooting-docker"></a>Troubleshooting Docker</h2>
+<h4 id="overview-docker-commands"><a class="header-link" href="#overview-docker-commands"></a>Overview Docker commands</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Command</th>
+<th style="text-align:left">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">docker ps</td>
+<td style="text-align:left">display all running containers</td>
+</tr>
+<tr>
+<td style="text-align:left">docker ps -a</td>
+<td style="text-align:left">display all containers</td>
+</tr>
+<tr>
+<td style="text-align:left">docker rm {container}</td>
+<td style="text-align:left">delete container</td>
+</tr>
+<tr>
+<td style="text-align:left">docker images</td>
+<td style="text-align:left">display local images</td>
+</tr>
+<tr>
+<td style="text-align:left">docker rmi {image}</td>
+<td style="text-align:left">delete image</td>
+</tr>
+<tr>
+<td style="text-align:left">docker run {options} {image}</td>
+<td style="text-align:left">create a new container from an image</td>
+</tr>
+<tr>
+<td style="text-align:left">docker start {container}</td>
+<td style="text-align:left">start container</td>
+</tr>
+<tr>
+<td style="text-align:left">docker stop {container}</td>
+<td style="text-align:left">stop container</td>
+</tr>
+<tr>
+<td style="text-align:left">docker attach {container}</td>
+<td style="text-align:left">attach to a container terminal</td>
+</tr>
+<tr>
+<td style="text-align:left">docker exec -it {container} bash</td>
+<td style="text-align:left">open a new terminal in a running container</td>
+</tr>
+</tbody>
+</table>
+<h4 id="conflict-with-the-container-name-or-with-the-ports"><a class="header-link" href="#conflict-with-the-container-name-or-with-the-ports"></a>Conflict with the container name or with the ports</h4>
+<pre class="hljs"><code>"docker: Error response from daemon: Conflict. The container name "/speciesprimer_pipeline" is already in <span class="hljs-keyword">use</span> <span class="hljs-keyword">by</span> <span class="hljs-keyword">container</span>     <span class="hljs-string">"e9d0de003ce8eff06b34f8f46e4934797052e16dcdbd7e60214d05ea3828a70"</span>, You have <span class="hljs-keyword">to</span> remove (<span class="hljs-keyword">or</span> <span class="hljs-keyword">rename</span>) that <span class="hljs-keyword">container</span> <span class="hljs-keyword">to</span> be able <span class="hljs-keyword">to</span> <span class="hljs-keyword">reuse</span> that <span class="hljs-keyword">name</span><span class="hljs-string">"</span></code></pre><p>or</p>
+<pre class="hljs"><code>"<span class="hljs-selector-tag">docker</span>: <span class="hljs-selector-tag">Error</span> <span class="hljs-selector-tag">response</span> <span class="hljs-selector-tag">from</span> <span class="hljs-selector-tag">daemon</span>: <span class="hljs-selector-tag">driver</span> <span class="hljs-selector-tag">failed</span> <span class="hljs-selector-tag">programming</span> <span class="hljs-selector-tag">external</span> <span class="hljs-selector-tag">connectivity</span> <span class="hljs-selector-tag">on</span> <span class="hljs-selector-tag">endpoint</span> <span class="hljs-selector-tag">speciesprimer_pipeline</span> (1<span class="hljs-selector-tag">a9c27f8884c6ebdd9a1f117a1529341269054b6be391fce6c25267a78b7bc58</span>): <span class="hljs-selector-tag">Bind</span> <span class="hljs-selector-tag">for</span> 0<span class="hljs-selector-class">.0</span><span class="hljs-selector-class">.0</span><span class="hljs-selector-class">.0</span><span class="hljs-selector-pseudo">:9001</span> <span class="hljs-selector-tag">failed</span>: <span class="hljs-selector-tag">port</span> <span class="hljs-selector-tag">is</span> <span class="hljs-selector-tag">already</span> <span class="hljs-selector-tag">allocated</span>. <span class="hljs-selector-tag">ERRO</span><span class="hljs-selector-attr">[0001]</span> "</code></pre><ol class="list">
+<li><p>Display your containers</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker ps <span class="hljs-_">-a</span></code></pre></li>
+</ul>
+</li>
+<li><p>Stop the container with the container ID or the container name</p>
+<ul class="list">
+<li><pre class="hljs"><code>  $ sudo docker <span class="hljs-built_in">stop</span> {ContainerID/containername}</code></pre></li>
+</ul>
+</li>
+<li><p>Delete the container</p>
+<ul class="list">
+<li><pre class="hljs"><code>  $ sudo docker <span class="hljs-class">rm </span>{ContainerID/containername}</code></pre></li>
+</ul>
+</li>
+</ol>
+<p>Now you can try again to create a container with the sudo docker run command</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker run \
+  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
+</span>  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+</span>  -<span class="ruby">p {hostport1}<span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p {hostport2}<span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
+</span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker run \
+  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
+</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+</span>  -<span class="ruby">p <span class="hljs-number">5000</span><span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p <span class="hljs-number">9001</span><span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
+</span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
+</ul>
+<h2 id="docker-setup"><a class="header-link" href="#docker-setup"></a>Docker setup</h2>
+<h3 id="download-and-install-docker"><a class="header-link" href="#download-and-install-docker"></a>Download and install docker</h3>
+<p>Download from <a href="https://www.docker.com/get-docker">https://www.docker.com/get-docker</a> and
+see the docs for installation instructions <a href="https://docs.docker.com/">https://docs.docker.com/</a></p>
+<h3 id="download-images-from-docker-hub"><a class="header-link" href="#download-images-from-docker-hub"></a>Download images from docker hub</h3>
+<ol class="list">
+<li><p>Open a terminal:</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>sudo docker pull biologger/speciesprimergui</code></pre></li>
+</ul>
+</li>
+<li><p>Now you have the image, you can display the image with</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>sudo docker images</code></pre></li>
+</ul>
+</li>
+<li><p>If there is more than one image from the repository <strong>biologger/speciesprimergui</strong>, you can remove the image with the &lt;none> Tag</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code> $ sudo docker <span class="hljs-class">rmi </span>{image_id}</code></pre></li>
+</ul>
+</li>
+</ol>
+<h3 id="choose-directories"><a class="header-link" href="#choose-directories"></a>Choose directories</h3>
+<ol class="list">
+<li><p>Decide which directories (on the host) should be used by the container</p>
+</li>
+<li><p>If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path_to_host_blastdb_dir:/home/blastdb) </p>
+</li>
+<li><p>Create a directory for primerdesign and one for the BLAST database</p>
+</li>
+<li><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p>Create two new directories in the home directory</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code> <span class="hljs-meta"># one for the primer design files</span>
+$ <span class="hljs-built_in">mkdir</span> /<span class="hljs-built_in">home</span>/biologger/primerdesign
+  <span class="hljs-meta"># one for the nucleotide blast database</span>
+ $ <span class="hljs-built_in">mkdir</span> /<span class="hljs-built_in">home</span>/biologger/blastdb</code></pre></li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="run-a-container-instance"><a class="header-link" href="#run-a-container-instance"></a>Run a container instance</h3>
+<p>Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /home/blastdb and /home/primerdesign. The name of the container can be changed (--name).
+The -p option defines the ports which are open for the container so you can access the container app <a href="http://127.0.0.1:{hostport1/2}">http://127.0.0.1:{hostport1/2}</a> / <a href="http://localhost:{hostport1/2}}">http://localhost:{hostport1/2}}</a>.
+On the left side the host port is given and on the right side the container port. The container port is fixed and cannot be changed, if the host port is already used another port can be selected.
+The link on the page where you can control the runs is however fixed to port 9001, but you can open the log file stream by opening <a href="http://localhost:{hostport2}">http://localhost:{hostport2}</a> in your browser.</p>
+<h4 id="docker-run"><a class="header-link" href="#docker-run"></a>docker run</h4>
+<ol class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code> $ sudo docker run \
+ -<span class="ruby">v <span class="hljs-symbol">path_to_host_blastdb_dir:</span>/home/blastdb \
+</span> -<span class="ruby">v <span class="hljs-symbol">path_to_host_primerdesign_dir:</span>/home/primerdesign \
+</span> -<span class="ruby">p {hostport1}<span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p {hostport2}<span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
+</span> -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimergui</span></code></pre></li>
+</ol>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker run \
+  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
+</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+</span>  -<span class="ruby">p <span class="hljs-number">5000</span><span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p <span class="hljs-number">9001</span><span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
+</span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimergui</span></code></pre></li>
+</ul>
+<p>In the terminal you see that the server in the container was started.
+Afterwards you can open the address [<a href="http://localhost:5000]">http://localhost:5000]</a> or what port you have choosen for {hostport1} in your webbrowser.</p>
+<h4 id="docker-stop"><a class="header-link" href="#docker-stop"></a>docker stop</h4>
+<p>You can shutdown the container by opening a terminal and the command </p>
+<pre class="hljs"><code>    $ sudo docker <span class="hljs-keyword">stop</span> {containername/<span class="hljs-keyword">id</span>}</code></pre><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-built_in">stop</span> speciesprimer_pipeline</code></pre></li>
+</ul>
+<h4 id="docker-start"><a class="header-link" href="#docker-start"></a>docker start</h4>
+<p>The next time you do not have to repeat the docker run command (this would create a new container, without your modified settings)
+Instead you simply start the container with the command </p>
+<pre class="hljs"><code>    $ sudo docker <span class="hljs-keyword">start</span> {containername/<span class="hljs-keyword">id</span>}</code></pre><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-literal">start</span> speciesprimer_pipeline</code></pre></li>
+</ul>
+<p>Afterwards you can open the address [<a href="http://localhost:5000]">http://localhost:5000]</a> or what port you have choosen for {hostport1} in your webbrowser.</p>
+<h4 id="docker-attach"><a class="header-link" href="#docker-attach"></a>docker attach</h4>
+<p>If you want to see the status of the webserver in the container in your terminal (like after the docker run command)</p>
+<pre class="hljs"><code>    $ sudo docker attach {containername/<span class="hljs-built_in">id</span>}</code></pre><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-built_in">attach</span> speciesprimer_pipeline</code></pre></li>
+</ul>
+<h4 id="docker-exec"><a class="header-link" href="#docker-exec"></a>docker exec</h4>
+<p>If you w to access the container with the terminal you can use (the -it option is for the interactive terminal)</p>
+<pre class="hljs"><code>    $ sudo docker exec -<span class="hljs-keyword">it</span> {containername/<span class="hljs-built_in">id</span>} bash</code></pre><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> speciesprimer_pipeline bash</code></pre></li>
+</ul>
+<h4 id="leave-the-container-terminal"><a class="header-link" href="#leave-the-container-terminal"></a>Leave the container terminal</h4>
+<p>You can leave the docker container by typing exit        </p>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>CONTAINER:</strong></p>
+<pre class="hljs"><code>  $ <span class="hljs-keyword">exit</span></code></pre></li>
+</ul>
+<h3 id="test-the-container"><a class="header-link" href="#test-the-container"></a>Test the container</h3>
+<p>If not already started </p>
+<p>$ sudo docker start {containername/id} </p>
+<p>$ sudo docker exec -it {containername/id} bash</p>
+<p>If you see <strong>root@{containerID}:/home/primerdesign#</strong> in the terminal, you have now access to the terminal of the container.</p>
+<p>Test if you have mounted the volumes correctly </p>
+<ul class="list">
+<li><p><strong>CONTAINER:</strong></p>
+<pre class="hljs"><code>  $ <span class="hljs-built_in">echo</span> <span class="hljs-built_in">test</span> &gt; test.txt</code></pre><ul class="list">
+<li><p>Check if you find test.txt</p>
+<pre class="hljs"><code>  $ ls <span class="hljs-_">-l</span>    </code></pre></li>
+</ul>
+</li>
+<li><p><strong>HOST:</strong></p>
+<ul class="list">
+<li><p>Check if you find test.txt on the host</p>
+<pre class="hljs"><code>  $ ls -l /<span class="hljs-built_in">home</span>/{linux_username}/primerdesign</code></pre></li>
+</ul>
+</li>
+</ul>
+<p>If you want to delete this test.txt file there are two options</p>
+<ol class="list">
+<li><p>Do it in the container </p>
+<ul class="list">
+<li><p><strong>CONTAINER:</strong></p>
+<pre class="hljs"><code>  $ <span class="hljs-keyword">rm</span> <span class="hljs-keyword">test</span>.txt</code></pre></li>
+</ul>
+</li>
+<li><p>Do it on the host</p>
+<ul class="list">
+<li><p>Change the owner of the files in the primerdesign directory on the host (recursively).</p>
+</li>
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code><span class="xml"> $ sudo chown -R </span><span class="hljs-template-variable">{linux_username}</span><span class="xml"> </span><span class="hljs-template-variable">{path_to_primerdesign_dir}</span><span class="xml"></span></code></pre></li>
+<li><p>Now you can move and delete the files and directories.</p>
+<p><strong>Example</strong>:</p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<p>   $ sudo chown -R biologger /home/biologger/primerdesign</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+    </article>
+  </body>
+</html>
+{% endblock %}

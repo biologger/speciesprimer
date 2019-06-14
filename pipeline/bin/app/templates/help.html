@@ -1,0 +1,28 @@
+<html>
+    <head>
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
+    </head>
+    <body>
+        <header>
+          <div>
+            <strong><nav>
+              <ul class="help">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('helppipesetup') }}">Pipeline setup</a></li>
+                <li><a href="{{ url_for('helpprimerdesign') }}">Primer design</a></li>
+                <li><a href="{{ url_for('helptroubleshooting') }}">Troubleshooting</a></li>
+                <li><a href="{{ url_for('helpdocker') }}">Docker troubleshooting</a></li>
+                <li><a href="{{ url_for('helpdockerproxy') }}">Docker proxy settings</a></li>
+              </ul>
+            </nav></strong>
+          </div>          
+        </header>
+
+        <div class="container">
+        
+        {% block content %}{% endblock %}         
+       
+        </div>
+    </body>
+</html>
