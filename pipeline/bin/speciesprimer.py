@@ -2082,7 +2082,7 @@ class BlastParser:
                 if not len(self.primer_align_dict[key]) == 0:
                     for i in range(0, len(self.primer_align_dict[key])):
                         for species in self.primer_align_dict[key][i]:
-                            db_id = self.primer_align_dict[key][i][species]['db_id']
+                            db_id = self.primer_align_dict[key][i][species]['gi']
                             sbjct_start = self.primer_align_dict[key][i][species]["subject_start"]
                             idcount = idcount + 1
                             part = idcount//self.maxgroupsize
