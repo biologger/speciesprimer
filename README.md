@@ -29,14 +29,14 @@
 
 * [Download](https://www.docker.com/get-docker) and install docker
 		
-		$ sudo docker pull biologger/speciesprimergui
+		$ sudo docker pull biologger/speciesprimer
 		$ mkdir $HOME/primerdesign
 		$ mkdir $HOME/blastdb
 		$ sudo docker run \
 		-v $HOME/blastdb:/home/blastdb \
 		-v $HOME/primerdesign:/home/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
-		--name speciesprimergui biologger/speciesprimergui
+		--name speciesprimer biologger/speciesprimer
 
 
 * Open the address [http://localhost:5000] or [http://127.0.0.1:5000] in your favorite webbrowser
@@ -105,14 +105,14 @@ see the docs for installation instructions <https://docs.docker.com/>
 		
 	* __HOST:__
   
-			$ sudo docker pull biologger/speciesprimergui
+			$ sudo docker pull biologger/speciesprimer
 
 2. Now you have the image, you can display the image with
 	* __HOST:__
   
 			$ sudo docker images
 
-3. If there is more than one image from the repository __biologger/speciesprimergui__, you can remove the image with the <none\> Tag
+3. If there is more than one image from the repository __biologger/speciesprimer__, you can remove the image with the <none\> Tag
  	* __HOST:__
  
 			$ sudo docker rmi {image_id}
@@ -150,7 +150,7 @@ The link on the page where you can control the runs is however fixed to port 900
 		-v path_to_host_blastdb_dir:/home/blastdb \
 		-v path_to_host_primerdesign_dir:/home/primerdesign \
 		-p {hostport1}:5000 -p {hostport2}:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimergui
+		--name speciesprimer_pipeline -it biologger/speciesprimer
 
 __Example:__
 
@@ -160,7 +160,7 @@ __Example:__
 		-v /home/biologger/blastdb:/home/blastdb \
 		-v /home/biologger/primerdesign:/home/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimergui
+		--name speciesprimer_pipeline -it biologger/speciesprimer
 
 In the terminal you see that the server in the container was started.
 Afterwards you can open the address [http://localhost:5000] or what port you have choosen for {hostport1} in your webbrowser.
