@@ -1732,11 +1732,7 @@ class BlastParser:
         self.results_dir = os.path.join(self.pangenome_dir, "results")
         self.blast_dir = os.path.join(self.results_dir, "blast")
         self.nontargetlist = configuration.nontargetlist
-        self.start_match = []
-        self.end_match = []
         self.selected = []
-        self.start_match = []
-        self.end_match = []
         self.mode = "normal"
         self.start = time.time()
         if results == "primer":
@@ -1795,14 +1791,23 @@ class BlastParser:
             query_end.append(end_len)
 
     def check_seq_ends(self, blast_record, query_start, query_end):
+        seq_ends = []
         if len(query_start) > 0:
             if min(query_start) >= self.config.minsize:
                 seq_range = "[1:" + str(min(query_start)) + "]"
-                self.start_match.append([blast_record.query, seq_range])
+                seq_ends.append([blast_record.query, seq_range])
         if len(query_end) > 0:
             if min(query_end) >= self.config.minsize:
-                seq_range = "[" + str(min(query_end)) + ":" + str(blast_record.query_letters) + "]"
-                self.end_match.append([blast_record.query, seq_range])
+                qletters = str(blast_record.query_letters)
+                seq_range = "[" + str(min(query_end)) + ":" + qletters + "]"
+                seq_ends.append([blast_record.query, seq_range])
+        if len(seq_ends) > 0:
+            filename = os.path.join(self.blast_dir, "partialseqs.txt")
+            with open(filename, "w") as f:
+                for end in seq_ends:
+                    gi = str(end[0])
+                    s_range = str(end[1])
+                    f.write(gi + " " + s_range + "\n")
 
     def write_blastsummary(self, dir_path, align_dict, result_format="json"):
         G.logger("Run: write_blastsummary(" + self.target + ")")
@@ -1981,53 +1986,51 @@ class BlastParser:
         return align_dict
 
     def get_selected_sequences(self, align_dict):
+        seq_ends = []
         selected_seqs = []
         excluded_seqs = []
         G.logger("Run: get_selected_sequences( " + self.target + ")")
+        filename = os.path.join(self.blast_dir, "partialseqs.txt")
+        if os.path.isfile(filename):
+            with open(filename, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    gi = line.split(" ")[0]
+                    s_range = line.split(" ")[1]
+                    seq_ends.append([gi, s_range])
         for key in align_dict:
             if len(align_dict[key]) == 0:
                 selected_seqs.append([key, "complete"])
             else:
                 excluded_seqs.append(key)
-            for item in self.start_match:
+            for item in seq_ends:
                 if not (
                         [item[0], "complete"] in selected_seqs or
                         item in selected_seqs):
                     selected_seqs.append(item)
                     if item[0] in excluded_seqs:
                         excluded_seqs.remove(item[0])
-            for item in self.end_match:
-                if not (
-                        [item[0], "complete"] in selected_seqs or
-                        item in selected_seqs):
-                    selected_seqs.append(item)
-                    if item[0] in excluded_seqs:
-                        excluded_seqs.remove(item[0])
-        info = (
-                "\nselected sequences: "+ str(len(selected_seqs)) +
-                "\nexcluded sequences: "+ str(len(excluded_seqs)))
-        G.logger(info)
-        print(info)
+        info1 = "selected sequences: " + str(len(selected_seqs))
+        info2 = "excluded sequences: " + str(len(excluded_seqs))
+        G.logger("> " + info1)
+        G.logger("> " + info2)
+        print("\n" + info1)
+        print("\n" + info2)
         return selected_seqs
 
     def get_seq_range(self, db_id, overhang=2000):
         accession = db_id[0]
         seq_start = int(db_id[1])
-        blastdbcmd = "blastdbcmd -db nt -entry " +  accession + " -outfmt %l"
-        seqlen_cmd = G.read_shelloutput(blastdbcmd, printcmd=False, logcmd=False, printoption=False)
-        seq_len = int(seqlen_cmd[0])
         if seq_start > overhang:
             start = seq_start - overhang
         else:
             start = 1
-        if seq_start + overhang < seq_len - 1:
-            stop = seq_start + overhang
-        else:
-            stop = seq_len - 1
-        seq_cmd = (
-            " ".join(["blastdbcmd", "-db", "nt", "-entry", accession,
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"]))
-        fasta = G.read_shelloutput(seq_cmd, printcmd=False, logcmd=False, printoption=False)
+        stop = seq_start + overhang
+        seq_cmd = " ".join([
+            "blastdbcmd", "-db", "nt", "-entry", accession,
+            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
+        fasta = G.read_shelloutput(
+            seq_cmd, printcmd=False, logcmd=False, printoption=False)
 
         return fasta
 
