@@ -4089,7 +4089,7 @@ def commandline():
         "(Can be very slow, not recommended)")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 1.5")
+        "-V", "--version", action="version", version="%(prog)s 2.0")
     args = parser.parse_args()
     return args
 
