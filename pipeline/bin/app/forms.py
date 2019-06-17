@@ -89,8 +89,6 @@ class PipeConfig(FlaskForm):
 
 class DownloadDB(FlaskForm):
     update_blastdb = SubmitField("Start download")
-    blastdb_firstpart = IntegerField("First part of the BLAST DB", default=0)
-    blastdb_parts = IntegerField("Last part of the BLAST DB", default=70)
     delete = BooleanField("Delete archive files after extraction", default=False)
     update_txids = SubmitField("Update")
     get_blastdb = SubmitField("Start download")

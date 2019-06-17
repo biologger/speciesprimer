@@ -469,11 +469,8 @@ def blastdb():
         elif form.update_txids.data is True:
             get_bacteria_taxids()
         elif form.get_blastdb.data is True:
-            firstpart = form.blastdb_firstpart.data
-            blastdb_parts = form.blastdb_parts.data
             delete = form.delete.data
-            update_dict = {'BLAST_DB':{
-                'firstpart': firstpart, 'lastpart': blastdb_parts, 'delete': delete}}
+            update_dict = {'BLAST_DB':{'delete': delete}}
             update_tmp_db(update_dict)
             return redirect(url_for('dbdownload'))
 
