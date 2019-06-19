@@ -2960,22 +2960,24 @@ class PrimerQualityControl:
                 pheS = item[12]
                 qc_list = rRNA, tuf, recA, dnaK, pheS
                 assembly_dict.update({accession: assembly_stat})
-
-                for qc_gene in qc_list:
-                    if "passed QC" == qc_gene:
+                
+                if self.config.ignore_qc is True:
+                    for qc_gene in qc_list:
                         if accession not in qc_acc:
-                            qc_acc.append(accession)
-                    elif "" == qc_gene:
-                        if accession not in qc_acc:
-                            qc_acc.append(accession)
-                    else:
-                        if accession not in remove:
-                            remove.append(accession)
+                            qc_acc.append(accession)                    
+                else:
+                    for qc_gene in qc_list:
+                        if "passed QC" == qc_gene:
+                            if accession not in qc_acc:
+                                qc_acc.append(accession)
+                        elif "" == qc_gene:
+                            if accession not in qc_acc:
+                                qc_acc.append(accession)
+                        else:
+                            if accession not in remove:
+                                remove.append(accession)
 
-            if self.config.ignore_qc is True:
-                check = set(qc_acc)
-            else:
-                check = set(qc_acc) - set(remove)
+            check = set(qc_acc) - set(remove)
             for item in check:
                 if len(ref_assembly) < self.referencegenomes:
                     if assembly_dict[item] == "Complete Genome":
@@ -4089,7 +4091,7 @@ def commandline():
         "(Can be very slow, not recommended)")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.0")
+        "-V", "--version", action="version", version="%(prog)s 2.0.1")
     args = parser.parse_args()
     return args
 
