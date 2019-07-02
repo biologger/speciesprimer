@@ -6,7 +6,6 @@ import logging
 import subprocess
 import os
 import csv
-import sys
 import concurrent.futures
 from Bio import Entrez
 
@@ -243,4 +242,5 @@ class HelperFunctions:
                 + " not found, please check spelling and internet connection")
             print(info)
             GeneralFunctions().logger("> " + info)
-            sys.exit()
+            time.sleep(2)
+            raise
