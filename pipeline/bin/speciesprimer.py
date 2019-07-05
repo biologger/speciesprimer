@@ -1417,6 +1417,9 @@ class CoreGenes:
             gene_name = "-".join(gene.split("/"))
         elif " " in gene:
             gene_name = "-".join(gene.split(" "))
+        elif "'" in gene:
+            gene_name = str(gene)[0:-1]
+            gene = gene + "'"
         else:
             gene_name = gene
         outfile = os.path.join(self.results_dir, "fasta", gene_name + ".fasta")
