@@ -89,7 +89,7 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 |	|maxsize [int] | Maximal accepted amplicon size of PCR primer pairs|200|
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
-|	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: selct for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
+|	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
 
 # Tutorial (Ubuntu 16.04):
 
