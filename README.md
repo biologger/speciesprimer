@@ -2,19 +2,19 @@
 # SpeciesPrimer
 
 ## Contents
-* [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/GUI#hardware-recommendations)
-* [quick start (Ubuntu 16.04)](https://github.com/biologger/speciesprimer/tree/GUI#quick-start-ubuntu-1604)
-* [Introduction](https://github.com/biologger/speciesprimer/tree/GUI#introduction)
-	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/GUI#pipeline-workflow-and-tools)
-	* [Command line options](https://github.com/biologger/speciesprimer/tree/GUI#run-settings)
-* [Tutorial Docker Setup](https://github.com/biologger/speciesprimer/tree/GUI#Tutorial-ubuntu-1604)
+* [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
+* [quick start (Ubuntu 16.04)](https://github.com/biologger/speciesprimer/tree/master#quick-start-ubuntu-1604)
+* [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
+	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
+	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
+* [Tutorial Docker Setup](https://github.com/biologger/speciesprimer/tree/master#Tutorial-ubuntu-1604)
 
 ## Docs
-* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/GUI/docs/pipelinesetup.md)
-* [Primerdesign](https://github.com/biologger/speciesprimer/tree/GUI/docs/primerdesign.md)
-* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/GUI/docs/troubleshooting.md)
-* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/GUI/docs/dockertroubleshooting.md)
-* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/GUI/docs/dockerproxy.md)
+* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/master/docs/pipelinesetup.md)
+* [Primerdesign](https://github.com/biologger/speciesprimer/tree/master/docs/primerdesign.md)
+* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/master/docs/troubleshooting.md)
+* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/master/docs/dockertroubleshooting.md)
+* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/master/docs/dockerproxy.md)
 
 ## Hardware recommendations
 
