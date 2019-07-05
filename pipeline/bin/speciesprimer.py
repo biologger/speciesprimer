@@ -1204,6 +1204,7 @@ class QualityControl:
                     print(error_msg)
                     G.logger("> " + error_msg)
                     errors.append([self.target, error_msg])
+                    self.remove_qc_failures(qc_gene)
                     return 1
             else:
                 return 1
