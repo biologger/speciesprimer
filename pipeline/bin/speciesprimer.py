@@ -1123,12 +1123,12 @@ class QualityControl:
                 search_str = str(item + "_*")
                 if (("GCF" or "GCA") and "v") in item:
                     accession = ".".join(item.split("v"))
-                    genomicsearch_str = str(accession + "_*")
+                    search_str = str(accession + "_*")
                 # genomic_fna
                 genome_dir = os.path.join(self.target_dir, "genomic_fna")
                 if os.path.isdir(genome_dir):
                     for files in os.listdir(genome_dir):
-                        if re.search(genomicsearch_str, files):
+                        if re.search(search_str, files):
                             G.create_directory(
                                 os.path.join(self.ex_dir, "genomic_fna"))
                             from_file = os.path.join(genome_dir, files)
