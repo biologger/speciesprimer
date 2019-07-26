@@ -2453,12 +2453,26 @@ class BlastParser:
                 for line in f:
                     align_dict = json.loads(line)
             if len(excluded_gis) > 0:
-                for key in align_dict.copy().keys():
-                    for index, item in enumerate(align_dict.copy()[key]):
-                        for species in item.copy().keys():
-                            gi = item[species]['main_id']
-                            if str(gi) in excluded_gis:
-                                del align_dict[key][index]
+                ex_gis = []
+                deletekey = []
+                for key in align_dict.keys():
+                    for species in align_dict[key].keys():
+                        gi = align_dict[key][species]['main_id']
+                        if str(gi) in excluded_gis:
+                            if not gi in ex_gis:
+                                ex_gis.append(gi)
+                            deletekey.append([key, species])
+                for item in deletekey:
+                    del align_dict[item[0]][item[1]]
+
+                if len(ex_gis) > 0:
+                    info = "removed GI's in excluded GI list from results"
+                    info2 = ex_gis
+                    G.logger(info)
+                    G.logger(info2)
+                    print("\n" + info)
+                    print(info2)
+
         else:
             xmlblastresults = self.blastresult_files(blast_dir)
             nr = 1
@@ -2482,6 +2496,7 @@ class BlastParser:
                     rec = rec + 1
 
             if len(excluded_gis) > 0:
+                ex_gis = []
                 for key in align_dict.copy().keys():
                     for index, item in enumerate(
                         align_dict.copy()[key]
@@ -2489,7 +2504,17 @@ class BlastParser:
                         for species in item.copy().keys():
                             gi = item[species]['gi']
                             if str(gi) in excluded_gis:
+                                if not gi in ex_gis:
+                                    ex_gis.append(gi)
                                 del align_dict[key][index]
+
+                if len(ex_gis) > 0:
+                    info = "removed GI's in excluded GI list from results"
+                    info2 = ex_gis
+                    G.logger(info)
+                    G.logger(info2)
+                    print("\n" + info)
+                    print(info2)
 
             if self.config.intermediate is False:
                 for file_name in xmlblastresults:
@@ -2964,11 +2989,11 @@ class PrimerQualityControl:
                 pheS = item[12]
                 qc_list = rRNA, tuf, recA, dnaK, pheS
                 assembly_dict.update({accession: assembly_stat})
-                
+
                 if self.config.ignore_qc is True:
                     for qc_gene in qc_list:
                         if accession not in qc_acc:
-                            qc_acc.append(accession)                    
+                            qc_acc.append(accession)
                 else:
                     for qc_gene in qc_list:
                         if "passed QC" == qc_gene:
@@ -4233,7 +4258,7 @@ def main(mode=None):
                     Summary(config, total_results).run_summary(mode="last")
 
         except Exception as exc:
-            msg = "> fatal error while working on " + target + " check logfile"
+            msg = "fatal error while working on " + target + " check logfile"
             PipelineStatsCollector(target_dir).write_stat(
                 "Error: " + str(time.ctime()))
             print(msg)
