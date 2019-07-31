@@ -638,6 +638,7 @@ class QualityControl:
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
+        self.exception = configuration.exception
         self.ex_dir = os.path.join(
             self.config.path, "excludedassemblies", self.target)
         self.target_dir = os.path.join(self.config.path, self.target)
@@ -922,6 +923,7 @@ class QualityControl:
             return spec, gi, db_id
 
         def parse_blastresults():
+            gi_list = []
             excluded_gis = self.get_excluded_gis()
             expected = " ".join(self.target.split("_"))
             # collect the blast results
@@ -935,9 +937,9 @@ class QualityControl:
                     spec, gi, db_id = get_blastresults_info(blast_record, i)
                     query = blast_record.query
                     if str(gi) in excluded_gis:
-                        info = "GI " + str(gi)  + " is in excluded_gis list"
-                        print(info)
-                        G.logger(info)
+                        if gi not in gi_list:
+                            gi_list.append(gi)
+
                         while i < len(blast_record.alignments) - 1:
                             i = i+1
                             spec, gi, db_id = get_blastresults_info(
@@ -945,11 +947,8 @@ class QualityControl:
                             if str(gi) not in excluded_gis:
                                     break
                             else:
-                                info = (
-                                    "GI " + str(gi)
-                                    + " is in excluded_gis list")
-                                print(info)
-                                G.logger(info)
+                                if gi not in gi_list:
+                                    gi_list.append(gi)
 
                     if expected in spec:
                         if query not in wrote:
@@ -958,6 +957,15 @@ class QualityControl:
                                 query, gi, db_id, spec,
                                 expected, "passed QC"]
                             passed.append(success)
+
+                    elif self.exception is not None:
+                        if self.exception in spec:
+                            if query not in wrote:
+                                wrote.append(query)
+                                success = [
+                                    query, gi, db_id, spec,
+                                    expected, "passed QC"]
+                                passed.append(success)
                     # allows passing qc if the species is correct but the
                     # blast hit sequence name does not include the subspecies
 #                    elif "subsp" in expected:
@@ -974,7 +982,12 @@ class QualityControl:
                             fail = [
                                 query, gi, db_id, spec, expected, "failed QC"]
                             problems.append(fail)
-
+            if len(gi_list) > 0:
+                info = "removed GI's in excluded GI list from results"
+                print(info)
+                print(gi_list)
+                G.logger(info)
+                G.logger(gi_list)
             os.chdir(self.target_dir)
 
         def write_blastresults():
