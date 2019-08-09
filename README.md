@@ -47,6 +47,7 @@
 * Navigate to Primer design [http://localhost:5000/primerdesign] and start primer design for new targets
 
 #### Use the pipeline with the command line
+
 * After the docker run command open a new terminal
 * $ sudo docker exec -it speciesprimer bash
 * This will open an interactive terminal in the docker container
