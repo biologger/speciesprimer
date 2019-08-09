@@ -16,7 +16,7 @@
 * [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/master/docs/dockertroubleshooting.md)
 * [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/master/docs/dockerproxy.md)
 
-## Hardware recommendations
+## Minimum system requirements
 
 * Quad core processor
 * 16 GB RAM
@@ -46,6 +46,24 @@
 * Customize the species list and other parameters if required
 * Navigate to Primer design [http://localhost:5000/primerdesign] and start primer design for new targets
 
+#### Use the pipeline with the command line
+* After the docker run command open a new terminal
+* $ sudo docker exec -it speciesprimer bash
+* This will open an interactive terminal in the docker container
+* Download the nt BLAST DB:
+* In the Docker container terminal:
+* $ getblastdb.py -dbpath /home/blastdb --delete
+* or alternatively
+* $ cd /home/blastdb
+* $ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+* $ cd /home/primerdesign
+* Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
+* $ nano /home/pipeline/dictionaries/species_list.txt
+* $ nano /home/pipeline/p3parameters
+* $ nano /home/pipeline/NO_Blast/NO_BLAST.gi
+* Start primer design
+* $ speciesprimer.py
+
 
 # Introduction
 The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.
@@ -62,7 +80,7 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 |<tr><td colspan=3>__Core gene sequences__</td></tr>|
 |- identification|Roary|[Page et al. 2015](https://doi.org/10.1093/bioinformatics/btv421)|
 |- phylogeny|FastTree 2|[Price et al. 2010](https://doi.org/10.1371/journal.pone.0009490)|
-|- selection of conserved sequences|SQlite3, Prank, consambig (EMBOSS),GNU parallel|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool)|
+|- selection of conserved sequences|SQlite3, Prank, consambig (EMBOSS),GNU parallel, DBGenerator.py|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool); [microgenomcis](https://github.com/microgenomics/tutorials)|
 |- evaluation of specificity|BLAST+|[Altschul et al. 1990](https://doi.org/10.1016/s0022-2836%2805%2980360-2)|
 ||||
 |<tr><td colspan=3>__Primer__</td></tr>|
