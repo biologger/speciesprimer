@@ -245,7 +245,7 @@ class DataCollection():
                     os.path.join(self.config_dir, "NO_Blast.gi"), "w"
                 ) as f:
                     for gi in removed_gis:
-                        f.write(gi+"\n")
+                        f.write(gi + "\n")
 
     def get_ncbi_links(self, taxid, email):
 
