@@ -1253,7 +1253,7 @@ class PangenomeAnalysis:
         os.chdir(self.pangenome_dir)
         coregenealn = "core_gene_alignment.aln"
         if os.path.isfile(coregenealn):
-            tree = H.abbrev(self.target, dict_path) + "_tree.newick"
+            tree = H.abbrev(self.target, dict_path) + "_tree.nwk"
             treecmd = "fasttree -nt -gtr -nopr " + coregenealn + " > " + tree
             G.run_shell(
                 treecmd, printcmd=True, logcmd=True,
