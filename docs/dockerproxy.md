@@ -48,7 +48,7 @@
 4. Open or create the __https-proxy.conf__ file to add the https proxy configuration
 	* __Example:__
 
-			$ sudo gedit /etc/systemd/docker.service.d/https-proxy.conf
+			$ sudo gedit /etc/systemd/system/docker.service.d/http-proxy.conf/https-proxy.conf
 
 5. Copy the text below with your {proxy_address:port} for the https proxy in the https-proxy.conf file
 
