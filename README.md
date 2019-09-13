@@ -90,6 +90,14 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 
 The DBGenerator.py script from (https://github.com/microgenomics/tutorials)[https://github.com/microgenomics/tutorials] is used to create an SQL database from the Roary output.
 
+Python modules and software used for the GUI:
+
+[flask](https://github.com/pallets/flask)
+[flask-wtf](https://github.com/lepture/flask-wtf)
+[gunicorn](https://gunicorn.org/)
+[MyDaemon](https://github.com/emrahcom/MyDaemon)
+
+
 ## Run settings
 |Section|Command line option [Input]|Description|Default|
 |--|--|--|--|
