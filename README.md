@@ -49,22 +49,29 @@
 #### Use the pipeline with the command line
 
 * After the docker run command open a new terminal
-* $ sudo docker exec -it speciesprimer bash
-* This will open an interactive terminal in the docker container
-* Download the nt BLAST DB:
-* In the Docker container terminal:
-* $ getblastdb.py -dbpath /home/blastdb --delete
-* or alternatively
-* $ cd /home/blastdb
-* $ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
-* $ cd /home/primerdesign
-* Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
-* $ nano /home/pipeline/dictionaries/species_list.txt
-* $ nano /home/pipeline/p3parameters
-* $ nano /home/pipeline/NO_Blast/NO_BLAST.gi
-* Start primer design
-* $ speciesprimer.py
 
+		# open an interactive terminal in the docker container
+		$ sudo docker exec -it speciesprimer bash
+
+* Download the nt BLAST DB:
+
+		$ getblastdb.py -dbpath /home/blastdb --delete
+
+* or alternatively
+
+		$ cd /home/blastdb
+		update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+		$ cd /home/primerdesign
+
+* Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
+
+		$ nano /home/pipeline/dictionaries/species_list.txt
+		$ nano /home/pipeline/p3parameters
+		$ nano /home/pipeline/NO_Blast/NO_BLAST.gi
+
+* Start primer design
+
+		$ speciesprimer.py
 
 # Introduction
 The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.
