@@ -13,7 +13,7 @@ This list is read during the initial stage of the pipeline runs and temporally s
 ## species_list.txt
 
 The provided list contains bacterial species found in milk and cheese.
-The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs. It should contain the typical bacterial species you expect to be in the ecosystem you want to investigate with your PCR assay. (Including your target species.
+The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs. It should contain the typical bacterial species you expect to be in the ecosystem you want to investigate with your PCR assay. Include also your target species, so the list can be reused for different targets, the pipeline filters this list at the beginning of a new run and writes the list of non-target species to the config file.
 
 Create a species_list.txt file (one species name per line) or adapt it according to your needs. The pipeline reads the list during the initial steps of the run and these species names are then used to evaluate the BLAST results (NCBI pre-formatted nt database).
 
@@ -43,6 +43,6 @@ As an alternative if the Entrez EDirect Utility and the BLAST+ command line appl
 
 __Example__
 
-    $ get_species_taxids.sh -t 2 > /home/pipeline/dictionaries/2.txids
+    $ get_species_taxids.sh -t 2 > $HOME/speciesprimer/pipeline/dictionaries/2.txids
 
 
