@@ -232,9 +232,9 @@ class Input:
         if "customdb" not in self.config_dict[target].keys():
             print("\n" + target + ":")
             customdb = input(
-                "Do you want to use a custom database for blastn?"
+                "Do you want to use a custom database for blastn?\n"
                 "Type the absolute filepath the custom database or hit return"
-                "to skip, default=None")
+                " to skip, default=None\n> ")
             if type(customdb) == str and len(customdb) > 0:
                 if os.path.isfile(customdb + ".nsq"):
                     customdb = customdb
@@ -523,9 +523,30 @@ class Input:
 
             print("intermediate", intermediate)
 
-    def no_nolist(self, target, index, listlen):
+    def get_nolist(self, target, index, listlen):
         if "nolist" not in self.config_dict[target].keys():
-            self.config_dict[target].update({"nolist": False})
+#            self.config_dict[target].update({"nolist": False})
+            print("\n" + target + ":")
+            nolist = input(
+                "Do you want to perform specificity check without the "
+                "(non-target) species list (for all sequences in the DB)?"
+                "\nNot recommended for nt DB! May be used with a custom DB"
+                "\ndefault=(n)\n> ")
+
+            if nolist.lower() == ("y" or "yes"):
+                nolist = True
+            else:
+                nolist = False
+            if index == 0:
+                if not self.value_for_all(
+                    "nolist", nolist, listlen
+                ):
+                    self.config_dict[target].update(
+                        {"nolist": nolist})
+            else:
+                self.config_dict[target].update({"nolist": nolist})
+
+            print("nolist", nolist)
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
@@ -581,7 +602,7 @@ class Input:
             self.no_singleton(target, i, listlen)
             self.get_intermediate(target, i, listlen)
             self.ignore_qc(target, i, listlen)
-            self.no_nolist(target, i, listlen)
+            self.get_nolist(target, i, listlen)
 
         for target in self.target_list:
             self.write_config_file(target)

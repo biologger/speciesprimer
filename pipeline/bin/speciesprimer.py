@@ -2306,10 +2306,13 @@ class BlastParser:
         return selected_seqs
 
     def get_seq_range(self, db_id, overhang=2000):
-        if self.config.blastdbv5:
-            db = "nt_v5"
+        if self.config.customdb is not None:
+            db = self.config.customdb
         else:
-            db = "nt"
+            if self.config.blastdbv5:
+                db = "nt_v5"
+            else:
+                db = "nt"
         accession = db_id[0]
         seq_start = int(db_id[1])
         if seq_start > overhang:
@@ -4122,7 +4125,7 @@ def commandline():
     parser.add_argument(
         "--nolist", action="store_true", help="Species list is not used"
         " and only sequences without blast hits are used for primer design "
-        "[Experimental, not recommended!]")
+        "[Experimental, not recommended for nt DB!]")
     parser.add_argument(
         "--blastdbv5", action="store_true", help="If you have a local copy "
         " of the nt_v5 BLAST database select this option")
