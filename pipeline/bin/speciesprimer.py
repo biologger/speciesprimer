@@ -2049,11 +2049,18 @@ class BlastParser:
             subject_start = hsp.sbjct_start
             align_length = hsp.align_length
             nuc_ident = hsp.identities
-
+            
             identity = False
-            gi = alignment.title.split("|")[1].strip()
-            db_id = alignment.title.split("|")[3].strip()
-            name_long = alignment.title.split("|")[4].split(",")[0].strip(" ")
+            if self.config.customdb is not None:
+                gi = alignment.title.split("|")[1].strip()
+                db_id = alignment.title.split("|")[1].strip()
+                name_long = alignment.title.split("|")[-1].split(",")[0].strip(" ")
+                 
+            else:
+                gi = alignment.title.split("|")[1].strip()
+                db_id = alignment.title.split("|")[3].strip()
+                name_long = alignment.title.split("|")[4].split(",")[0].strip(" ")
+            
             if re.search("PREDICTED", name_long):
                 pass
             else:

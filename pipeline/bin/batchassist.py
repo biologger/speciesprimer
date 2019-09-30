@@ -233,7 +233,8 @@ class Input:
             print("\n" + target + ":")
             customdb = input(
                 "Do you want to use a custom database for blastn?\n"
-                "Type the absolute filepath the custom database or hit return"
+                "Specifiy the absolute filepath of the custom database "
+                "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
                 " to skip, default=None\n> ")
             if type(customdb) == str and len(customdb) > 0:
                 if os.path.isfile(customdb + ".nsq"):
