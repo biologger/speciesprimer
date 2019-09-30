@@ -80,7 +80,7 @@ class Config:
         offline = self.config_dict[target]["offline"]
         ignore_qc = self.config_dict[target]["ignore_qc"]
         mfethreshold = self.config_dict[target]["mfethreshold"]
-        remoteblast = self.config_dict[target]["remoteblast"]
+        customdb = self.config_dict[target]["customdb"]
         blastseqs = self.config_dict[target]["blastseqs"]
         probe = self.config_dict[target]["probe"]
         blastdbv5 = self.config_dict[target]["blastdbv5"]
@@ -89,7 +89,7 @@ class Config:
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            remoteblast, blastseqs, probe, blastdbv5)
+            customdb, blastseqs, probe, blastdbv5)
 
 
 class CLIconf:
@@ -98,7 +98,7 @@ class CLIconf:
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            remoteblast, blastseqs, probe, blastdbv5):
+            customdb, blastseqs, probe, blastdbv5):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -116,7 +116,7 @@ class CLIconf:
         self.offline = offline
         self.ignore_qc = ignore_qc
         self.mfethreshold = mfethreshold
-        self.remoteblast = remoteblast
+        self.customdb = customdb
         self.blastseqs = blastseqs
         self.probe = probe
         self.blastdbv5 = blastdbv5
@@ -140,7 +140,7 @@ class CLIconf:
         config_dict.update({"offline": self.offline})
         config_dict.update({"ignore_qc": self.ignore_qc})
         config_dict.update({"mfethreshold": self.mfethreshold})
-        config_dict.update({"remoteblast": self.remoteblast})
+        config_dict.update({"customdb": self.customdb})
         config_dict.update({"blastseqs": self.blastseqs})
         config_dict.update({"probe": self.probe})
         config_dict.update({"blastdbv5": self.blastdbv5})
@@ -1941,8 +1941,7 @@ class Blast:
                 str(cores), "-query", blastfile,
                 "-evalue", "500", "-out", filename, "-outfmt", "5"]
 
-        if self.config.remoteblast:
-            blast_cmd.append("-remote")
+
 
         if self.config.blastdbv5:
             if self.mode == "quality_control":
@@ -1956,10 +1955,16 @@ class Blast:
                 blast_cmd.append(taxidlist)
 
             blast_cmd.append("-db")
-            blast_cmd.append("nt_v5")
+            if self.config.customdb:
+                blast_cmd.append(self.config.customdb)
+            else:
+                blast_cmd.append("nt_v5")
         else:
             blast_cmd.append("-db")
-            blast_cmd.append("nt")
+            if self.config.customdb:
+                blast_cmd.append(self.config.customdb)
+            else:            
+                blast_cmd.append("nt")
 
         return blast_cmd
 
@@ -4110,8 +4115,7 @@ def commandline():
         "--blastseqs", type=int, choices=[100, 500, 1000, 2000, 5000],
         help="Set the number of sequences per BLAST search. "
         "Decrease the number of sequences if BLAST slows down due to low "
-        "memory or if you use the BLAST remote option, default=1000",
-        default=1000)
+        "memory, default=1000", default=1000)
     parser.add_argument(
         "--probe", action="store_true", help="Primer3 designs also an "
         "internal oligo [Experimental!]")
@@ -4129,8 +4133,8 @@ def commandline():
         "--ignore_qc", action="store_true", help="Genomes which do not"
         " pass quality control are included in the analysis")
     parser.add_argument(
-        "--remote", action="store_true", help="Use remote option of BLAST+"
-        "(Can be very slow, not recommended)")
+        "--customdb", type=str, default=None, 
+        help="Absolute filepath of a custom database for blastn")
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.0.1")
@@ -4190,7 +4194,7 @@ def main(mode=None):
                 minsize, maxsize, mpprimer, exception, target, path,
                 intermediate, qc_gene, mfold, skip_download,
                 assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, remoteblast,
+                offline, ignore_qc, mfethreshold, customdb,
                 blastseqs, probe, blastdbv5
             ) = conf_from_file.get_config(target)
             if nolist:
@@ -4199,7 +4203,7 @@ def main(mode=None):
                     minsize, maxsize, mpprimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, remoteblast,
+                    nolist, offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, blastdbv5)
             else:
                 nontargetlist = H.create_non_target_list(target)
@@ -4207,7 +4211,7 @@ def main(mode=None):
                     minsize, maxsize, mpprimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, remoteblast,
+                    nolist, offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, blastdbv5)
         else:
             if args.nolist:
@@ -4221,7 +4225,7 @@ def main(mode=None):
                 args.qc_gene, args.mfold, args.skip_download,
                 args.assemblylevel, nontargetlist,
                 args.skip_tree, args.nolist, args.offline,
-                args.ignore_qc, args.mfethreshold, args.remote,
+                args.ignore_qc, args.mfethreshold, args.customdb,
                 args.blastseqs, args.probe, args.blastdbv5)
 
         today = time.strftime("%Y_%m_%d", time.localtime())
