@@ -164,7 +164,7 @@ def update_db(sub_dict, target, data):
     (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = data
     sub_dict.update({
             'target': target,
@@ -172,8 +172,8 @@ def update_db(sub_dict, target, data):
             'exception': exception, 'path': path, 'intermediate': intermediate,
             'qc_gene': qc_genes, 'mfold': mfold, 'skip_download': skip_download,
             'assemblylevel': assemblylevel, 'skip_tree': skip_tree,
-            'nolist': False, 'offline': offline, 'ignore_qc': ignore_qc,
-            'mfethreshold': mfeprimer_threshold, 'remoteblast': remoteblast,
+            'nolist': nolist, 'offline': offline, 'ignore_qc': ignore_qc,
+            'mfethreshold': mfeprimer_threshold, 'customdb': customdb,
             'blastseqs': blastseqs, 'probe': designprobe, 'blastdbv5': blastdbv5})
     return sub_dict
 
@@ -183,14 +183,14 @@ def reset_settings(form):
     form.assemblylevel.data, form.skip_tree.data, form.exception.data,
     form.minsize.data, form.maxsize.data, form.designprobe.data,
     form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
-    form.work_offline.data, form.remoteblast.data, form.blastseqs.data,
-    form.blastdbv5.data, form.intermediate.data
+    form.work_offline.data, form.customdb.data, form.blastseqs.data,
+    form.blastdbv5.data, form.intermediate.data, form.nolist.data
     ) = (
     ["rRNA"], False, False,
     ["all"], False, None,
     70, 200, False,
     -3.0, -3.5, 90,
-    False, False, 1000, False, False)
+    False, False, 1000, False, False, False)
     return form
 
 
@@ -203,15 +203,16 @@ def load_settings(tmp_db):
     assemblylevel, skip_tree, exception,
     minsize, maxsize, designprobe,
     mfold,mpprimer, mfeprimer_threshold,
-    work_offline, remoteblast, blastseqs,
-    change_wd, blastdbv5, intermediate
+    work_offline, customdb, blastseqs,
+    change_wd, blastdbv5, intermediate, nolist
     ) = (
     settings["qc_gene"], settings["ignore_qc"], settings["skip_download"],
     settings["assemblylevel"], settings["skip_tree"], settings["exception"],
     settings["minsize"], settings["maxsize"], settings["probe"],
     settings["mfold"], settings["mpprimer"], settings["mfethreshold"],
-    settings["offline"], settings["remoteblast"], settings["blastseqs"],
-    settings['path'], settings['blastdbv5'], settings["intermediate"]
+    settings["offline"], settings["customdb"], settings["blastseqs"],
+    settings['path'], settings['blastdbv5'], settings["intermediate"], 
+    settings['nolist']
     )
     
     data = {
@@ -219,32 +220,30 @@ def load_settings(tmp_db):
         "assemblylevel": assemblylevel, "skip_tree": skip_tree, "exception": exception,
         "minsize": minsize, "maxsize": maxsize, "designprobe": designprobe,
         "mfold": mfold, "mpprimer": mpprimer, "mfeprimer_threshold": mfeprimer_threshold,
-        "work_offline": work_offline, "remoteblast": remoteblast, "blastseqs": blastseqs,
-        "change_wd": change_wd, "blastdbv5": blastdbv5, "intermediate": intermediate}
+        "work_offline": work_offline, "customdb": customdb, "blastseqs": blastseqs,
+        "change_wd": change_wd, "blastdbv5": blastdbv5, 
+        "intermediate": intermediate, "nolist": nolist}
     return data
 
 def get_settings(form):
     (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = (
         form.qc_genes.data, form.ignore_qc.data,form.skip_download.data,
         form.assemblylevel.data, form.skip_tree.data, form.exception.data,
         form.minsize.data, form.maxsize.data, form.designprobe.data,
         form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
-        form.work_offline.data, form.remoteblast.data, form.blastseqs.data,
-        form.change_wd.data, form.blastdbv5.data, form.intermediate.data
+        form.work_offline.data, form.customdb.data, form.blastseqs.data,
+        form.change_wd.data, form.blastdbv5.data, form.intermediate.data,
+        form.nolist.data
         )
     if offline:
         skip_download = True
-        remoteblast = False
         assemblylevel = ['offline']
     if skip_download:
         assemblylevel = ['offline']
-    if remoteblast:
-        blastseqs = 500
-        blastdbv5 = False
     if exception == '':
         exception = None
     elif exception is not None:
@@ -254,7 +253,7 @@ def get_settings(form):
     return (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate)
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist)
 
 
 @app.route('/settings', methods=['GET', 'POST'])

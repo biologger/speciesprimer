@@ -131,17 +131,28 @@
     {{ form.intermediate() }} <strong>{{ form.intermediate.label }}</strong> (--intermediate)
     </p>
     <p>
-      <strong>Not recommended!</strong>
+
       <br>
-      Only needed if no local copy of the nt database is available. Can be very slow.
+      Only needed if no local copy of the nt database is available.
+      Specifiy the absolute filepath of the custom database (e.g. '/home/blastdb/nontarget.fasta')
       <br>
       <br>
-      {{ form.remoteblast() }} <strong>{{ form.remoteblast.label }}</strong> (--remote)
+      {{ form.customdb() }} <strong>{{ form.customdb.label }}</strong> (--customdb)
     </p>      
     <p>
+    
+      <strong>Not recommended!</strong>
+      <br>
+      May be used for custom BLAST DBs. May increase time for primer QC.
+
+      <br>
+      <br>
+      {{ form.nolist() }} <strong>{{ form.nolist.label }}</strong> (--nolist)
+    </p>      
+    <p>    
       <strong>{{ form.blastseqs.label }}</strong> (--blastseqs)
       <br>
-      lower values are recommended for remoteblast and computers with less than 16 GB of RAM.<br>
+      lower values are recommended for computers with less than 16 GB of RAM.<br>
       higher values for fast computers with at least 32 GB RAM (can slightly increase the BLAST speed). 
       See also: <a href="https://www.ncbi.nlm.nih.gov/books/NBK279668/" target="_blank">Section: Concatenation of queries</a> 
       <br>
