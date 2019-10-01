@@ -3920,7 +3920,7 @@ class Summary:
             filepath = os.path.join(self.pangenome_dir, filename)
             if filename.endswith("core_gene_alignment.aln"):
                 shutil.copy(filepath, self.summ_dir)
-            if filename.endswith("_tree.newick"):
+            if filename.endswith("_tree.nwk"):
                 shutil.copy(filepath, self.summ_dir)
             if filename.endswith("Rplots.pdf"):
                 shutil.copy(filepath, self.summ_dir)
