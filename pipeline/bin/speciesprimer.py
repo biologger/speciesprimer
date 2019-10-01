@@ -177,7 +177,7 @@ class DataCollection():
             try:
                 mail = tmp_db['email']
                 if '@' and '.' in mail:
-                    email = line.strip()
+                    email = mail.strip()
             except KeyError:
                 email = input(
                     "To make use of NCBI's E-utilities, "
