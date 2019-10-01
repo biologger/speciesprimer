@@ -246,6 +246,8 @@ def get_settings(form):
         assemblylevel = ['offline']
     if exception == '':
         exception = None
+    if customdb == "":
+        customdb = None
     elif exception is not None:
         exception = '_'.join(exception.strip(' ').split(' '))
     if 'all' in assemblylevel:
