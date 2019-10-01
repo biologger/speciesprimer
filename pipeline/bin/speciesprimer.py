@@ -910,9 +910,25 @@ class QualityControl:
 
         def get_blastresults_info(blast_record, index):
             alninfo = str(blast_record.alignments[index])
-            short = alninfo.split("|")[4].strip(" ").split(" ")
-            gi = alninfo.split("|")[1].strip(" ")
-            db_id = alninfo.split("|")[3].strip(" ")
+            if self.config.customdb is not None:                
+                if len(alninfo.split("|")) == 3:
+                    di = [1, 1, -1]
+                elif len(alninfo.split("|")) > 3:
+                    di = [1, 3, -1]
+                else:
+                    warn = (
+                        "Data is missing in the custom BLAST DB. At least "
+                        "a unique sequence identifier and the species name "
+                        "is required for each entry")
+                    
+                    print("\n" + warn + "\n")
+                    G.logger(warn)
+            else:
+                di = [1, 3, -1]
+
+            gi = alninfo.split("|")[di[0]].strip(" ")
+            db_id = alninfo.split("|")[di[1]].strip(" ")
+            short = alninfo.split("|")[di[2]].strip(" ").split(" ")
             if "subsp." in short:
                 spec = str(
                     " ".join(short[0:2]) + " " + short[2].split(".")[0]
@@ -2052,14 +2068,24 @@ class BlastParser:
             
             identity = False
             if self.config.customdb is not None:
-                gi = alignment.title.split("|")[1].strip()
-                db_id = alignment.title.split("|")[1].strip()
-                name_long = alignment.title.split("|")[-1].split(",")[0].strip(" ")
-                 
+                if len(alignment.title.split("|")) == 3:
+                    di = [1, 1, -1]
+                elif len(alignment.title.split("|")) > 3:
+                    di = [1, 3, -1]
+                else:
+                    warn = (
+                        "Data is missing in the custom BLAST DB. At least "
+                        "a unique sequence identifier and the species name "
+                        "is required for each entry")
+                    
+                    print("\n" + warn + "\n")
+                    G.logger(warn)
             else:
-                gi = alignment.title.split("|")[1].strip()
-                db_id = alignment.title.split("|")[3].strip()
-                name_long = alignment.title.split("|")[4].split(",")[0].strip(" ")
+                di = [1, 3, -1]
+                
+            gi = alignment.title.split("|")[di[0]].strip()
+            db_id = alignment.title.split("|")[di[1]].strip()
+            name_long = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
             
             if re.search("PREDICTED", name_long):
                 pass
@@ -3992,8 +4018,7 @@ class Summary:
                             blast_dict = json.loads(line)
 
                     for key in blast_dict.keys():
-                        for species in blast_dict[key]:
-                            for speciesname in species.keys():
+                        for speciesname in blast_dict[key]:
                                 if speciesname not in specieslist:
                                     specieslist.append(speciesname)
                 except FileNotFoundError:
@@ -4007,8 +4032,7 @@ class Summary:
                             primerblast_dict = json.loads(line)
 
                     for key in primerblast_dict.keys():
-                        for species in primerblast_dict[key]:
-                            for speciesname in species.keys():
+                        for speciesname in primerblast_dict[key]:
                                 if speciesname not in specieslist:
                                     specieslist.append(speciesname)
                 except FileNotFoundError:
