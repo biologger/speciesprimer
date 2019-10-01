@@ -177,7 +177,7 @@ class DataCollection():
             try:
                 mail = tmp_db['email']
                 if '@' and '.' in mail:
-                    email = line.strip()
+                    email = mail.strip()
             except KeyError:
                 email = input(
                     "To make use of NCBI's E-utilities, "
@@ -247,7 +247,7 @@ class DataCollection():
                     for gi in removed_gis:
                         f.write(gi + "\n")
 
-    def get_ncbi_links(self, taxid, email):
+    def get_ncbi_links(self, taxid, email, maxrecords=2000 ):
 
         def collect_genomedata(taxid, email):
             genomedata = []
@@ -256,7 +256,8 @@ class DataCollection():
             assembly_search = Entrez.esearch(
                 db="assembly",
                 term="txid" + str(taxid) + "[Orgn]",
-                retmax=2000)
+                retmax=maxrecords)
+
             assembly_record = Entrez.read(assembly_search)
             uidlist = assembly_record["IdList"]
             assembly_efetch = Entrez.efetch(
@@ -264,6 +265,7 @@ class DataCollection():
                 id=uidlist,
                 rettype="docsum",
                 retmode="xml")
+
             assembly_records = Entrez.read(assembly_efetch)
 
             with open("genomicdata.json", "w") as f:
@@ -567,7 +569,7 @@ class DataCollection():
             print("\n" + info)
             print(excluded)
 
-        return annotation_dirs
+        return annotation_dirs, annotated
 
     def create_taxidlist(self, taxid):
         # removes the target species taxid from the taxidlist
@@ -615,7 +617,7 @@ class DataCollection():
             os.chdir(self.target_dir)
 
         self.create_GI_list()
-        annotation_dirs = self.run_prokka()
+        annotation_dirs, annotated = self.run_prokka()
         self.copy_genome_files()
 
         if self.config.intermediate is False:
