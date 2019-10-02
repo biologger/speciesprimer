@@ -667,197 +667,192 @@ class QualityControl:
                         excluded_gis.append(str(gi))
         return excluded_gis
 
+    def search_qc_gene(self, file_name, qc_gene):
+        with open(os.path.join(self.gff_dir, file_name), "r") as f:
+            for line in f:
+                if self.searchdict[qc_gene] in line:
+                    gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
+                    if gene not in self.qc_gene_search:
+                        self.qc_gene_search.append(gene)
+
+    def count_contigs(self, gff_list, contiglimit):
+        exclude = []
+        for dirs in os.listdir(self.target_dir):
+            if dirs not in systemdirs:
+                path = os.path.join(self.target_dir, dirs)
+                if os.path.isdir(path):
+                    for files in os.listdir(path):
+                        if files.endswith(".fna"):
+                            contigcount = 0
+                            filepath = os.path.join(path, files)
+                            file = files.split(".fna")[0]
+                            for line in open(filepath).readlines():
+                                if ">" in line:
+                                    contigcount += 1
+                            if contigcount >= contiglimit:
+                                exclude.append(file)
+
+        if len(exclude) > 0:
+            for item in exclude:
+                if item + ".gff" in gff_list:
+                    gff_list.remove(item + ".gff")
+                data = [item, "", "", "", "", "Max contigs"]
+                if data not in self.contig_ex:
+                    self.contig_ex.append(data)
+            info = (
+                "skip " + str(len(self.contig_ex))
+                + " Genome(s) with more than " + str(self.contiglimit)
+                + " contigs")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
+
+    def identify_duplicates(self, gff_list):
+        duplicate = []
+        duplicate_test = []
+        keep = []
+        remove_older_version = []
+
+        def find_potential_duplicates():
+            for item in gff_list:
+                name = '_'.join(item.split(".gff")[0].split("_")[0:-1])
+                if (("GCA" or "GCF") and "v") in name:
+                    version = name.split("_")[-1].split("v")[1]
+                    common = name.split("v")[0]
+                    if int(version) > 1:
+                        if common not in duplicate:
+                            duplicate.append(common)
+
+        def test_if_duplicate(duplicate):
+            for y in duplicate:
+                del duplicate_test[:]
+                for x in gff_list:
+                    x = "_".join(x.split(".")[0].split("_")[0:-1])
+                    if str(y) in str(x):
+                        if x not in duplicate_test:
+                            duplicate_test.append(x)
+
+                if len(duplicate_test) > 0:
+                    maxi = max(
+                        duplicate_test,
+                        key=lambda item: int(item.split("v")[1])
+                    )
+                    if maxi not in keep:
+                        keep.append(maxi)
+                    duplicate_test.remove(maxi)
+                    for item in duplicate_test:
+                        if item not in remove_older_version:
+                            remove_older_version.append(item)
+
+        find_potential_duplicates()
+        test_if_duplicate(duplicate)
+
+        if len(remove_older_version) > 0:
+            for item in remove_older_version:
+                for gff_file in gff_list:
+                    if item in gff_file:
+                        if gff_file in gff_list:
+                            gff_list.remove(gff_file)
+                        data = [
+                            gff_file.split(".gff")[0],
+                            "", "", "", "", "Duplicate"]
+                        if data not in self.double:
+                            self.double.append(data)
+
+            info = (
+                "skip " + str(len(self.double)) + " duplicate Genome(s) ")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
+
+    # 12.02.2018 change to generate one QC file
+    def check_no_sequence(self, qc_gene, gff):
+        ffn_list = []
+        sub_gff = []
+        sub_gene_search = []
+        for file_name in gff:
+            name = "_".join(file_name.split("_")[:-1])
+            sub_gff.append(name)
+        for seq_id in self.qc_gene_search:
+            seq_name = "_".join(seq_id.split("_")[:-1])
+            sub_gene_search.append(seq_name)
+        no_seq_found = set(sub_gff) - set(sub_gene_search)
+
+        if len(no_seq_found) > 0:
+            for item in no_seq_found:
+                for file_name in gff:
+                    if item in file_name:
+                        gff.remove(file_name)
+                        self.no_seq.append([
+                            file_name.split(".gff")[0],
+                            "", "", "", "", "QC gene missing"])
+
+            info = (
+                "skip " + str(len(self.no_seq)) + " Genome(s) without "
+                + qc_gene + " sequence")
+            print(info)
+            G.logger("> " + info)
+
+        for item in gff:
+            ffn = item.split(".gff")[0] + ".ffn"
+            ffn_list.append(ffn)
+
+        return ffn_list
+
     def get_qc_seqs(self, qc_gene):
         G.logger("Run: get_qc_seqs(" + qc_gene + ")")
         G.logger("> Starting QC with " + qc_gene)
         print("Starting QC with " + qc_gene)
         gff = []
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+        G.create_directory(qc_dir)
+        # find annotation of gene in gff files and store file name
+        for files in os.listdir(self.gff_dir):
+            if files not in gff:
+                gff.append(files)
+        info = "found " + str(len(gff)) + " gff files"
+        G.logger(info)
+        print(info)
 
-        def search_qc_gene(file_name):
-            with open(os.path.join(self.gff_dir, file_name), "r") as f:
-                for line in f:
-                    if self.searchdict[qc_gene] in line:
-                        gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
-                        if gene not in self.qc_gene_search:
-                            self.qc_gene_search.append(gene)
+        if len(gff) > 0:
+            # look for annotations
+            if self.contiglimit > 0:
+                contig_gff_list = self.count_contigs(gff, self.contiglimit)
+                gff_list = self.identify_duplicates(contig_gff_list)
+            else:
+                gff_list = self.identify_duplicates(gff)
 
-        def count_contigs(gff_list, contiglimit):
-            exclude = []
-            for dirs in os.listdir(self.target_dir):
-                if dirs not in systemdirs:
-                    path = os.path.join(self.target_dir, dirs)
-                    if os.path.isdir(path):
-                        for files in os.listdir(path):
-                            if files.endswith(".fna"):
-                                contigcount = 0
-                                filepath = os.path.join(path, files)
-                                file = files.split(".fna")[0]
-                                for line in open(filepath).readlines():
-                                    if ">" in line:
-                                        contigcount += 1
-                                if contigcount >= contiglimit:
-                                    exclude.append(file)
+            for item in gff_list:
+                self.search_qc_gene(item, qc_gene)
 
-            if len(exclude) > 0:
-                for item in exclude:
-                    if item + ".gff" in gff_list:
-                        gff_list.remove(item + ".gff")
-                    data = [item, "", "", "", "", "Max contigs"]
-                    if data not in self.contig_ex:
-                        self.contig_ex.append(data)
-                info = (
-                    "skip " + str(len(self.contig_ex))
-                    + " Genome(s) with more than " + str(self.contiglimit)
-                    + " contigs")
-                print(info)
-                G.logger("> " + info)
-
-            return gff_list
-
-        def identify_duplicates(gff_list):
-            duplicate = []
-            duplicate_test = []
-            keep = []
-            remove_older_version = []
-
-            def find_potential_duplicates():
-                for item in gff_list:
-                    name = '_'.join(item.split(".gff")[0].split("_")[0:-1])
-                    if (("GCA" or "GCF") and "v") in name:
-                        version = name.split("_")[-1].split("v")[1]
-                        common = name.split("v")[0]
-                        if int(version) > 1:
-                            if common not in duplicate:
-                                duplicate.append(common)
-
-            def test_if_duplicate(duplicate):
-                for y in duplicate:
-                    del duplicate_test[:]
-                    for x in gff_list:
-                        x = "_".join(x.split(".")[0].split("_")[0:-1])
-                        if str(y) in str(x):
-                            if x not in duplicate_test:
-                                duplicate_test.append(x)
-
-                    if len(duplicate_test) > 0:
-                        maxi = max(
-                            duplicate_test,
-                            key=lambda item: int(item.split("v")[1])
-                        )
-                        if maxi not in keep:
-                            keep.append(maxi)
-                        duplicate_test.remove(maxi)
-                        for item in duplicate_test:
-                            if item not in remove_older_version:
-                                remove_older_version.append(item)
-
-            find_potential_duplicates()
-            test_if_duplicate(duplicate)
-
-            if len(remove_older_version) > 0:
-                for item in remove_older_version:
-                    for gff_file in gff_list:
-                        if item in gff_file:
-                            if gff_file in gff_list:
-                                gff_list.remove(gff_file)
-                            data = [
-                                gff_file.split(".gff")[0],
-                                "", "", "", "", "Duplicate"]
-                            if data not in self.double:
-                                self.double.append(data)
-
-                info = (
-                    "skip " + str(len(self.double)) + " duplicate Genome(s) ")
-                print(info)
-                G.logger("> " + info)
-
-            return gff_list
-
-        # 12.02.2018 change to generate one QC file
-        def check_no_sequence(qc_gene, gff):
-            ffn_list = []
-            sub_gff = []
-            sub_gene_search = []
-            for file_name in gff:
-                name = "_".join(file_name.split("_")[:-1])
-                sub_gff.append(name)
-            for seq_id in self.qc_gene_search:
-                seq_name = "_".join(seq_id.split("_")[:-1])
-                sub_gene_search.append(seq_name)
-            no_seq_found = set(sub_gff) - set(sub_gene_search)
-
-            if len(no_seq_found) > 0:
-                for item in no_seq_found:
-                    for file_name in gff:
-                        if item in file_name:
-                            gff.remove(file_name)
-                            self.no_seq.append([
-                                file_name.split(".gff")[0],
-                                "", "", "", "", "QC gene missing"])
-
-                info = (
-                    "skip " + str(len(self.no_seq)) + " Genome(s) without "
-                    + qc_gene + " sequence")
-                print(info)
-                G.logger("> " + info)
-
-            for item in gff:
-                ffn = item.split(".gff")[0] + ".ffn"
-                ffn_list.append(ffn)
-
-            return ffn_list
-
-        def run_get_qc_seqs():
-            G.create_directory(qc_dir)
-            # find annotation of gene in gff files and store file name
-            for files in os.listdir(self.gff_dir):
-                if files not in gff:
-                    gff.append(files)
-            info = "found " + str(len(gff)) + " gff files"
+            info = (
+                "found " + str(len(self.qc_gene_search)) + " "
+                + qc_gene + " annotations in gff files")
             G.logger(info)
             print(info)
 
-            if len(gff) > 0:
-                # look for annotations
-                if self.contiglimit > 0:
-                    contig_gff_list = count_contigs(gff, self.contiglimit)
-                    gff_list = identify_duplicates(contig_gff_list)
-                else:
-                    gff_list = identify_duplicates(gff)
+            ffn_check = self.check_no_sequence(qc_gene, gff_list)
 
-                for item in gff_list:
-                    search_qc_gene(item)
+            # search sequences in ffn files
+            for files in os.listdir(self.ffn_dir):
+                if files in ffn_check:
+                    if files not in self.ffn_list:
+                        self.ffn_list.append(files)
+            info = (
+                    "selected " + str(len(self.ffn_list)) + " "
+                    + qc_gene + " sequences from ffn files")
+            G.logger(info)
+            print(info)
 
-                info = (
-                    "found " + str(len(self.qc_gene_search)) + " "
-                    + qc_gene + " annotations in gff files")
-                G.logger(info)
-                print(info)
-
-                ffn_check = check_no_sequence(qc_gene, gff_list)
-
-                # search sequences in ffn files
-                for files in os.listdir(self.ffn_dir):
-                    if files in ffn_check:
-                        if files not in self.ffn_list:
-                            self.ffn_list.append(files)
-                info = (
-                        "selected " + str(len(self.ffn_list)) + " "
-                        + qc_gene + " sequences from ffn files")
-                G.logger(info)
-                print(info)
-
-            else:
-                error_msg = "Error: No .gff files found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                return 1
-            return 0
-
-        status = run_get_qc_seqs()
-        return status
+        else:
+            error_msg = "Error: No .gff files found"
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            return 1
+        return 0
 
     def choose_sequence(self, qc_gene):
         """ find files and choose the longest sequence
