@@ -15,6 +15,8 @@ sys.path.append(new_path)
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 
+COMPLETE_TEST = False
+
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
@@ -22,7 +24,7 @@ confargs = {
     "offline": False,
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
-    "customdb": None, "assemblylevel": ["all"], "qc_gene": ["tuf"],
+    "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "blastdbv5": True, "intermediate": False, "nontargetlist": []}
 
 class AttrDict(dict):
@@ -74,6 +76,8 @@ def test_auto_run_config():
     t = os.path.join(BASE_PATH, "tests", "testfiles", "tmp_config.json")
     # Docker only
     tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+    if os.path.isfile(tmp_path):
+        os.remove(tmp_path)
     shutil.copy(t, tmp_path)
     targets, conf_from_file, use_configfile = auto_run()
 
@@ -130,7 +134,8 @@ def test_DataCollection(config, printer):
         from urllib.request import urlopen
         try:
             response = urlopen('https://www.google.com/', timeout=5)
-            return True
+#            return True
+            return False # for dev
         except: 
             print("No internet connection!!! Skip online tests")
             return False    
@@ -145,6 +150,10 @@ def test_DataCollection(config, printer):
     def test_ncbi_download(taxid, email):
         DC.get_ncbi_links(taxid, email, 1)
         DC.ncbi_download()
+        # clean up
+        fna = os.path.join(config.path, config.target, "genomic_fna")
+        shutil.rmtree(fna)
+        G.create_directory(fna)
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
@@ -175,11 +184,270 @@ def test_DataCollection(config, printer):
     if internet_connection(printer):
         taxid = test_get_taxid(config)
         test_ncbi_download(taxid, email)
+    else:
+        G.create_directory(DC.gff_dir)
+        G.create_directory(DC.ffn_dir)
+        G.create_directory(DC.fna_dir)
     test_prokka_is_installed()
     prepare_prokka(config)
-    test_run_prokka()
+    test_run_prokka()        
+
+    
+
+def test_QualityControl(config):
+    testdir = os.path.join(BASE_PATH, "tests", "testfiles")
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    targetdir = os.path.join(config.path, config.target)
+    config.blastdbv5 = False
+    qc_gene = config.qc_gene[0]
+    G.create_directory(tmpdir)
+    config.customdb = os.path.join(tmpdir, "customdb.fas")
+    
+    
+    def create_customblastdb():
+        infile = os.path.join(testdir, "customdb.fas")
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title", 
+            "mock16SDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+    
+#     makeblastdb -in nontargetseqs.fas -parse_seqids -title nontargetDB -dbtype nucl
+    from speciesprimer import QualityControl
+    QC = QualityControl(config)
+
+    def make_duplicate(filename):
+        lines = []
+        with open(filename, "r") as f:
+            for line in f:
+                if "v1" in line:
+                    line = "v2".join(line.split("v1"))
+                    lines.append(line)
+                else:
+                    lines.append(line)
+        with open(filename, "w") as f:
+            for line in lines:
+                f.write(line)
+        
+    
+    def prepare_QC_testfiles(config):
+        # GCF_004088235v1_20191001
+        testcases = ["004088235v1_20191001", "maxcontigs_date", "noseq_date", "duplicate"]
+        fileformat = ["fna", "gff", "ffn"]
+        for testcase in testcases:
+            for fo in fileformat:
+                for files in os.listdir(testdir):
+                    if files.endswith("."+fo):                      
+                        fromfile = os.path.join(testdir, files)
+                        if testcase == "duplicate":
+                            files = "v2".join(files.split("v1"))
+                            tofile = os.path.join(
+                                targetdir, fo + "_files", files)
+                            shutil.copy(fromfile, tofile)
+                            make_duplicate(tofile)
+                        else:
+                            tofile =  os.path.join(
+                                targetdir, fo + "_files", 
+                                "GCF_" + testcase + "." + fo)
+                            shutil.copy(fromfile, tofile)
+                        
+        def make_maxcontigs():
+            name = "GCF_maxcontigs_date.fna"
+            filepath = os.path.join(targetdir, "fna_files", name)
+            nonsense = ">nonsense_contig\nATTAG\n"
+            with open(filepath, "w") as f:
+                for i in range(0,500):
+                    f.write(nonsense)
+                    
+        def remove_qc_seq():
+            keeplines = []
+            name = "GCF_noseq_date.ffn"
+            filepath = os.path.join(targetdir, "ffn_files", name)
+            with open(filepath, "r") as f:
+                for line in f:
+                    keeplines.append(line)
+            
+            for gene in QC.searchdict.values():    
+                for index, line in enumerate(keeplines):
+                    if gene in line:
+                        del keeplines[index]
+            
+            with open(filepath, "w") as f:
+                for line in keeplines:
+                    f.write(line)
+
+        make_maxcontigs()
+        remove_qc_seq()
+
+    
+    prepare_QC_testfiles(config)
+    create_customblastdb()
+
+    def prepare_GI_list():
+        filepath = os.path.join(QC.config_dir, "NO_Blast.gi")
+        with open(filepath, "w") as f:
+            f.write("1231231231")
+            
+    def remove_GI_list():
+        filepath = os.path.join(QC.config_dir, "NO_Blast.gi")
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+
+    # test without GI list QC should fail
+    def test_get_excluded_gis():
+        remove_GI_list()
+        excluded_gis = QC.get_excluded_gis()
+        assert excluded_gis == []    
+        prepare_GI_list()
+        excluded_gis = QC.get_excluded_gis()
+        assert excluded_gis == ["1231231231"]  
+        remove_GI_list()
+        excluded_gis = QC.get_excluded_gis()
+        assert excluded_gis == []
+        
+    def test_search_qc_gene():
+        gff = []
+        for files in os.listdir(QC.gff_dir):
+            if files not in gff:
+                gff.append(files)
+        for file_name in gff:
+            QC.search_qc_gene(file_name, qc_gene)
+        assert len(QC.qc_gene_search) == 12
+        return gff
+
+    def test_count_contigs(gff_list, contiglimit):
+        gff_list = QC.count_contigs(gff_list, contiglimit)
+        assert gff_list == [
+                'GCF_noseq_date.gff', 
+                'GCF_004088235v2_20191001.gff', 
+                'GCF_004088235v1_20191001.gff']            
+        return gff_list
+        
+        
+    def test_identify_duplicates(gff_list):
+        gff_list = QC.identify_duplicates(gff_list)
+        assert gff_list == [
+            'GCF_noseq_date.gff',
+            'GCF_004088235v2_20191001.gff']
+        return gff_list
+        
+    def test_check_no_sequence(qc_gene, gff):
+        ffn = QC.check_no_sequence(qc_gene, gff)
+        assert ffn == ['GCF_004088235v2_20191001.ffn']
+        qc_gene = "tuf"
+        ffn = QC.check_no_sequence(qc_gene, gff)
+        assert ffn == ['GCF_004088235v2_20191001.ffn']
+        
+        for files in os.listdir(QC.ffn_dir):
+            if files in ffn:
+                if files not in QC.ffn_list:
+                        QC.ffn_list.append(files)
+        assert len(QC.ffn_list) == 1
+
+    def test_choose_sequence(qc_gene):
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        G.create_directory(qc_dir)
+        qc_seqs = QC.choose_sequence(qc_gene)
+        assert len(qc_seqs) == 1
+        assert len(qc_seqs[0]) == 2
+        assert len(qc_seqs[0][0]) == 23
+        assert len(qc_seqs[0][1]) == 1569
+        return qc_seqs
+        
+    def qc_blast(qc_gene):
+        from speciesprimer import Blast 
+        from speciesprimer import BlastPrep
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        use_cores, inputseqs = BlastPrep(
+                        qc_dir, qc_seqs, qc_gene,
+                        QC.config.blastseqs).run_blastprep()
+        Blast(
+            QC.config, qc_dir, "quality_control"
+            ).run_blast(qc_gene, use_cores)
+
+    def test_qc_blast_parser(gi_list=False):
+        passed = QC.qc_blast_parser(qc_gene)
+        if gi_list is True:
+            assert passed == [[
+                'GCF_004088235v2_00210', '343201711', 
+                'NR_042437', 'Lactobacillus curvatus', 
+                'Lactobacillus curvatus', 'passed QC']]          
+        else:       
+            assert passed == []
+
+    def test_remove_qc_failures():
+        delete = QC.remove_qc_failures(qc_gene)
+        fna_files = os.path.join(QC.ex_dir, "fna_files")
+        genomic_files = os.path.join(QC.ex_dir, "genomic_fna")
+        sumfile = os.path.join(QC.ex_dir, "excluded_list.txt")
+        fna = []
+        genomic = []
+        sumf = []
+        print(delete)
+        for files in os.listdir(fna_files):
+            fna.append(files)
+        for files in os.listdir(genomic_files):
+            genomic.append(files)      
+        with open(sumfile) as f:
+            for line in f:
+                sumf.append(line.strip())
+        assert delete == ['GCF_noseq', 'GCF_maxcontigs', 'GCF_004088235v1']
+        assert fna == [
+            'GCF_004088235v1_20191001.fna', 
+            'GCF_maxcontigs_date.fna', 
+            'GCF_noseq_date.fna']
+        assert genomic == ['GCF_004088235v1_20191001.fna']
+        assert sumf == ['GCF_noseq', 'GCF_maxcontigs', 'GCF_004088235v1']
+
+    test_get_excluded_gis()
+    gff_list = test_search_qc_gene()
+    gff_list = test_count_contigs(gff_list, QC.contiglimit)
+    gff = test_identify_duplicates(gff_list)
+    ffn_list = test_check_no_sequence(qc_gene, gff)
+    qc_seqs = test_choose_sequence(qc_gene)
+    qc_blast(qc_gene)
+    test_qc_blast_parser()
+    # Remove Fake species by GI
+    QC = QualityControl(config)
+    prepare_QC_testfiles(config)
+    prepare_GI_list()
+    gff_list = test_search_qc_gene()
+    gff_list = test_count_contigs(gff_list, QC.contiglimit)
+    gff = test_identify_duplicates(gff_list)
+    ffn_list = test_check_no_sequence(qc_gene, gff)
+    qc_seqs = test_choose_sequence(qc_gene)
+    qc_blast(qc_gene)
+    test_qc_blast_parser(gi_list=True)
+    test_remove_qc_failures()
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    if os.path.isdir(QC.ex_dir):
+        shutil.rmtree(QC.ex_dir)
     
 def test_roary_is_installed():
     cmd = "roary --w"
-    lines = G.read_shelloutput(cmd, printcmd=False, logcmd=False, printoption=False)
+    lines = G.read_shelloutput(
+            cmd, printcmd=False, logcmd=False, printoption=False)
     assert lines[1] == "3.12.0"
+    
+def test_fasttree_is_installed():
+    cmd = "fasttree"
+    lines = G.read_shelloutput(
+        cmd, printcmd=False, logcmd=False, printoption=False)
+    assert lines[0] == "FastTree Version 2.1.11 SSE3, OpenMP (22 threads)"
+    
+def test_skip_pangenome_analysis(config):
+    from speciesprimer import PangenomeAnalysis
+    PA = PangenomeAnalysis(config)
+    G.create_directory(PA.pangenome_dir)
+    fromfile = os.path.join(
+            BASE_PATH, "tests", "testfiles", "gene_presence_absence.csv")
+    tofile = os.path.join(PA.pangenome_dir, "gene_presence_absence.csv")
+    shutil.copy(fromfile, tofile)
+    PA.run_pangenome_analysis()
+
+def test_CoreGenes():
+    pass
+
+def test_CoreGeneSequences():
+    pass
