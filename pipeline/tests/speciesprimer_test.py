@@ -6,6 +6,7 @@ import os
 import sys
 import shutil
 import pytest
+from Bio import SeqIO
 
 
 BASE_PATH = os.path.abspath(__file__).split("tests")[0]
@@ -444,10 +445,152 @@ def test_skip_pangenome_analysis(config):
             BASE_PATH, "tests", "testfiles", "gene_presence_absence.csv")
     tofile = os.path.join(PA.pangenome_dir, "gene_presence_absence.csv")
     shutil.copy(fromfile, tofile)
-    PA.run_pangenome_analysis()
+    exitstat = PA.run_pangenome_analysis()
+    assert exitstat == 2
 
-def test_CoreGenes():
-    pass
+def test_CoreGenes(config):
+    from speciesprimer import CoreGenes
+    CG = CoreGenes(config)
+    os.chdir(CG.pangenome_dir)    
+    def prepare_tests():
+        if os.path.isdir(CG.ffn_dir):
+            shutil.rmtree(CG.ffn_dir)
+        new_ffn_dir = os.path.join(BASE_PATH, "tests", "testfiles", "ffn_files")
+        shutil.copytree(new_ffn_dir, CG.ffn_dir)
+        
+        if os.path.isdir(CG.gff_dir):
+            shutil.rmtree(CG.gff_dir)
+        new_gff_dir = os.path.join(BASE_PATH, "tests", "testfiles", "gff_files")
+        shutil.copytree(new_gff_dir, CG.gff_dir)
+    
+    def test_run_DBGenerator():
+        CG.copy_DBGenerator()
+        dbgpath = os.path.join(CG.pangenome_dir, "DBGenerator.py")
+        assert os.path.isfile(dbgpath) == True
+        CG.run_DBGenerator()
+        genome_locus = os.path.join(CG.pangenome_dir, "genomas_locus.csv")
+        locus_seq = os.path.join(CG.pangenome_dir, "locus_sequence.csv")
+        pangen_locus = os.path.join(CG.pangenome_dir, "pangenoma_locus.csv")
+        pangen = os.path.join(CG.pangenome_dir, "pangenoma.csv")
+        assert os.path.isfile(genome_locus) == True 
+        assert os.path.isfile(locus_seq) == True
+        assert os.path.isfile(pangen_locus) == True
+        assert os.path.isfile(pangen) == True
+        assert os.stat(genome_locus).st_size > 0
+        assert os.stat(locus_seq).st_size > 0
+        assert os.stat(pangen_locus).st_size > 0
+        assert os.stat(pangen).st_size > 0
+    
+    def test_create_sqldb():
+        CG.create_sqldb()
+        assert os.path.isfile(CG.target + ".db") == True
+        
+    def test_coregene_extract():       
+        resrecords = []
+        refrecords = []
+        CG = CoreGenes(config)
+        G.create_directory(CG.results_dir)
+        reffasta_dir = os.path.join(BASE_PATH, "tests", "testfiles", "reference_fasta")
+        fasta_dir = os.path.join(CG.results_dir, "fasta")
+        G.create_directory(fasta_dir)
+        CG.coregene_extract()
+        for files in os.listdir(fasta_dir):
+            if files.endswith(".fasta"):
+                fasfiles = os.path.join(fasta_dir, files)
+                records = SeqIO.parse(fasfiles, "fasta")
+                for record in records:
+                    resrecords.append(record)
+                
+        for files in os.listdir(reffasta_dir):
+            if files.endswith(".fasta"):
+                fasfiles = os.path.join(reffasta_dir, files)
+                records = SeqIO.parse(fasfiles, "fasta")
+                for record in records:
+                    refrecords.append(record)
+                
+        for index, item in enumerate(resrecords):
+            assert item.id == refrecords[index].id
+            assert item.seq == refrecords[index].seq
+                
+    
+    prepare_tests()    
+    test_run_DBGenerator()
+    test_create_sqldb()    
+    test_coregene_extract()
 
-def test_CoreGeneSequences():
-    pass
+def test_newcoregeneextract():
+    from speciesprimer import CoreGenesnoSQL
+    
+    def test_coregene_extract():       
+        resrecords = []
+        refrecords = []
+        CG = CoreGenesnoSQL(config)
+        G.create_directory(CG.results_dir)
+        reffasta_dir = os.path.join(BASE_PATH, "tests", "testfiles", "reference_fasta")
+        fasta_dir = os.path.join(CG.results_dir, "fasta")
+        G.create_directory(fasta_dir)
+        CG.run_CoreGenes() 
+        for files in os.listdir(fasta_dir):
+            if files.endswith(".fasta"):
+                fasfiles = os.path.join(fasta_dir, files)
+                records = SeqIO.parse(fasfiles, "fasta")
+                for record in records:
+                    resrecords.append(record)
+                
+        for files in os.listdir(reffasta_dir):
+            if files.endswith(".fasta"):
+                fasfiles = os.path.join(reffasta_dir, files)
+                records = SeqIO.parse(fasfiles, "fasta")
+                for record in records:
+                    refrecords.append(record)
+                
+        for index, item in enumerate(resrecords):
+            assert item.id == refrecords[index].id
+            assert item.seq == refrecords[index].seq
+       
+    test_coregene_extract()
+
+def test_CoreGeneSequences(config):
+    from speciesprimer import CoreGeneSequences
+    CGS = CoreGeneSequences(config)
+
+    def compare_ref_files(results_dir, ref_dir):
+        resrecords = []
+        refrecords = []
+        for files in os.listdir(results_dir):
+            resfiles = os.path.join(results_dir, files)
+            records = SeqIO.parse(resfiles, "fasta")
+            for record in records:
+                resrecords.append(record)
+                
+        for files in os.listdir(ref_dir):
+            reffiles = os.path.join(ref_dir, files)
+            records = SeqIO.parse(reffiles, "fasta")
+            for record in records:
+                refrecords.append(record)
+                
+        for index, item in enumerate(resrecords):
+            assert item.id == refrecords[index].id
+            assert item.seq == refrecords[index].seq
+    
+    def test_seq_alignments():
+        results_dir = []
+        ref_dir = []   
+        compare_ref_files(results_dir, ref_dir)
+    
+    def test_seq_consenus():
+        results_dir = []
+        ref_dir = []   
+        compare_ref_files(results_dir, ref_dir)
+    
+    def test_conserved_seqs():
+        results_dir = []
+        ref_dir = []   
+        compare_ref_files(results_dir, ref_dir)
+    
+    def test_run_coregeneanalysis():
+        CGS.run_coregeneanalysis()
+
+    test_run_coregeneanalysis()
+
+    
