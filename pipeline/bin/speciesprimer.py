@@ -907,7 +907,7 @@ class QualityControl:
 
         def get_blastresults_info(blast_record, index):
             alninfo = str(blast_record.alignments[index])
-            if self.config.customdb is not None:                
+            if self.config.customdb is not None:
                 if len(alninfo.split("|")) == 3:
                     di = [1, 1, -1]
                 elif len(alninfo.split("|")) > 3:
@@ -917,7 +917,7 @@ class QualityControl:
                         "Data is missing in the custom BLAST DB. At least "
                         "a unique sequence identifier and the species name "
                         "is required for each entry")
-                    
+
                     print("\n" + warn + "\n")
                     G.logger(warn)
             else:
@@ -1280,9 +1280,11 @@ class PangenomeAnalysis:
         if not os.path.isdir(self.pangenome_dir):
             if self.config.skip_tree:
                 self.run_roary()
+                return 1
             else:
                 self.run_roary()
                 self.run_fasttree()
+                return 0
         else:
             filepath = os.path.join(
                 self.pangenome_dir, "gene_presence_absence.csv")
@@ -1292,13 +1294,16 @@ class PangenomeAnalysis:
                     "Continue with existing Pangenome data")
                 print(info)
                 G.logger("> " + info)
+                return 2
             else:
                 shutil.rmtree(self.pangenome_dir)
                 if self.config.skip_tree:
                     self.run_roary()
+                    return 1
                 else:
                     self.run_roary()
                     self.run_fasttree()
+                    return 0
 
 
 class CoreGenes:
@@ -1307,6 +1312,7 @@ class CoreGenes:
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.results_dir = os.path.join(self.pangenome_dir, "results")
         self.all_core_path = os.path.join(self.pangenome_dir, "allcoregenes")
@@ -1328,7 +1334,8 @@ class CoreGenes:
             for path in file_paths:
                 if os.path.isfile(path):
                     os.remove(path)
-            DBcmd = self.pangenome_dir + "/DBGenerator.py ../ffn_files"
+            DBcmd = self.pangenome_dir + "/DBGenerator.py " + self.ffn_dir
+            print(os.getcwd())
             G.run_shell(
                 DBcmd, printcmd=True, logcmd=True, log=True, printoption=True)
 
@@ -1976,7 +1983,7 @@ class Blast:
             blast_cmd.append("-db")
             if self.config.customdb:
                 blast_cmd.append(self.config.customdb)
-            else:            
+            else:
                 blast_cmd.append("nt")
 
         return blast_cmd
@@ -2062,7 +2069,7 @@ class BlastParser:
             subject_start = hsp.sbjct_start
             align_length = hsp.align_length
             nuc_ident = hsp.identities
-            
+
             identity = False
             if self.config.customdb is not None:
                 if len(alignment.title.split("|")) == 3:
@@ -2074,16 +2081,16 @@ class BlastParser:
                         "Data is missing in the custom BLAST DB. At least "
                         "a unique sequence identifier and the species name "
                         "is required for each entry")
-                    
+
                     print("\n" + warn + "\n")
                     G.logger(warn)
             else:
                 di = [1, 3, -1]
-                
+
             gi = alignment.title.split("|")[di[0]].strip()
             db_id = alignment.title.split("|")[di[1]].strip()
             name_long = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
-            
+
             if re.search("PREDICTED", name_long):
                 pass
             else:
@@ -4164,7 +4171,7 @@ def commandline():
         "--ignore_qc", action="store_true", help="Genomes which do not"
         " pass quality control are included in the analysis")
     parser.add_argument(
-        "--customdb", type=str, default=None, 
+        "--customdb", type=str, default=None,
         help="Absolute filepath of a custom database for blastn")
     # Version
     parser.add_argument(
