@@ -479,7 +479,7 @@ def test_skip_pangenome_analysis(config):
     fromfile = os.path.join(testfiles_dir, "gene_presence_absence.csv")
     tofile = os.path.join(PA.pangenome_dir, "gene_presence_absence.csv")
     if os.path.isfile(tofile):
-        os.remove(fromfile)
+        os.remove(tofile)
     shutil.copy(fromfile, tofile)
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
