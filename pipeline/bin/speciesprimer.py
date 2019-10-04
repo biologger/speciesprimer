@@ -23,6 +23,7 @@ from datetime import timedelta
 from collections import Counter
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from Bio.Blast import NCBIXML
 from Bio import Entrez
 from basicfunctions import GeneralFunctions as G
