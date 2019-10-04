@@ -29,7 +29,7 @@ confargs = {
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": True, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
+    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -55,36 +55,57 @@ def config():
     return config
 
 def compare_ref_files(results_dir, ref_dir):
+
+    resfileslist = []
+    reffileslist = []
+
     resrecords = []
     refrecords = []
-    if os.path.isdir(results_dir):
-        for files in os.listdir(results_dir):
-            resfiles = os.path.join(results_dir, files)
-            records = SeqIO.parse(resfiles, "fasta")
-            for record in records:
-                resrecords.append(record)
-    
-        for files in os.listdir(ref_dir):
-            reffiles = os.path.join(ref_dir, files)
-            records = SeqIO.parse(reffiles, "fasta")
-            for record in records:
-                refrecords.append(record)
-                
-    else:
-        resfiles = os.path.join(results_dir)
+    def compare_files(resfiles, reffiles):
+        resrecords = []
+        refrecords = []
         records = SeqIO.parse(resfiles, "fasta")
         for record in records:
-            resrecords.append(record)
-
-        reffiles = os.path.join(ref_dir)
+            resrecords.append([str(record.id), str(record.seq)])
         records = SeqIO.parse(reffiles, "fasta")
         for record in records:
-            refrecords.append(record)
+            refrecords.append([str(record.id), str(record.seq)])
 
-    for index, item in enumerate(resrecords):
-        print(item.id)
-        assert item.id == refrecords[index].id
-        assert item.seq == refrecords[index].seq
+        resrecords.sort()
+        refrecords.sort()
+
+        for index, item in enumerate(resrecords):
+#            print(item.id, refrecords[index].id)
+            assert item[0] == refrecords[index][0]
+            assert item[1] == refrecords[index][1]
+
+    if os.path.isdir(results_dir):
+        for files in os.listdir(results_dir):
+            if not files.endswith(".txt"):
+                resfiles = os.path.join(results_dir, files)
+                resfileslist.append(resfiles)
+        resfileslist.sort()
+
+        for files in resfileslist:
+            resrecords.append(files)
+
+        for files in os.listdir(ref_dir):
+            if not files.endswith(".txt"):
+                reffiles = os.path.join(ref_dir, files)
+                reffileslist.append(reffiles)
+        reffileslist.sort()
+
+        for files in reffileslist:
+            refrecords.append(files)
+
+        for index, item in enumerate(resrecords):
+            compare_files(item, refrecords[index])
+
+    else:
+        resfiles = os.path.join(results_dir)
+        reffiles = os.path.join(ref_dir)
+        compare_files(resfiles, reffiles)
+
 
 
 def test_CLIconf(config):
@@ -157,7 +178,7 @@ def clean_up_after_test():
     tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
     os.remove(tmp_path)
 
-def test_DataCollection(config, printer):
+def test_DataCollection(config):
     clean_before_tests(config)
     from speciesprimer import DataCollection
     DC = DataCollection(config)
@@ -167,7 +188,7 @@ def test_DataCollection(config, printer):
         assert email == "biologger@protonmail.com"
         return email
 
-    def internet_connection(printer):
+    def internet_connection():
         from urllib.request import urlopen
         try:
             response = urlopen('https://www.google.com/', timeout=5)
@@ -216,9 +237,18 @@ def test_DataCollection(config, printer):
         assert annotated == ["GCF_004088235v1"]
         DC.copy_genome_files()
 
+    def remove_prokka_testfiles():
+        fileformat = ["fna", "gff", "ffn"]
+        targetdir = os.path.join(config.path, config.target)
+        for form in fileformat:
+            dirpath = os.path.join(targetdir, form + "_files")
+            if os.path.isdir(dirpath):
+                shutil.rmtree(dirpath)
+
+
     email = test_get_email_from_config(config)
     DC.prepare_dirs()
-    if internet_connection(printer):
+    if internet_connection():
         taxid = test_get_taxid(config)
         test_ncbi_download(taxid, email)
     else:
@@ -228,17 +258,24 @@ def test_DataCollection(config, printer):
     test_prokka_is_installed()
     prepare_prokka(config)
     test_run_prokka()
+    remove_prokka_testfiles()
+    G.create_directory(DC.gff_dir)
+    G.create_directory(DC.ffn_dir)
+    G.create_directory(DC.fna_dir)
 
 
 
 def test_QualityControl(config):
     testdir = os.path.join(BASE_PATH, "tests", "testfiles")
     tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
     config.blastdbv5 = False
     qc_gene = config.qc_gene[0]
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
+
 
 
     def create_customblastdb():
@@ -261,6 +298,7 @@ def test_QualityControl(config):
                     lines.append(line)
                 else:
                     lines.append(line)
+
         with open(filename, "w") as f:
             for line in lines:
                 f.write(line)
@@ -273,7 +311,7 @@ def test_QualityControl(config):
         for testcase in testcases:
             for fo in fileformat:
                 for files in os.listdir(testdir):
-                    if files.endswith("."+fo):
+                    if files.endswith(testcases[0] + "."+fo):
                         fromfile = os.path.join(testdir, files)
                         if testcase == "duplicate":
                             files = "v2".join(files.split("v1"))
@@ -353,18 +391,22 @@ def test_QualityControl(config):
 
     def test_count_contigs(gff_list, contiglimit):
         gff_list = QC.count_contigs(gff_list, contiglimit)
+        gff_list.sort()
         assert gff_list == [
-                'GCF_noseq_date.gff',
+                'GCF_004088235v1_20191001.gff',
                 'GCF_004088235v2_20191001.gff',
-                'GCF_004088235v1_20191001.gff']
+                'GCF_noseq_date.gff']
+
         return gff_list
+
 
 
     def test_identify_duplicates(gff_list):
         gff_list = QC.identify_duplicates(gff_list)
+        gff_list.sort()
         assert gff_list == [
-            'GCF_noseq_date.gff',
-            'GCF_004088235v2_20191001.gff']
+            'GCF_004088235v2_20191001.gff',
+            'GCF_noseq_date.gff']
         return gff_list
 
     def test_check_no_sequence(qc_gene, gff):
@@ -419,7 +461,6 @@ def test_QualityControl(config):
         fna = []
         genomic = []
         sumf = []
-        print(delete)
         for files in os.listdir(fna_files):
             fna.append(files)
         for files in os.listdir(genomic_files):
@@ -427,7 +468,9 @@ def test_QualityControl(config):
         with open(sumfile) as f:
             for line in f:
                 sumf.append(line.strip())
-        assert delete == ['GCF_noseq', 'GCF_maxcontigs', 'GCF_004088235v1']
+        delete.sort()
+        assert delete == ['GCF_004088235v1', 'GCF_maxcontigs', 'GCF_noseq']
+        fna.sort()
         assert fna == [
             'GCF_004088235v1_20191001.fna',
             'GCF_maxcontigs_date.fna',
@@ -443,6 +486,8 @@ def test_QualityControl(config):
     qc_seqs = test_choose_sequence(qc_gene)
     qc_blast(qc_gene)
     test_qc_blast_parser()
+    if os.path.isdir(QC.ex_dir):
+        shutil.rmtree(QC.ex_dir)
     # Remove Fake species by GI
     QC = QualityControl(config)
     prepare_QC_testfiles(config)
@@ -470,7 +515,7 @@ def test_fasttree_is_installed():
     cmd = "fasttree"
     lines = G.read_shelloutput(
         cmd, printcmd=False, logcmd=False, printoption=False)
-    assert lines[0] == "FastTree Version 2.1.11 SSE3, OpenMP (22 threads)"
+    assert lines[0][0:16] == "FastTree Version"
 
 def test_skip_pangenome_analysis(config):
     from speciesprimer import PangenomeAnalysis
@@ -568,10 +613,12 @@ def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
     tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
     config.blastdbv5 = False
     CGS = CoreGeneSequences(config)
-    
+
 
     def test_seq_alignments():
         # skip this test because of variation in alignments
@@ -596,7 +643,7 @@ def test_CoreGeneSequences(config):
         ref_file = os.path.join(ref_data, "conserved_seqs.fas")
         assert conserved_sequences == 1
         os.remove(cons_summary)
-        CGS.conserved_seqs()                   
+        CGS.conserved_seqs()
         result_file = os.path.join(CGS.blast_dir, "Lb_curva_conserved")
         compare_ref_files(result_file, ref_file)
 
@@ -612,17 +659,17 @@ def test_CoreGeneSequences(config):
                         datapoint.append(line.strip())
                         ref_dataset.append(datapoint)
                         datapoint = []
-        tmp_dict = {}                    
+        tmp_dict = {}
         for item in ref_dataset:
             tmp_dict.update({item[0]: item[1]})
-            
+
         return tmp_dict
-        
-        
+
+
     def test_run_coregeneanalysis(config):
         G.create_directory(tmpdir)
-           
-    
+
+
         def create_customblastdb(config):
             infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
             cmd = [
@@ -646,5 +693,4 @@ def test_CoreGeneSequences(config):
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
     assert conserved == 0
-    
-    
+
