@@ -1308,6 +1308,24 @@ class PangenomeAnalysis:
 
 
 class CoreGenes:
+    """
+        This version is way faster than using an SQL DB containing the entire
+        pan genome. DBGenerator.py is very slow in parsing the ffn files.
+        Biopython SeqIO maybe could help speed it up.
+        However, the new version requires more RAM since the dictionary
+        can get large.
+        Benchmark on 22 logical processors from two Intel Xeon E5-2643 CPUs,
+        32 GB RAM, SSD
+        For 575 Enterococcus faecalis genomes
+        # core genes: 1131
+        # single copy core genes: 563
+        SQLite version
+        - Time: 0:28:46 [h:mm:ss]
+        New version:
+        - Time: 0:01:42 [h:mm:ss]
+
+    """
+
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
@@ -1316,265 +1334,129 @@ class CoreGenes:
         self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.results_dir = os.path.join(self.pangenome_dir, "results")
+        self.fasta_dir = os.path.join(self.results_dir, "fasta")
         self.all_core_path = os.path.join(self.pangenome_dir, "allcoregenes")
         self.multi_path = os.path.join(self.pangenome_dir, "multiannotated")
+        self.singlecopy = os.path.join(self.pangenome_dir, "singlecopy_genes.csv")
+        self.ffn_seqs = os.path.join(self.pangenome_dir, "ffn_sequences.csv")
 
-    def copy_DBGenerator(self):
-        src = os.path.join(pipe_dir, "ext-scripts", "DBGenerator.py")
-        dst = os.path.join(self.pangenome_dir, "DBGenerator.py")
-        shutil.copy(src, dst)
+    def get_singlecopy_genes(self, mode):
+        total_count = []
+        single_count = []
+        all_core = []
+        multi_annotated = []
+        filepath = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
+        newtabledata = []
+        with open(filepath, "r") as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            accessions = header[14:]
+            genomes = len(accessions)
+            for row in reader:
+                data_row = []
+                gene_name = row[0]
+                number_isolates = int(row[3])
+                number_sequences = int(row[4])
+                average_seq_per_isolate = float(row[5])
+                loci = row[14:]
+                if number_isolates == genomes:
+                    total_count.append(gene_name)
+                    if number_sequences == genomes:
+                        if average_seq_per_isolate == 1:
+                            single_count.append(gene_name)
+                            data_row.append(gene_name)
+                            for locus in loci:
+                                data_row.append(locus)
+                            newtabledata.append(data_row)
+                            if "group" in gene_name:
+                                    all_core.append(gene_name)
+                            if "group" not in gene_name:
+                                if len(gene_name.split("_")) > 1:
+                                    multi_annotated.append(gene_name)
+                                else:
+                                    all_core.append(gene_name)
 
-    def run_DBGenerator(self):
-        G.logger("Run: run_DBGenerator(" + self.target + ")")
-        genome_locus = os.path.join(self.pangenome_dir, "genomas_locus.csv")
-        locus_seq = os.path.join(self.pangenome_dir, "locus_sequence.csv")
-        pangen_locus = os.path.join(self.pangenome_dir, "pangenoma_locus.csv")
-        pangen = os.path.join(self.pangenome_dir, "pangenoma.csv")
-        if not os.path.isfile(self.target + ".db"):
-            file_paths = [genome_locus, locus_seq, pangen_locus, pangen]
-            for path in file_paths:
-                if os.path.isfile(path):
-                    os.remove(path)
-            DBcmd = self.pangenome_dir + "/DBGenerator.py " + self.ffn_dir
-            print(os.getcwd())
-            G.run_shell(
-                DBcmd, printcmd=True, logcmd=True, log=True, printoption=True)
+        if mode == "normal":
+            with open(self.singlecopy, "w") as f:
+                w = csv.writer(f)
+                for item in newtabledata:
+                    w.writerow(item)
 
-    def create_sqldb(self):
-        G.logger("Run: create_sqldb(" + self.target + ")")
-        if not os.path.isfile(self.target + ".db"):
-            connection = sqlite3.connect(self.target + ".db")
-            cursor = connection.cursor()
-            sql_tables = [
-                """create table genomas_locus (cod text, locus text);""",
-                """create table pangenoma (
-                gene text, non_unique_gene_name text,
-                annotation text, no_isolates integer, no_sequences integer,
-                avg_sequences_per_isolate integer, genome_fragment integer,
-                order_within_fragment integer, accessory_fragment integer,
-                accessory_order_with_fragment integer,
-                qc text, min_group_size_nuc integer,
-                max_group_size_nuc integer, avg_group_size_nuc integer);""",
-                """create table pangenoma_locus (gene text, locus text);""",
-                """create table locus_sequence (locus text, sequence text);""",
-            ]
-            for cmd in sql_tables:
-                cursor.execute(cmd)
-            db_data = []
-            with open("genomas_locus.csv", "r") as f:
-                fieldnames = ["cod text", "locus text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(i["cod text"], i["locus text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO genomas_locus VALUES (?, ?);", db_data)
+        self.print_gene_stats(all_core, total_count)
 
-            db_data = []
-            with open("pangenoma_locus.csv", "r") as f:
-                fieldnames = ["gene text", "locus text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(i["gene text"], i["locus text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO pangenoma_locus VALUES (?, ?);", db_data)
+    def print_gene_stats(self, all_core, total_count):
+        all_genes = (
+            "Continue with " + str(len(all_core))
+            + " single copy core genes")
+        print("\n# of core genes: " + str(len(total_count)))
+        G.logger("> " + all_genes)
+        print("\n" + all_genes)
+        stats = PipelineStatsCollector(self.target_dir)
+        stats.write_stat("core genes: " + str(len(total_count)))
+        stats.write_stat("single copy core genes: " + str(len(all_core)))
 
-            db_data = []
-            with open("locus_sequence.csv", "r") as f:
-                fieldnames = ["locus text", "sequence text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [
-                    (i["locus text"], i["sequence text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO locus_sequence VALUES (?, ?);", db_data)
+    def get_sequences_from_ffn(self):
+        locustags = {}
+        with open(self.ffn_seqs, "w") as out:
+            w = csv.writer(out)
+            for files in os.listdir(self.ffn_dir):
+                if files.endswith(".ffn"):
+                    filepath = os.path.join(self.ffn_dir, files)
+                    with open(filepath) as f:
+                        records = SeqIO.parse(f, "fasta")
+                        for record in records:
+                            name = files.split(".ffn")[0]
+                            recid = record.id
+                            locus = recid.split(" ")[0]
+                            seq = str(record.seq)
+                            locustags.update(
+                                    {locus: {"name": name, "seq": seq}})
+                            w.writerow([name, locus, seq])
 
-            db_data = []
-            with open("pangenoma.csv", "r") as f:
-                fieldnames = [
-                    "gene text", "non_unique_gene_name text",
-                    "annotation text", "no_isolates integer",
-                    "no_sequences integer",
-                    "avg_sequences_per_isolate integer",
-                    "genome_fragment integer",
-                    "order_within_fragment integer",
-                    "accessory_fragment integer",
-                    "accessory_order_with_fragment integer", "qc text",
-                    "min_group_size_nuc integer", "max_group_size_nuc integer",
-                    "avg_group_size_nuc integer"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(
-                    i["gene text"], i["non_unique_gene_name text"],
-                    i["annotation text"], i["no_isolates integer"],
-                    i["no_sequences integer"],
-                    i["avg_sequences_per_isolate integer"],
-                    i["genome_fragment integer"],
-                    i["order_within_fragment integer"],
-                    i["accessory_fragment integer"],
-                    i["accessory_order_with_fragment integer"], i["qc text"],
-                    i["min_group_size_nuc integer"],
-                    i["max_group_size_nuc integer"],
-                    i["avg_group_size_nuc integer"]
-                    ) for i in csv_file
-                ]
-            cursor.executemany(
-                "INSERT INTO pangenoma VALUES (?, ?, ?, ?, ?, ?, ?,"
-                "?, ?, ?, ?, ?, ?, ?);", db_data
-            )
+        return locustags
 
-            sql_index = [
-                """create index genomas_locus_index on genomas_locus
-                (cod, locus);""",
-                """create index pangenoma_index on pangenoma(gene,
-                non_unique_gene_name, annotation, no_isolates, no_sequences,
-                avg_sequences_per_isolate, genome_fragment,
-                order_within_fragment, accessory_fragment,
-                accessory_order_with_fragment, qc, min_group_size_nuc,
-                max_group_size_nuc, avg_group_size_nuc);""",
-                """create index pangenoma_locus_index on
-                pangenoma_locus(gene, locus);""",
-                """create index locus_sequence_index on
-                locus_sequence(locus, sequence);"""
-            ]
+    def get_fasta(self, locustags):
 
-            for cmd in sql_index:
-                cursor.execute(cmd)
-            connection.commit()
-            connection.close()
-        else:
-            info = "Sequence DB exists"
-            print(info)
-            G.logger(info)
+        def check_genename(gene):
+            if "/" in gene:
+                gene_name = "-".join(gene.split("/"))
+            elif " " in gene:
+                gene_name = "-".join(gene.split(" "))
+            elif "'" in gene:
+                gene_name = str(gene)[0:-1]
+                gene = gene + "'"
+            else:
+                gene_name = gene
 
-    def extract_sql_data(self, gene, cursor):
-        if "/" in gene:
-            gene_name = "-".join(gene.split("/"))
-        elif " " in gene:
-            gene_name = "-".join(gene.split(" "))
-        elif "'" in gene:
-            gene_name = str(gene)[0:-1]
-            gene = gene + "'"
-        else:
-            gene_name = gene
-        outfile = os.path.join(self.results_dir, "fasta", gene_name + ".fasta")
-        with open(outfile, "w") as f:
-            cursor.execute(
-                "select '>' || cod ||"
-                " '|' || locus_sequence.locus || '|' || pangenoma.gene || "
-                "x'0a' || sequence from locus_sequence\n"
-                "inner join pangenoma_locus on locus_sequence.locus = "
-                "pangenoma_locus.locus inner join pangenoma on "
-                "pangenoma_locus.gene = pangenoma.gene inner join "
-                "genomas_locus on locus_sequence.locus = "
-                "genomas_locus.locus  where pangenoma.gene = '" + gene + "';")
+            return gene_name
 
-            for x in cursor.fetchall():
-                f.write(x[0] + "\n")
+        with open(self.singlecopy, "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                gene = check_genename(row[0])
+                outfile = os.path.join(self.fasta_dir, gene + ".fasta")
+                with open(outfile, "w") as r:
+                    for item in row[1:]:
+                        name = locustags[item]["name"]
+                        seq = locustags[item]["seq"]
+                        record = SeqRecord(
+                            Seq(seq),
+                            name=item,
+                            id='{}|{}|{}'.format(name,item, gene),
+                            description="")
+                        SeqIO.write(record, r, "fasta")
 
     def coregene_extract(self, mode="normal"):
         info = "Run: core_gene_extract(" + self.target + ")"
         print(info)
         G.logger(info)
-        total_count = []
-        single_count = []
-        all_core = []
-        multi_annotated = []
-        gff = []
-
-        def nr_genomes():
-            # count number of genomes used for pangenome analysis
-            for files in [
-                f for f in os.listdir(self.gff_dir) if f.endswith(".gff")
-            ]:
-                if files not in gff:
-                    gff.append(files)
-            genomes = int(len(gff))
-            return genomes
-
-        def find_genes():
-            # search single copy genes with gene names
-            genomes = nr_genomes()
-            PipelineStatsCollector(self.target_dir).write_stat(
-                "genome assemblies for pan-genome analysis: " + str(genomes))
-            filepath = os.path.join(
-                self.pangenome_dir, "gene_presence_absence.csv")
-            with open(filepath, "r") as csvfile:
-                reader = csv.reader(csvfile, delimiter=",", quotechar='"')
-                next(reader, None)
-                for row in reader:
-                    gene_name = row[0]
-                    number_isolates = int(row[3])
-                    number_sequences = int(row[4])
-                    average_seq_per_isolate = float(row[5])
-
-                    if number_isolates == genomes:
-                        total_count.append(gene_name)
-                        if number_sequences == genomes:
-                            if average_seq_per_isolate == 1:
-                                single_count.append(gene_name)
-                                if "group" in gene_name:
-                                    all_core.append(gene_name)
-                                if "group" not in gene_name:
-                                    if len(gene_name.split("_")) > 1:
-                                        multi_annotated.append(gene_name)
-                                    else:
-                                        all_core.append(gene_name)
-
-        def print_gene_stats():
-            all_genes = (
-                "Continue with " + str(len(all_core))
-                + " single copy core genes")
-            print("\n# of core genes: " + str(len(total_count)))
-            G.logger("> " + all_genes)
-            print("\n" + all_genes)
-            stats = PipelineStatsCollector(self.target_dir)
-            stats.write_stat("core genes: " + str(len(total_count)))
-            stats.write_stat("single copy core genes: " + str(len(all_core)))
-
-        def write_files():
-            all_core_path = os.path.join(self.results_dir, "allcoregenes")
-            multi_path = os.path.join(self.results_dir, "multiannotated")
-            if not len(all_core) == 0:
-                with open(all_core_path, "w") as f:
-                    for gene in all_core:
-                        f.write(gene+"\n")
-            if not len(multi_annotated) == 0:
-                multi_annotated.sort()
-                with open(multi_path, "w") as f:
-                    for gene in multi_annotated:
-                        f.write(gene+"\n")
-
-        def get_fasta_fromDB():
-            if not len(all_core) == 0:
-                db_path = os.path.join(self.pangenome_dir, self.target + ".db")
-                if os.path.isfile(db_path):
-                    connection = sqlite3.connect(db_path)
-                    cursor = connection.cursor()
-                    for gene in all_core:
-                        self.extract_sql_data(gene, cursor)
-            else:
-                error_msg = "Error: No core genes found"
-                print(error_msg)
-                errors.append([self.target, error_msg])
-                G.logger("> " + error_msg)
-
-        def run_coregene_extract(mode):
-            if mode == "normal":
-                find_genes()
-                print_gene_stats()
-                write_files()
-                get_fasta_fromDB()
-            else:
-                find_genes()
-                print_gene_stats()
-
-        run_coregene_extract(mode)
+        self.get_singlecopy_genes(mode)
+        if mode == "normal":
+            locustags = self.get_sequences_from_ffn()
+            self.get_fasta(locustags)
 
     def remove_intermediatefiles(self):
-        filelist = [
-           "genomas_locus.csv",  "locus_sequence.csv",
-           "pangenoma_locus.csv", "pangenoma.csv",
-           self.target + ".db", "DBGenerator.py"]
+        filelist = [self.singlecopy, self.ffn_seqs]
         for item in filelist:
             filepath = os.path.join(self.pangenome_dir, item)
             os.remove(filepath)
@@ -1587,9 +1469,6 @@ class CoreGenes:
         os.chdir(self.pangenome_dir)
         coregenes = os.path.join(self.results_dir, "fasta", "coregenes.txt")
         if not os.path.isdir(os.path.join(self.results_dir, "fasta")):
-            self.copy_DBGenerator()
-            self.run_DBGenerator()
-            self.create_sqldb()
             G.create_directory(self.results_dir)
             G.create_directory(os.path.join(self.results_dir, "fasta"))
             self.coregene_extract()
@@ -1602,9 +1481,6 @@ class CoreGenes:
                     count = count + 1
             if count <= 1:
                 shutil.rmtree(os.path.join(self.results_dir, "fasta"))
-                self.copy_DBGenerator()
-                self.run_DBGenerator()
-                self.create_sqldb()
                 G.create_directory(self.results_dir)
                 G.create_directory(os.path.join(self.results_dir, "fasta"))
                 self.coregene_extract()
@@ -1616,9 +1492,6 @@ class CoreGenes:
         else:
             if len(os.listdir(os.path.join(self.results_dir, "fasta"))) <= 1:
                 shutil.rmtree(os.path.join(self.results_dir, "fasta"))
-                self.copy_DBGenerator()
-                self.run_DBGenerator()
-                self.create_sqldb()
                 G.create_directory(self.results_dir)
                 G.create_directory(os.path.join(self.results_dir, "fasta"))
                 self.coregene_extract()
