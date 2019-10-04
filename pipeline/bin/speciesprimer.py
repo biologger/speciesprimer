@@ -1397,21 +1397,31 @@ class CoreGenes:
 
     def get_sequences_from_ffn(self):
         locustags = {}
-        with open(self.ffn_seqs, "w") as out:
-            w = csv.writer(out)
-            for files in os.listdir(self.ffn_dir):
-                if files.endswith(".ffn"):
-                    filepath = os.path.join(self.ffn_dir, files)
-                    with open(filepath) as f:
-                        records = SeqIO.parse(f, "fasta")
-                        for record in records:
-                            name = files.split(".ffn")[0]
-                            recid = record.id
-                            locus = recid.split(" ")[0]
-                            seq = str(record.seq)
-                            locustags.update(
-                                    {locus: {"name": name, "seq": seq}})
-                            w.writerow([name, locus, seq])
+        if os.path.isfile(self.ffn_seqs):
+            msg = "Found ffn_sequences.csv file, read from file"
+            print("\n" + msg + "\n")
+            G.logger(msg)
+            with open(self.ffn_seqs, "r") as f:
+                r = csv.reader(f)
+                for row in r:
+                    locustags.update(
+                            {row[1]:{"name": row[0], "seq": row[2]}})
+        else:
+            with open(self.ffn_seqs, "w") as out:
+                w = csv.writer(out)
+                for files in os.listdir(self.ffn_dir):
+                    if files.endswith(".ffn"):
+                        filepath = os.path.join(self.ffn_dir, files)
+                        with open(filepath) as f:
+                            records = SeqIO.parse(f, "fasta")
+                            for record in records:
+                                name = files.split(".ffn")[0]
+                                recid = record.id
+                                locus = recid.split(" ")[0]
+                                seq = str(record.seq)
+                                locustags.update(
+                                        {locus: {"name": name, "seq": seq}})
+                                w.writerow([name, locus, seq])
 
         return locustags
 
