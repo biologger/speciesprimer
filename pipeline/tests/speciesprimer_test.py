@@ -16,6 +16,8 @@ sys.path.append(new_path)
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 
+ref_data = os.path.join(BASE_PATH, "tests", "testfiles", "ref")
+
 COMPLETE_TEST = False
 
 confargs = {
@@ -50,6 +52,26 @@ def config():
     config.save_config()
 
     return config
+
+def compare_ref_files(results_dir, ref_dir):
+    resrecords = []
+    refrecords = []
+    for files in os.listdir(results_dir):
+        resfiles = os.path.join(results_dir, files)
+        records = SeqIO.parse(resfiles, "fasta")
+        for record in records:
+            resrecords.append(record)
+            
+    for files in os.listdir(ref_dir):
+        reffiles = os.path.join(ref_dir, files)
+        records = SeqIO.parse(reffiles, "fasta")
+        for record in records:
+            refrecords.append(record)
+            
+    for index, item in enumerate(resrecords):
+        assert item.id == refrecords[index].id
+        assert item.seq == refrecords[index].seq
+
 
 def test_CLIconf(config):
 
@@ -486,31 +508,14 @@ def test_CoreGenes(config):
         assert os.path.isfile(CG.target + ".db") == True
         
     def test_coregene_extract():       
-        resrecords = []
-        refrecords = []
         CG = CoreGenes(config)
         G.create_directory(CG.results_dir)
-        reffasta_dir = os.path.join(BASE_PATH, "tests", "testfiles", "reference_fasta")
+        ref_dir = os.path.join(
+            BASE_PATH, "tests", "testfiles", "ref", "fasta")
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         G.create_directory(fasta_dir)
         CG.coregene_extract()
-        for files in os.listdir(fasta_dir):
-            if files.endswith(".fasta"):
-                fasfiles = os.path.join(fasta_dir, files)
-                records = SeqIO.parse(fasfiles, "fasta")
-                for record in records:
-                    resrecords.append(record)
-                
-        for files in os.listdir(reffasta_dir):
-            if files.endswith(".fasta"):
-                fasfiles = os.path.join(reffasta_dir, files)
-                records = SeqIO.parse(fasfiles, "fasta")
-                for record in records:
-                    refrecords.append(record)
-                
-        for index, item in enumerate(resrecords):
-            assert item.id == refrecords[index].id
-            assert item.seq == refrecords[index].seq
+        compare_ref_files(fasta_dir, ref_dir)
                 
     
     prepare_tests()    
@@ -518,15 +523,15 @@ def test_CoreGenes(config):
     test_create_sqldb()    
     test_coregene_extract()
 
-def test_newcoregeneextract():
+def test_newcoregeneextract(config):
     from speciesprimer import CoreGenesnoSQL
     
-    def test_coregene_extract():       
+    def test_coregene_extract(config):       
         resrecords = []
         refrecords = []
         CG = CoreGenesnoSQL(config)
         G.create_directory(CG.results_dir)
-        reffasta_dir = os.path.join(BASE_PATH, "tests", "testfiles", "reference_fasta")
+        reffasta_dir = os.path.join(ref_data, "fasta")
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         G.create_directory(fasta_dir)
         CG.run_CoreGenes() 
@@ -548,49 +553,51 @@ def test_newcoregeneextract():
             assert item.id == refrecords[index].id
             assert item.seq == refrecords[index].seq
        
-    test_coregene_extract()
-
+    test_coregene_extract(config)
+#
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     CGS = CoreGeneSequences(config)
+#
 
-    def compare_ref_files(results_dir, ref_dir):
-        resrecords = []
-        refrecords = []
-        for files in os.listdir(results_dir):
-            resfiles = os.path.join(results_dir, files)
-            records = SeqIO.parse(resfiles, "fasta")
-            for record in records:
-                resrecords.append(record)
-                
-        for files in os.listdir(ref_dir):
-            reffiles = os.path.join(ref_dir, files)
-            records = SeqIO.parse(reffiles, "fasta")
-            for record in records:
-                refrecords.append(record)
-                
-        for index, item in enumerate(resrecords):
-            assert item.id == refrecords[index].id
-            assert item.seq == refrecords[index].seq
-    
+#    
     def test_seq_alignments():
-        results_dir = []
-        ref_dir = []   
+        CGS.seq_alignments()
+        results_dir = CGS.alignments_dir
+        ref_dir = os.path.join(ref_data, "alignments")  
         compare_ref_files(results_dir, ref_dir)
-    
-    def test_seq_consenus():
-        results_dir = []
-        ref_dir = []   
-        compare_ref_files(results_dir, ref_dir)
-    
-    def test_conserved_seqs():
-        results_dir = []
-        ref_dir = []   
-        compare_ref_files(results_dir, ref_dir)
-    
-    def test_run_coregeneanalysis():
-        CGS.run_coregeneanalysis()
+#    
+#    def test_seq_consenus():
+#        results_dir = []
+#        ref_dir = []   
+#        compare_ref_files(results_dir, ref_dir)
+#    
+#    def test_conserved_seqs():
+#        results_dir = []
+#        ref_dir = []   
+#        compare_ref_files(results_dir, ref_dir)
+#    
+#    def test_run_coregeneanalysis():
+#        CGS.run_coregeneanalysis()
 
-    test_run_coregeneanalysis()
+#    test_run_coregeneanalysis()
+    ### include short BLAST part? and pos and neg outcome of conserved_seqs()
+#    def run_coregeneanalysis(self):
+#        G.logger("Run: run_coregeneanalysis(" + self.target + ")")
+#        self.seq_alignments()
+#        self.seq_consensus()
+#        conserved_seqs = self.conserved_seqs()
+#        if conserved_seqs == 1:
+#            return 1
+#        name = "conserved"
+#        blastsum = os.path.join(self.blast_dir, "nontargethits.json")
+#        if not os.path.isfile(blastsum):
+#            use_cores, inputseqs = BlastPrep(
+#                self.blast_dir, conserved_seqs, "conserved",
+#                self.config.blastseqs).run_blastprep()
+#            Blast(
+#                self.config, self.blast_dir, "conserved"
+#            ).run_blast(name, use_cores)
+#        return self.conserved_dict    
 
-    
+    test_seq_alignments()
