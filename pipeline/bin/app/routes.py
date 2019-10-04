@@ -179,7 +179,7 @@ def update_db(sub_dict, target, data):
 
 def reset_settings(form):
     (
-    form.qc_genes.data, form.ignore_qc.data,form.skip_download.data,
+    form.qc_genes.data, form.ignore_qc.data, form.skip_download.data,
     form.assemblylevel.data, form.skip_tree.data, form.exception.data,
     form.minsize.data, form.maxsize.data, form.designprobe.data,
     form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
@@ -190,7 +190,8 @@ def reset_settings(form):
     ["all"], False, None,
     70, 200, False,
     -3.0, -3.5, 90,
-    False, False, 1000, False, False, False)
+    False, None, 1000,
+    False, False, False)
     return form
 
 
@@ -211,17 +212,17 @@ def load_settings(tmp_db):
     settings["minsize"], settings["maxsize"], settings["probe"],
     settings["mfold"], settings["mpprimer"], settings["mfethreshold"],
     settings["offline"], settings["customdb"], settings["blastseqs"],
-    settings['path'], settings['blastdbv5'], settings["intermediate"], 
+    settings['path'], settings['blastdbv5'], settings["intermediate"],
     settings['nolist']
     )
-    
+
     data = {
         "targets": target, "qc_genes": qc_genes, "ignore_qc": ignore_qc, "skip_download": skip_download,
         "assemblylevel": assemblylevel, "skip_tree": skip_tree, "exception": exception,
         "minsize": minsize, "maxsize": maxsize, "designprobe": designprobe,
         "mfold": mfold, "mpprimer": mpprimer, "mfeprimer_threshold": mfeprimer_threshold,
         "work_offline": work_offline, "customdb": customdb, "blastseqs": blastseqs,
-        "change_wd": change_wd, "blastdbv5": blastdbv5, 
+        "change_wd": change_wd, "blastdbv5": blastdbv5,
         "intermediate": intermediate, "nolist": nolist}
     return data
 
@@ -263,17 +264,17 @@ def settings():
     target_choice_list, tmp_db = check_targets()
     if len(target_choice_list) == 0:
         return redirect(url_for('controlrun'))
-    
-    if tmp_db['new_run']['same_settings']:        
+
+    if tmp_db['new_run']['same_settings']:
         def_path = tmp_db['new_run']['path']
         form = SettingsForm(change_wd = def_path)
         form.targets.choices = [("All targets", "All targets")]
     elif tmp_db['new_run']['change_settings']:
         form = SettingsForm(data=load_settings(tmp_db))
         form.targets.choices = target_choice_list
-    else:        
+    else:
         def_path = tmp_db['new_run']['path']
-        form = SettingsForm(change_wd = def_path)        
+        form = SettingsForm(change_wd = def_path)
         form.targets.choices = target_choice_list
 
     if form.validate_on_submit():
@@ -309,10 +310,10 @@ def settings():
                 flash('Changed settings for {}'.format(' '.join(target.split('_'))))
                 flash(json.dumps(new_config))
                 return redirect(url_for('controlrun'))
-            except FileNotFoundError: 
+            except FileNotFoundError:
                 flash("The selected directory does not exist")
                 return redirect(url_for('settings'))
-            
+
         else:
             flash('Saved settings for {}'.format(' '.join(target.split('_'))))
         flash(json.dumps(new_config, sort_keys=True))
