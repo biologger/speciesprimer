@@ -6,6 +6,7 @@ import os
 import sys
 import shutil
 import pytest
+import json
 from Bio import SeqIO
 
 
@@ -665,11 +666,39 @@ def test_CoreGeneSequences(config):
 
         return tmp_dict
 
+    def test_noconservedseqs():
+        sakei = []
+        with open(os.path.join(CGS.blast_dir, "nontargethits.json")) as f:
+            for line in f:
+                non_dict = json.loads(line)
+        for key in non_dict.keys():
+            try:
+                newval = non_dict[key]["Lactobacillus sakei"]["main_id"]
+                if not newval in sakei:
+                    sakei.append(newval)
+            except KeyError:
+                pass
+        for key in non_dict.keys():
+            for i, item in enumerate(sakei):
+                try:
+                    if not item == non_dict[key]["Lactobacillus sakei"]["main_id"]:
+                        non_dict[key].update(
+                            {
+                                "Lactobacillus sakei_" + str(i + 2)
+                                : {"main_id": item, 
+                                   "gi_ids": []}})                
+                except KeyError:
+                    non_dict[key].update(
+                        {
+                            "Lactobacillus sakei_" + str(i + 2)
+                            : {"main_id": item, 
+                               "gi_ids": []}})
+        with open(os.path.join(CGS.blast_dir, "nontargethits.json"), "w") as f:
+            f.write(json.dumps(non_dict))
+
 
     def test_run_coregeneanalysis(config):
         G.create_directory(tmpdir)
-
-
         def create_customblastdb(config):
             infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
             cmd = [
@@ -680,7 +709,7 @@ def test_CoreGeneSequences(config):
 
         create_customblastdb(config)
         conserved_seq_dict = CGS.run_coregeneanalysis()
-#        shutil.rmtree(tmpdir)
+        shutil.rmtree(tmpdir)
         return conserved_seq_dict
 
     test_seq_alignments()
@@ -689,8 +718,164 @@ def test_CoreGeneSequences(config):
     tmp_dict = create_mockdict()
     conserved_seq_dict = test_run_coregeneanalysis(config)
     assert conserved_seq_dict == tmp_dict
-    ### problem with BLASTparser
+
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
     assert conserved == 0
+    test_noconservedseqs()    
+    conserved = BlastParser(
+            config).run_blastparser(conserved_seq_dict)
+    assert conserved == 1
+    nt_file = os.path.join(CGS.blast_dir, "nontargethits.json")
+    if os.path.isfile(nt_file):
+        os.remove(nt_file)
+    conserved_seq_dict = test_run_coregeneanalysis(config)
+    conserved = BlastParser(
+            config).run_blastparser(conserved_seq_dict)
 
+
+def test_blastprep(config):
+    from speciesprimer import BlastPrep
+    testconditions = [[100, 50], [500,10], [1000,5], [2000,3], [5000,1]]
+    listlengths = [50*[100], 10*[500], 5*[1000], [1667,1667,1666], [5000]]
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    G.create_directory(tmpdir)
+    input_list = []
+    for i in range(0,5000):
+        i = i + 1
+        elem = [">seq_"+ str(i) + "\n", i *"A" + "\n"]
+        input_list.append(elem)
+    name = "test"
+    directory = tmpdir
+    for index, [maxpart, dicts] in enumerate(testconditions):
+        maxpart, dicts = [maxpart, dicts]
+        bp = BlastPrep(directory, input_list, name, maxpartsize=maxpart)
+        bp.create_listdict()
+        assert len(bp.list_dict) == dicts     
+        bp.get_equalgroups()
+        print("inputlist maxpartsize dicts")
+        print(len(input_list), maxpart, dicts,)
+        for i, value in enumerate(bp.list_dict.values()):
+            assert len(value) == listlengths[index][i]
+
+    bp = BlastPrep(directory, input_list, name, maxpartsize=1000)
+    bp.create_listdict()
+    bp.get_equalgroups()
+    inlist = bp.write_blastinput()
+    reflist = []
+    rangelist = [5001, 5000, 4999, 4998, 4997]
+    for i, r in enumerate(rangelist):
+        for x in reversed(range(5-i, r, 5)):
+            if not x in reflist:
+                reflist.append("seq_" + str(x))
+    assert reflist == inlist
+    
+def test_BLASTsettings(config):
+    import multiprocessing
+    from speciesprimer import Blast
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    bl = Blast(config, tmpdir, "test")
+    blastfiles = bl.search_blastfiles(tmpdir)
+    assert len(blastfiles) == 5
+    blastfile = "test.part-0"
+    modes = ["quality_control", "conserved", "primer"]
+    
+    db_settings = [
+        [False, None],
+        [True, None],
+        [False, os.path.join(tmpdir, "customdb.fas")],
+        [True, os.path.join(tmpdir, "customdb_v5.fas")]]
+    db_outcome = [
+            "nt", "nt_v5",
+            os.path.join(tmpdir, "customdb.fas"),
+            os.path.join(tmpdir, "customdb_v5.fas")]
+    for i, settings in enumerate(db_settings):
+        config.blastdbv5 = settings[0]
+        config.customdb = settings[1]
+        for mode in modes:
+            bl = Blast(config, tmpdir, mode)
+            cores = cores = multiprocessing.cpu_count()
+            cmd = bl.get_blast_cmd(blastfile, blastfile + "_results.xml", cores)
+            if mode == "quality_control":
+                assert cmd[2] == "megablast"
+            elif mode == "conserved":
+                assert cmd[2] == "dc-megablast"
+            elif mode == "primer":
+                assert cmd[2] == "blastn-short"
+            else:
+                # there should not be any other modes
+                assert cmd[2] == "error"                
+            assert cmd[-1] == db_outcome[i]
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)    
+    
+def test_blastparser(config):
+    pass
+    from speciesprimer import BlastParser
+#    write_primer3_input(self, selected_seqs, conserved_seq_dict)
+
+def test_PrimerDesign(config):
+    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+    from speciesprimer import PrimerDesign
+    pd = PrimerDesign(config)
+    G.create_directory(pd.primer_dir)
+    pd.run_primer3()
+    p3_output = os.path.join(pd.primer_dir, "primer3_output")
+    assert os.path.isfile(p3_output) == True
+    pd.parse_Primer3_output(p3_output)
+    pd.write_primer3_data()
+    with open(reffile) as f:
+        for line in f:
+            refdict = json.loads(line)
+    assert refdict == pd.p3dict
+    
+def test_PrimerQualityControl(config):
+    from speciesprimer import PrimerQualityControl
+    pqc = PrimerQualityControl(config, {})    
+    exitstat = pqc.collect_primer() # returns 1 of len(primerlist) == 0, otherwise return 0
+    assert exitstat == 1
+
+    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+    with open(reffile) as f:
+        for line in f:
+            primer3dict = json.loads(line)
+    pqc = PrimerQualityControl(config, primer3dict)    
+    exitstat = pqc.collect_primer()   
+    item = ['comFA_5', 'Primer_pair_7', 11.374516]
+    pqc.get_blast_input(item)
+    assert pqc.primerlist[-2] == ['>Lb_curva_comFA_5_P7_F\n', 'ACAACGCTTATTATTATTTGTGCCA\n']
+    assert pqc.primerlist[-1] == ['>Lb_curva_comFA_5_P7_R\n', 'AAAGGCCGCTATCTTGTCTAAT\n']
+    del pqc.primerlist[-1]
+    del pqc.primerlist[-1]
+    
+    pqc.get_blast_input(self, item) # test self.primerlist
+#    modes = ["mfold", "dimercheck", "results"]
+#    get_primerinfo(self, selected_seqs, mode)
+#    
+#    make_nontargetDB(self, inputfiles)    
+#    prepare_MFEprimer_Dbs(self, primerinfos)
+#    MFEprimer_template(self, primerinfo)
+#    MFEprimer_nontarget(self, primerinfo, inputfiles)
+#    MFEprimer_assembly(self, primerinfo)
+#    # includes the MFEprimer functions, returns primername_list
+#    MFEprimer_QC(self, primerinfos)
+#
+#
+#    mfold_analysis(self, mfoldinputlist)    
+#    target_id, primerpair, pcr_product = prep_mfold(self, mfoldinput, abbr)
+#    run_mfold(self, subdir_path, seq_name, description)
+#    selected_primer, excluded_primer = mfold_parser(self)
+#    results = read_files(self, filename)
+#    primername = get_primername(self, name)
+#    mfold_values = parse_values(self, file, line)
+#    resultslist = interpret_values(self, name, primername, mfoldvalues)
+#    file_list = find_mfold_results(self)
+#    
+#    primerforcheck = dimercheck_primer(self, selected_seqs, excluded_primer)
+#    check_primerdimer(self, dimercheck)
+#    inputsequences = get_inputsequences(self, primerlist)
+#    
+
+    
