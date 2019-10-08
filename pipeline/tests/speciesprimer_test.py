@@ -815,6 +815,9 @@ def test_blastparser(config):
     pass
     from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
+    # primer blastparser function
+#    create_primerBLAST_DBIDS(self, nonred_dict)
+    
 
 def test_PrimerDesign(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -833,10 +836,18 @@ def test_PrimerDesign(config):
     
 def test_PrimerQualityControl(config):
     from speciesprimer import PrimerQualityControl
+    from speciesprimer import BlastPrep
+    from speciesprimer import Blast
+    
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
+    config.blastdbv5 = False
+
     pqc = PrimerQualityControl(config, {})    
     exitstat = pqc.collect_primer() # returns 1 of len(primerlist) == 0, otherwise return 0
     assert exitstat == 1
-
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:
         for line in f:
@@ -844,16 +855,61 @@ def test_PrimerQualityControl(config):
     pqc = PrimerQualityControl(config, primer3dict)    
     exitstat = pqc.collect_primer()   
     item = ['comFA_5', 'Primer_pair_7', 11.374516]
-    pqc.get_blast_input(item)
+    pqc.get_blast_input(item) # test self.primerlist
     assert pqc.primerlist[-2] == ['>Lb_curva_comFA_5_P7_F\n', 'ACAACGCTTATTATTATTTGTGCCA\n']
     assert pqc.primerlist[-1] == ['>Lb_curva_comFA_5_P7_R\n', 'AAAGGCCGCTATCTTGTCTAAT\n']
     del pqc.primerlist[-1]
     del pqc.primerlist[-1]
+
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna", 
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        dbfile = os.path.join(testfiles_dir, "primer_customdb.fas")
+        with open(dbfile, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    print(record.description)
+                    
+                    SeqIO.write(record, f, "fasta")
+        return dbfile
     
-    pqc.get_blast_input(self, item) # test self.primerlist
-#    modes = ["mfold", "dimercheck", "results"]
-#    get_primerinfo(self, selected_seqs, mode)
-#    
+    def create_customblastdb(config, infile):
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+
+    dbfile = dbinputfiles()
+    create_customblastdb(config, dbfile)
+    if os.path.isfile(dbfile):
+        os.remove(dbfile)
+        
+    G.create_directory(pqc.primerblast_dir)
+    prep = BlastPrep(
+        pqc.primerblast_dir, pqc.primerlist,
+        "primer", pqc.config.blastseqs)
+    use_cores, inputseqs = prep.run_blastprep()
+
+    Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
+        "primer", use_cores)
+
+    pqc.call_blastparser.run_blastparser("primer")
+    primer_qc_list = pqc.get_primerinfo(inputseqs, "mfeprimer")
+    print(primer_qc_list)
+    
+#    modes = ['mfeprimer', "mfold", "dimercheck", "results"]
+#    for mode in modes:
+#        get_primerinfo(self, selected_seqs, mode)
+                
 #    make_nontargetDB(self, inputfiles)    
 #    prepare_MFEprimer_Dbs(self, primerinfos)
 #    MFEprimer_template(self, primerinfo)
