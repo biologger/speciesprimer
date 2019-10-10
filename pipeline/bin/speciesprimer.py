@@ -2891,6 +2891,13 @@ class PrimerQualityControl:
             self.index_Database(db_name)
             print("Done indexing non-target DB " + inputfiles)
             G.logger("> Done indexing non-target DB " + inputfiles)
+        else:
+            infile = os.path.join(self.primer_qc_dir, inputfiles)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with non-target DB " + inputfiles
+                + " input file is empty"
+                G.logger("> " + msg)
+                print("\n" + msg)
 
     def index_Database(self, db_name):
         start = time.time()
@@ -2999,13 +3006,13 @@ class PrimerQualityControl:
                     if acc in files:
                         if files.endswith(".fna"):
                             with open(os.path.join(self.fna_dir, files)) as f:
-                                for line in f:
-                                    target_fasta.append(line)
+                                records = SeqIO.parse(f, "fasta")
+                                target_fasta.append(list(records))
 
             file_path = os.path.join(self.primer_qc_dir, db_name)
             with open(file_path, "w") as fas:
                 for item in target_fasta:
-                    fas.write(item)
+                    SeqIO.write(item, fas, "fasta")
 
         def make_templateDB():
             db_name = "template.sequences"
@@ -3019,6 +3026,13 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing template DB")
                 print("Done indexing template DB")
+            else:
+                infile = os.path.join(self.primer_qc_dir, db_name)
+                if os.stat(infile).st_size == 0:
+                    msg = "Problem with " + db_name
+                    + " input file is empty"
+                    G.logger("> " + msg)
+                    print("\n" + msg)
 
         def make_assemblyDB():
             db_name = H.abbrev(self.target, dict_path) + ".genomic"
@@ -3032,6 +3046,12 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing genome assembly DB")
                 print("Done indexing genome assembly DB")
+            else:
+                infile = os.path.join(self.primer_qc_dir, db_name)
+                if os.stat(infile).st_size == 0:
+                    msg = "Problem with " + db_name + " input file is empty"
+                    G.logger("> " + msg)
+                    print("\n!!!" + msg + "!!!\n")
 
         process_make_templateDB = Process(target=make_templateDB)
         process_make_assemblyDB = Process(target=make_assemblyDB)
