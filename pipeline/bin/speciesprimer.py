@@ -2891,13 +2891,13 @@ class PrimerQualityControl:
             self.index_Database(db_name)
             print("Done indexing non-target DB " + inputfiles)
             G.logger("> Done indexing non-target DB " + inputfiles)
-        else:
-            infile = os.path.join(self.primer_qc_dir, inputfiles)
-            if os.stat(infile).st_size == 0:
-                msg = "Problem with non-target DB " + inputfiles
-                + " input file is empty"
-                G.logger("> " + msg)
-                print("\n" + msg)
+
+        infile = os.path.join(self.primer_qc_dir, inputfiles)
+        if os.stat(infile).st_size == 0:
+            msg = "Problem with non-target DB " + inputfiles
+            + " input file is empty"
+            G.logger("> " + msg)
+            print("\n" + msg)
 
     def index_Database(self, db_name):
         start = time.time()
@@ -3026,13 +3026,12 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing template DB")
                 print("Done indexing template DB")
-            else:
-                infile = os.path.join(self.primer_qc_dir, db_name)
-                if os.stat(infile).st_size == 0:
-                    msg = "Problem with " + db_name
-                    + " input file is empty"
-                    G.logger("> " + msg)
-                    print("\n" + msg)
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name
+                + " input file is empty"
+                G.logger("> " + msg)
+                print("\n" + msg)
 
         def make_assemblyDB():
             db_name = H.abbrev(self.target, dict_path) + ".genomic"
@@ -3046,12 +3045,12 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing genome assembly DB")
                 print("Done indexing genome assembly DB")
-            else:
-                infile = os.path.join(self.primer_qc_dir, db_name)
-                if os.stat(infile).st_size == 0:
-                    msg = "Problem with " + db_name + " input file is empty"
-                    G.logger("> " + msg)
-                    print("\n!!!" + msg + "!!!\n")
+
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name + " input file is empty"
+                G.logger("> " + msg)
+                print("\n!!!" + msg + "!!!\n")
 
         process_make_templateDB = Process(target=make_templateDB)
         process_make_assemblyDB = Process(target=make_assemblyDB)
@@ -3160,25 +3159,26 @@ class PrimerQualityControl:
             else:
                 return [[None], result]
 
-    def MFEprimer_QC(self, primerinfos):
-        # option: also allow user provided non-target database created with
-        # MFEprimer for primer QC
-        def write_MFEprimer_results(input_list, name):
-            outputlist = []
-            with open("MFEprimer_" + name + ".csv", "w") as f:
-                writer = csv.writer(f)
-                for item in input_list:
-                    # item[0] is the primerinfo
-                    if len(item[0]) > 1:
-                        if not item[0] in outputlist:
-                            outputlist.append(item[0])
-                    # item[1] are the results of MFEprimer
+    def write_MFEprimer_results(self, input_list, name):
+        outputlist = []
+        with open("MFEprimer_" + name + ".csv", "w") as f:
+            writer = csv.writer(f)
+            for item in input_list:
+                # item[0] is the primerinfo
+                if len(item[0]) > 1:
+                    if not item[0] in outputlist:
+                        outputlist.append(item[0])
+                # item[1] are the results of MFEprimer
+                if len(item[1]) > 1:
                     for values in item[1]:
                         val = values.split("\t")
                         writer.writerow(val)
 
-            return outputlist
+        return outputlist
 
+    def MFEprimer_QC(self, primerinfos):
+        # option: also allow user provided non-target database created with
+        # MFEprimer for primer QC
         G.logger("Run: MFEprimer_QC(" + self.target + ")")
         info_msg = "Start primer quality control(" + self.target + ")"
         print(info_msg)
@@ -3192,7 +3192,7 @@ class PrimerQualityControl:
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
         template_list = G.run_parallel(self.MFEprimer_template, primerinfos)
-        check_nontarget = write_MFEprimer_results(
+        check_nontarget = self.write_MFEprimer_results(
                 template_list, "template")
         msg = " primer pair(s) with good target binding"
         info1 = str(len(check_nontarget)) + msg
@@ -3219,7 +3219,7 @@ class PrimerQualityControl:
         # if the MFEprimer_nontarget.csv has only the table header
         # and no results, then no primer binding was detected
         #  and the primers passed the QC
-        check_assembly = write_MFEprimer_results(nontarget_lists, "nontarget")
+        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
         msg = " primer pair(s) passed non-target PCR check"
         info2 = str(len(check_assembly)) + msg
         print("\n\n" + info2 + "\n")
@@ -3232,7 +3232,7 @@ class PrimerQualityControl:
         G.logger("> Start MFEprimer with assembly DB")
 
         assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
-        check_final = write_MFEprimer_results(assembly_list, "assembly")
+        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
         msg = " primer pair(s) passed secondary PCR amplicon check\n"
         info3 = str(len(check_final)) + msg
         print("\n\n" + info3 + "\n")
