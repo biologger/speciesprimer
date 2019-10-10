@@ -2973,6 +2973,7 @@ class PrimerQualityControl:
                                 remove.append(accession)
 
             check = set(qc_acc) - set(remove)
+            check.sort()
             for item in check:
                 if len(ref_assembly) < self.referencegenomes:
                     if assembly_dict[item] == "Complete Genome":
@@ -2999,6 +3000,7 @@ class PrimerQualityControl:
                         if item not in ref_assembly:
                             ref_assembly.append(item)
 
+            ref_assembly.sort()
             target_fasta = []
             for files in os.listdir(self.fna_dir):
                 for item in ref_assembly:
