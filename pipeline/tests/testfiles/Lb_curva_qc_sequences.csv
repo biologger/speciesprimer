@@ -1,4 +1,5 @@
 Assembly accession,Assembly name,Assembly status,Strain,rRNA,rRNA Blast,tuf,tuf Blast,recA,recA Blast,dnaK,dnaK Blast,pheS,pheS Blast
+GCF_004088235.2,ASM408823v1,Complete Genome,SRCM103465,,,passed QC,Lactobacillus curvatus,,,,,,
 GCF_001663835.1,ASM166383v1,Complete Genome,FBA2,,,passed QC,Lactobacillus curvatus,,,,,,
 GCF_900178545.1,AS-FLEC03-V1,Chromosome,unknown,,,passed QC,Lactobacillus curvatus,,,,,,
 GCF_001698165.1,ASM169816v1,Complete Genome,WiKim52,,,passed QC,Lactobacillus curvatus,,,,,,
@@ -18,7 +19,3 @@ GCF_007954645.1,ASM795464v1,Complete Genome,CBA3617,,,passed QC,Lactobacillus cu
 GCF_001982045.1,ASM198204v1,Scaffold,RI-193,,,passed QC,Lactobacillus curvatus,,,,,,
 GCF_001981925.1,ASM198192v1,Scaffold,RI-198,,,passed QC,Lactobacillus curvatus,,,,,,
 GCF_000235705.1,ASM23570v1,Contig,CRL 705,,,passed QC,Lactobacillus curvatus,,,,,,
-GCF_004101845.1,ASM410184v1,Complete Genome,DSM 20019,,,passed QC,Lactobacillus curvatus,,,,,,
-GCF_003254785.1,ASM325478v1,Complete Genome,ZJUNIT8,,,passed QC,Lactobacillus curvatus,,,,,,
-GCF_003410375.1,ASM341037v1,Complete Genome,TMW 1.1928,,,passed QC,Lactobacillus curvatus,,,,,,
-GCF_004088235.2,ASM408823v1,Complete Genome,SRCM103465,,,passed QC,Lactobacillus curvatus,,,,,,
