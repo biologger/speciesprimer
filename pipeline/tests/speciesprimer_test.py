@@ -1142,3 +1142,10 @@ def test_PrimerQualityControl_structures(config):
         + 'GCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCCGCGGGTGGCGGTTTGTTT'
         + 'AGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT']
 
+def test_clean_files(config):
+    test = config.path
+    shutil.rmtree(test)
+    tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+    if os.path.isfile(tmp_path):
+        os.remove(tmp_path)
+
