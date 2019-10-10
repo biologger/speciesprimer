@@ -2973,6 +2973,7 @@ class PrimerQualityControl:
                                 remove.append(accession)
 
             check = set(qc_acc) - set(remove)
+            check = list(check)
             check.sort()
             for item in check:
                 if len(ref_assembly) < self.referencegenomes:

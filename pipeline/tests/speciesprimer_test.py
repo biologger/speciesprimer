@@ -681,13 +681,13 @@ def test_CoreGeneSequences(config):
                         non_dict[key].update(
                             {
                                 "Lactobacillus sakei_" + str(i + 2)
-                                : {"main_id": item, 
-                                   "gi_ids": []}})                
+                                : {"main_id": item,
+                                   "gi_ids": []}})
                 except KeyError:
                     non_dict[key].update(
                         {
                             "Lactobacillus sakei_" + str(i + 2)
-                            : {"main_id": item, 
+                            : {"main_id": item,
                                "gi_ids": []}})
         with open(os.path.join(CGS.blast_dir, "nontargethits.json"), "w") as f:
             f.write(json.dumps(non_dict))
@@ -718,7 +718,7 @@ def test_CoreGeneSequences(config):
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
     assert conserved == 0
-    test_noconservedseqs()    
+    test_noconservedseqs()
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
     assert conserved == 1
@@ -749,7 +749,7 @@ def test_blastprep(config):
         maxpart, dicts = [maxpart, dicts]
         bp = BlastPrep(directory, input_list, name, maxpartsize=maxpart)
         bp.create_listdict()
-        assert len(bp.list_dict) == dicts     
+        assert len(bp.list_dict) == dicts
         bp.get_equalgroups()
         print("inputlist maxpartsize dicts")
         print(len(input_list), maxpart, dicts,)
@@ -767,7 +767,7 @@ def test_blastprep(config):
             if not x in reflist:
                 reflist.append("seq_" + str(x))
     assert reflist == inlist
-    
+
 def test_BLASTsettings(config):
     import multiprocessing
     from speciesprimer import Blast
@@ -777,7 +777,7 @@ def test_BLASTsettings(config):
     assert len(blastfiles) == 5
     blastfile = "test.part-0"
     modes = ["quality_control", "conserved", "primer"]
-    
+
     db_settings = [
         [False, None],
         [True, None],
@@ -802,18 +802,18 @@ def test_BLASTsettings(config):
                 assert cmd[2] == "blastn-short"
             else:
                 # there should not be any other modes
-                assert cmd[2] == "error"                
+                assert cmd[2] == "error"
             assert cmd[-1] == db_outcome[i]
     if os.path.isdir(tmpdir):
-        shutil.rmtree(tmpdir)    
-    
+        shutil.rmtree(tmpdir)
+
 def test_blastparser(config):
     pass
     from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
     # primer blastparser function
 #    create_primerBLAST_DBIDS(self, nonred_dict)
-    
+
 
 def test_PrimerDesign(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -828,7 +828,7 @@ def test_PrimerDesign(config):
         for line in f:
             refdict = json.loads(line)
     assert refdict == pd.p3dict
-    
+
 def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import PrimerQualityControl
     from speciesprimer import BlastPrep
@@ -899,9 +899,15 @@ def test_PrimerQualityControl_specificitycheck(config):
 
 #        Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
 #            "primer", use_cores)
-        
+        G.create_directory(pqc.primer_qc_dir)
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
+        shutil.copy(reffile, tofile)
+        reffile = os.path.join(testfiles_dir, "primerBLAST_DBIDS0.txt")
+        tofile = os.path.join(pqc.primer_qc_dir, "primerBLAST_DBIDS0.txt")
+        shutil.copy(reffile, tofile)
+        tofile = os.path.join(pqc.primer_qc_dir, "BLASTnontarget0.sequences")
+        reffile = os.path.join(testfiles_dir, "BLASTnontarget0.sequences")
         shutil.copy(reffile, tofile)
 
         pqc.call_blastparser.run_blastparser("primer")
@@ -915,7 +921,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         inputseqs.sort()
         modes = ['mfeprimer', "mfold", "dimercheck"] #"results" after mfeprimer (PPC)
         for mode in modes:
-            primerinfo = pqc.get_primerinfo([inputseqs[0]], mode)           
+            primerinfo = pqc.get_primerinfo([inputseqs[0]], mode)
             if mode == modes[0]:
                 assert primerinfo == [[
                     'Lb_curva_asnS_1_P0_F',
@@ -942,7 +948,7 @@ def test_PrimerQualityControl_specificitycheck(config):
                 files.startswith("BLASTnontarget")
                 and files.endswith(".sequences")
             ):
-                pqc.dbinputfiles.append(files) 
+                pqc.dbinputfiles.append(files)
 
         pqc.make_nontargetDB(pqc.dbinputfiles[0])
         qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences.csv")
@@ -986,20 +992,20 @@ def test_PrimerQualityControl_specificitycheck(config):
             else:
                 assert result[0][0] == outcome[index]
         check_nontarget = pqc.write_MFEprimer_results(results, "template")
-                
+
         # nontarget
-        print("Test MFEprimer_nontarget()") 
+        print("Test MFEprimer_nontarget()")
         ref = [[
-            'Lb_curva_asnS_1_P0_F', 
-            'AAACCATGTCGATGAAGAAGTTAAA', 
-            'Lb_curva_asnS_1_P0_R', 
-            'TGCCATCACGTAATTGGAGGA', 
+            'Lb_curva_asnS_1_P0_F',
+            'AAACCATGTCGATGAAGAAGTTAAA',
+            'Lb_curva_asnS_1_P0_R',
+            'TGCCATCACGTAATTGGAGGA',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
             + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG'
-            , 17.700000000000003], 
+            , 17.700000000000003],
             [
             'AmpID\tFpID\tRpID\tHitID\tPPC\tSize\tAmpGC\tFpTm\tRpTm\tFpDg'
-             + '\tRpDg\tBindingStart\tBindingStop\tAmpSeq', 
+             + '\tRpDg\tBindingStart\tBindingStop\tAmpSeq',
              '1\tLb_curva_asnS_1_P0_F\tLb_curva_asnS_1_P0_F'
              + '\tNZ_CP020459.1:1524567-1528567\t-16.4\t364\t37.09\t7.26'
              + '\t15.22\t-4.51\t-6.20\t3075\t3409\t'
@@ -1013,19 +1019,19 @@ def test_PrimerQualityControl_specificitycheck(config):
         nontarget_lists = []
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
-            result = pqc.MFEprimer_nontarget(check_nontarget[1], pqc.dbinputfiles[0])   
+            result = pqc.MFEprimer_nontarget(check_nontarget[1], pqc.dbinputfiles[0])
             assert result == ref
-            results.append(result)        
-        nontarget_lists = list(itertools.chain(nontarget_lists, results))    
+            results.append(result)
+        nontarget_lists = list(itertools.chain(nontarget_lists, results))
         check_assembly = pqc.write_MFEprimer_results(nontarget_lists, "nontarget")
 
         # assembly
-        print("Test MFEprimer_assembly()") 
+        print("Test MFEprimer_assembly()")
         ref = [[
-            'Lb_curva_asnS_1_P0_F', 
-            'AAACCATGTCGATGAAGAAGTTAAA', 
-            'Lb_curva_asnS_1_P0_R', 
-            'TGCCATCACGTAATTGGAGGA', 
+            'Lb_curva_asnS_1_P0_F',
+            'AAACCATGTCGATGAAGAAGTTAAA',
+            'Lb_curva_asnS_1_P0_R',
+            'TGCCATCACGTAATTGGAGGA',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
             + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG'
             , 17.700000000000003]]
@@ -1033,19 +1039,19 @@ def test_PrimerQualityControl_specificitycheck(config):
         outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
-            result = pqc.MFEprimer_assembly(check_assembly[0])   
-            results.append(result)  
+            result = pqc.MFEprimer_assembly(check_assembly[0])
+            results.append(result)
             if outcome[index] == [None]:
                 assert result[0] == outcome[index]
             else:
                 assert result[0][0] == outcome[index]
-                
-        check_final = pqc.write_MFEprimer_results(results, "assembly")       
+
+        check_final = pqc.write_MFEprimer_results(results, "assembly")
         assert check_final == ref
 
-    def test_fullMFEprimer_run():  
+    def test_fullMFEprimer_run():
         outcome = [15, 42, 54, 65]
-        ppcth = [100, 90, 80, 70]                 
+        ppcth = [100, 90, 80, 70]
         primerinfos = pqc.get_primerinfo(inputseqs, "mfeprimer")
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
@@ -1058,7 +1064,7 @@ def test_PrimerQualityControl_specificitycheck(config):
     test_MFEprimer_DBs()
     test_MFEprimer(inputseqs)
     test_fullMFEprimer_run()
-    
+
     with open("tmp_p3dict.json", "w") as f:
         f.write(json.dumps(pqc.primer3_dict))
 
@@ -1073,18 +1079,25 @@ def test_PrimerQualityControl_structures(config):
 
     def test_mfold():
         spec_output = [
-            'Lb_curva_g1243_1_P2', 'Lb_curva_g4430_1_P0', 'Lb_curva_comFA_4_P2', 
-            'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P0', 'Lb_curva_comFA_2_P0', 
-            'Lb_curva_g1243_2_P0', 'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_5_P1', 
-            'Lb_curva_g4295_1_P0', 'Lb_curva_gshAB_2_P4', 'Lb_curva_asnS_2_P0', 
+            'Lb_curva_g1243_1_P2', 'Lb_curva_g4430_1_P0', 'Lb_curva_comFA_4_P2',
+            'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P0', 'Lb_curva_comFA_2_P0',
+            'Lb_curva_g1243_2_P0', 'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_5_P1',
+            'Lb_curva_g4295_1_P0', 'Lb_curva_gshAB_2_P4', 'Lb_curva_asnS_2_P0',
             'Lb_curva_comFA_2_P1', 'Lb_curva_comFA_6_P1', 'Lb_curva_g4295_1_P4']
+        ref_output = [
+            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
+            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4',
+            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5', 'Lb_curva_g4430_1_P0',
+            'Lb_curva_g1243_1_P0', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
+            'Lb_curva_comFA_2_P1', 'Lb_curva_asnS_2_P0']
+        ref_output.sort()
         primerinfos = pqc.get_primerinfo(spec_output, "mfold")
         pqc.mfold_analysis(primerinfos)
         pqc.config.mfold = -1.0
         selected_primer, excluded_primer = pqc.mfold_parser()
         assert len(selected_primer) == 12
         assert len(excluded_primer) == 3
-        
+
         pqc.config.mfold = -12.0
         selected_primer, excluded_primer = pqc.mfold_parser()
         assert len(selected_primer) == 15
@@ -1092,33 +1105,40 @@ def test_PrimerQualityControl_structures(config):
         # default
         pqc.config.mfold = -3.0
         selected_primer, excluded_primer = pqc.mfold_parser()
-        assert selected_primer == [
-            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0', 
-            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4', 
-            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5', 'Lb_curva_g4430_1_P0', 
-            'Lb_curva_g1243_1_P0', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1', 
-            'Lb_curva_comFA_2_P1', 'Lb_curva_asnS_2_P0']
+        selected_primer.sort()
+        assert selected_primer == ref_output
         assert excluded_primer == ['Lb_curva_comFA_2_P0']
-        
+
         return selected_primer, excluded_primer
     #    print(excluded_primer)
-    
+
     def test_dimercheck(selected_primer, excluded_primer):
-        
+        ref_choice = [
+            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
+            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2',
+            'Lb_curva_comFA_4_P5', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
+            'Lb_curva_comFA_2_P1']
+        ref_choice.sort()
         dimercheck = pqc.dimercheck_primer(selected_primer, excluded_primer)
         choice = pqc.check_primerdimer(dimercheck)
-        assert choice == [
-            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0', 
-            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2', 
-            'Lb_curva_comFA_4_P5', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1', 
-            'Lb_curva_comFA_2_P1']
+        choice.sort()
+        assert choice == ref_choice
         return choice
-        
+
     selected_primer, excluded_primer = test_mfold()
     choice = test_dimercheck(selected_primer, excluded_primer)
     total_results = pqc.write_results(choice)
+    total_results.sort()
+    print(total_results)
     assert total_results[0] == [
-        'Lb_curva_g1243_2_P0', 100.0, 1.84, 'g1243_2', 'TTTGTGAACGCCTTGACCGA',
-        60.46, 0.5, 'GGCATACATCGCCGTTGTAA', 58.71, 1.33, 'None', 'None', 'None',
-        78, 80.74, 'TTTGTGAACGCCTTGACCGANGCAGAACTCGACCAGTTAGTGCCACTACTCAACAAGATTACAACGGCGATGTATGCC', 'CCGTTTGTGAACGCCTTGACCGANGCAGAACTCGACCAGTTAGTGCCACTACTCAACAAGATTACAACGGCGATGTATGCCGATAT']
+        'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2', 'TACCAAGCAACAACGCCATG',
+        59.4, 0.63, 'ACACACACGCTGCCCATTAG', 60.95, 0.99,
+        'None', 'None', 'None', 106, 82.53,
+        'TACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAGG'
+        + 'CATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGT',
+        'GCGGTTAGTGGAAGGGGATCAGTTGNTTTACGTGCCTGAATGCAATCTGTTTGAGTCGATNGTAGAACC'
+        + 'GCTAACTTGGTCGGGGACACTAACCCCTTTTCAAGCACAAGCCGCAAAGCAGATTGTTGCGGTCATT'
+        + 'ACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAG'
+        + 'GCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCCGCGGGTGGCGGTTTGTTT'
+        + 'AGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT']
 
