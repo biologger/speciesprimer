@@ -2609,6 +2609,7 @@ class PrimerDesign():
                 self.p3dict[p3list[-1]].update(
                     {"Template_seq": value})
 
+
         def countPrimer(key, value):
             if key.startswith("PRIMER_PAIR_NUM_RETURNED"):
                 lookup = p3list[-1]
@@ -2701,6 +2702,24 @@ class PrimerDesign():
                     parseInternalProbe(key, value)
                     parsePrimerPair(key, value)
 
+    def getAmpliconSeq(self):
+        def PCR(left, rc_right, temp):
+            pcr_product = (
+                temp[temp.index(left):template.index(rc_right)] + rc_right)
+            return pcr_product
+
+        for key in self.p3dict.keys():
+            if self.p3dict[key]["Primer_pairs"] > 0:
+               template = self.p3dict[key]["Template_seq"]
+               for pp in self.p3dict[key].keys():
+                   if "Primer_pair_" in pp:
+                       lprimer = self.p3dict[key][pp]["primer_L_sequence"]
+                       rprimer = self.p3dict[key][pp]["primer_R_sequence"]
+                       rev_compl = str(Seq(rprimer).reverse_complement())
+                       pcr_product = PCR(lprimer, rev_compl, template)
+                       self.p3dict[key][pp].update(
+                           {"amplicon_seq": pcr_product})
+
     def write_primer3_data(self):
         file_path = os.path.join(self.primer_dir, "primer3_summary.json")
         with open(file_path, "w") as f:
@@ -2715,6 +2734,7 @@ class PrimerDesign():
         self.run_primer3()
         p3_output = os.path.join(self.primer_dir, "primer3_output")
         self.parse_Primer3_output(p3_output)
+        self.getAmpliconSeq()
         self.write_primer3_data()
         return self.p3dict
 
@@ -2812,7 +2832,7 @@ class PrimerQualityControl:
                 pp_penalty = round(x["primer_P_penalty"], 2)
                 pp_prodsize = x["product_size"]
                 pp_prodTM = round(x["product_TM"], 2)
-
+                amp_seq = x["amplicon_seq"]
                 lseq = x["primer_L_sequence"]
                 rseq = x["primer_R_sequence"]
                 lpen = round(x["primer_L_penalty"], 2)
@@ -2826,9 +2846,7 @@ class PrimerQualityControl:
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "mfold":
-                    info = [
-                        target_id, primerpair, lseq, rseq, template_seq,
-                        primer_name]
+                    info = [target_id, primerpair, amp_seq, primer_name]
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "dimercheck":
@@ -2837,7 +2855,6 @@ class PrimerQualityControl:
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "results":
-                    amp_seq = x["amplicon_seq"]
                     ppc = x['PPC']
                     if self.config.probe:
                         iseq = x["primer_I_sequence"]
@@ -3236,38 +3253,22 @@ class PrimerQualityControl:
 
         for mfoldinput in mfoldinputlist:
             abbr = H.abbrev(self.target, dict_path)
-            target_id, primerpair, pcr_product = self.prep_mfold(
-                mfoldinput, abbr)
-            self.primer3_dict[target_id][primerpair].update(
-                {"amplicon_seq": pcr_product})
+            self.prep_mfold(mfoldinput, abbr)
         os.chdir(self.target_dir)
 
     def prep_mfold(self, mfoldinput, abbr):
-        (
-            target_id, primerpair, lseq, rseq, template_seq, primer_name
-        ) = mfoldinput
+        target_id, primerpair, amplicon_seq, primer_name = mfoldinput
         # This removes the Genus species string to shorten the
         # name for mfold (especially for subspecies names). mfold has
         # problems with too long filenames / paths
         short_name = primer_name.split(abbr + "_")[1]
-        dir_name = target_id
-        subdir = primerpair
-        primer_fwd = lseq
-        primer_rev_convert = Seq(rseq)
-        rev_compl = str(primer_rev_convert.reverse_complement())
-        dir_path = os.path.join(self.mfold_dir, dir_name)
-        subdir_path = os.path.join(dir_path, subdir)
+        dir_path = os.path.join(self.mfold_dir, target_id)
+        subdir_path = os.path.join(dir_path, primerpair)
         pcr_name = short_name + "_PCR"
-        pcr_prod = (
-            template_seq[
-                template_seq.index(primer_fwd):template_seq.index(rev_compl)])
-        pcr_product = pcr_prod+rev_compl
-        if len(pcr_product) >= self.config.minsize:
+        if len(amplicon_seq) >= self.config.minsize:
             G.create_directory(dir_path)
             G.create_directory(subdir_path)
-            self.run_mfold(subdir_path, pcr_name, pcr_product)
-
-        return target_id, primerpair, pcr_product
+            self.run_mfold(subdir_path, pcr_name, amplicon_seq)
 
     def run_mfold(self, subdir_path, seq_name, description):
         file_path = os.path.join(subdir_path, seq_name)
