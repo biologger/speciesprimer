@@ -15,7 +15,6 @@ from multiprocessing import Process
 import wget
 import json
 import tempfile
-import sqlite3
 import urllib
 import itertools
 from itertools import islice
