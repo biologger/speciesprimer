@@ -2901,8 +2901,8 @@ class PrimerQualityControl:
     def index_Database(self, db_name):
         start = time.time()
         os.chdir(self.primer_qc_dir)
-        cmd = "IndexDb.sh " + db_name + " 9"
-        G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+        cmd = ["mfeprimer-index", "-i", db_name]
+        G.run_subprocess(cmd)
         os.chdir(self.primer_dir)
         end = time.time() - start
         G.logger(

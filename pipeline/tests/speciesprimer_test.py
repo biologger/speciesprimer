@@ -39,7 +39,7 @@ confargs = {
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
+    "blastdbv5": False, "intermediate": False, "nontargetlist": ["Lactobacillus sakei"]}
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -941,9 +941,12 @@ def test_PrimerQualityControl_specificitycheck(config):
             "template.sequences",
             "Lb_curva.genomic"]
         dbfiles = [
-            ".2bit",
-            ".sqlite3.db",
-            ".uni"]
+            ".fai",
+            ".json",
+            ".log",
+            ".primerqc",
+            ".primerqc.fai"]
+
         for db in dbtype:
             for end in dbfiles:
                 files =  db + end
@@ -1173,7 +1176,7 @@ def test_end(config):
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
 
-    remove_test_files(config)
+#    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
