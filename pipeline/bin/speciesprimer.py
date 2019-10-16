@@ -1929,8 +1929,8 @@ class BlastParser:
         if results == "primer":
             self.mode = "primer"
             self.primer_dir = os.path.join(self.results_dir, "primer")
-            self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
             self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+            self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
             self.maxgroupsize = 25000
 
     def blastresult_files(self, blast_dir):
@@ -2749,8 +2749,9 @@ class PrimerQualityControl:
         self.blast_dir = os.path.join(self.results_dir, "blast")
         self.primer_dir = os.path.join(self.results_dir, "primer")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
-        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
         self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+        self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
+        self.hairpin_dir = os.path.join(self.primer_qc_dir, "hairpin")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.primer3_dict = primer3_dict
@@ -3619,83 +3620,191 @@ class PrimerQualityControl:
             inputsequences.append(primer[0].split(">")[1].strip())
         return inputsequences
 
+    def write_primerlist(self):
+        filepath = os.path.join(self.hairpin_dir, "primerlist.fa")
+        with open(filepath, "w") as f:
+            for item in self.primerlist:
+                for primer in item:
+                    f.write(primer)
+
+    def hairpin_check(self):
+        hairpins = []
+        os.chdir(self.hairpin_dir)
+        cmd = ["mfeprimer-hairpin", "-in", "primerlist.fa", ">", "hairpin_check.txt"]
+        cmd = " ".join(cmd)
+        G.run_shell(cmd)
+        with open("hairpin_check.txt") as f:
+            for line in f:
+                line = line.strip()
+                if line == "No hairpins found.":
+                    return []
+                elif "Hairpin" in line:
+                    hairpin = "_".join(line.split(": ")[1].split("_")[0:-1])
+                    hairpins.append(hairpin)
+                    
+        return hairpins
+                
+
     def run_primer_qc(self):
+        print("Run: run_primer_qc(" + self.target + ")")
         G.logger("Run: run_primer_qc(" + self.target + ")")
         total_results = []
-        if self.collect_primer() == 0:
+        if self.collect_primer() == 0:            
             G.create_directory(self.primerblast_dir)
+            G.create_directory(self.hairpin_dir)
             blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
-            if not os.path.isfile(blastsum):
-                prep = BlastPrep(
-                    self.primerblast_dir, self.primerlist,
-                    "primer", self.config.blastseqs)
-                use_cores, inputseqs = prep.run_blastprep()
+            self.write_primerlist()
+            hairpins = self.hairpin_check()
+            print(hairpins)
+        
+            
+#            if not os.path.isfile(blastsum):
+#                prep = BlastPrep(
+#                    self.primerblast_dir, self.primerlist,
+#                    "primer", self.config.blastseqs)
+#                use_cores, inputseqs = prep.run_blastprep()
+#
+#                bla = Blast(self.config, self.primerblast_dir, "primer")
+#                bla.run_blast("primer", use_cores)
+#            else:
+#                inputseqs = self.get_inputsequences(self.primerlist)
+#
+#            self.call_blastparser.run_blastparser("primer")
+#
+#            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
+#
+#            for files in os.listdir(self.primer_qc_dir):
+#                if (
+#                    files.startswith("BLASTnontarget")
+#                    and files.endswith(".sequences")
+#                ):
+#                    self.dbinputfiles.append(files)
+#
+#            self.prepare_MFEprimer_Dbs(primer_qc_list)
+#
+#            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
+#
+#            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
+#
+#            self.mfold_analysis(mfoldinput)
+#
+#            selected_primer, excluded_primer = self.mfold_parser()
+#
+#            dimercheck = self.dimercheck_primer(
+#                selected_primer, excluded_primer)
+#
+#            choice = self.check_primerdimer(dimercheck)
+#
+#            total_results = self.write_results(choice)
+#
+#            if not total_results == []:
+#                info = (
+#                    "Found " + str(len(total_results))
+#                    + " primer pair(s) for " + self.target)
+#                print("\n" + info + "\n")
+#                G.logger("> " + info)
+#                duration = time.time() - self.start
+#                G.logger(
+#                    "> PrimerQC time: "
+#                    + str(timedelta(seconds=duration)).split(".")[0])
+#                return total_results
+#            else:
+#                error_msg = "No compatible primers found"
+#                print(error_msg)
+#                G.logger("> " + error_msg)
+#                errors.append([self.target, error_msg])
+#                duration = time.time() - self.start
+#                G.logger(
+#                    "> PrimerQC time: "
+#                    + str(timedelta(seconds=duration)).split(".")[0])
+#                return total_results
+#        else:
+#            error_msg = "No compatible primers found"
+#            duration = time.time() - self.start
+#            G.logger(
+#                "> PrimerQC time: "
+#                + str(timedelta(seconds=duration)).split(".")[0])
+#            print(error_msg)
+#            G.logger("> " + error_msg)
+#            errors.append([self.target, error_msg])
+#            return total_results
 
-                bla = Blast(self.config, self.primerblast_dir, "primer")
-                bla.run_blast("primer", use_cores)
-            else:
-                inputseqs = self.get_inputsequences(self.primerlist)
-
-            self.call_blastparser.run_blastparser("primer")
-
-            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
-
-            for files in os.listdir(self.primer_qc_dir):
-                if (
-                    files.startswith("BLASTnontarget")
-                    and files.endswith(".sequences")
-                ):
-                    self.dbinputfiles.append(files)
-
-            self.prepare_MFEprimer_Dbs(primer_qc_list)
-
-            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
-
-            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
-
-            self.mfold_analysis(mfoldinput)
-
-            selected_primer, excluded_primer = self.mfold_parser()
-
-            dimercheck = self.dimercheck_primer(
-                selected_primer, excluded_primer)
-
-            choice = self.check_primerdimer(dimercheck)
-
-            total_results = self.write_results(choice)
-
-            if not total_results == []:
-                info = (
-                    "Found " + str(len(total_results))
-                    + " primer pair(s) for " + self.target)
-                print("\n" + info + "\n")
-                G.logger("> " + info)
-                duration = time.time() - self.start
-                G.logger(
-                    "> PrimerQC time: "
-                    + str(timedelta(seconds=duration)).split(".")[0])
-                return total_results
-            else:
-                error_msg = "No compatible primers found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                duration = time.time() - self.start
-                G.logger(
-                    "> PrimerQC time: "
-                    + str(timedelta(seconds=duration)).split(".")[0])
-                return total_results
-        else:
-            error_msg = "No compatible primers found"
-            duration = time.time() - self.start
-            G.logger(
-                "> PrimerQC time: "
-                + str(timedelta(seconds=duration)).split(".")[0])
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
-            return total_results
-
+#    def run_primer_qc(self):
+#        G.logger("Run: run_primer_qc(" + self.target + ")")
+#        total_results = []
+#        if self.collect_primer() == 0:
+#            G.create_directory(self.primerblast_dir)
+#            blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
+#            if not os.path.isfile(blastsum):
+#                prep = BlastPrep(
+#                    self.primerblast_dir, self.primerlist,
+#                    "primer", self.config.blastseqs)
+#                use_cores, inputseqs = prep.run_blastprep()
+#
+#                bla = Blast(self.config, self.primerblast_dir, "primer")
+#                bla.run_blast("primer", use_cores)
+#            else:
+#                inputseqs = self.get_inputsequences(self.primerlist)
+#
+#            self.call_blastparser.run_blastparser("primer")
+#
+#            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
+#
+#            for files in os.listdir(self.primer_qc_dir):
+#                if (
+#                    files.startswith("BLASTnontarget")
+#                    and files.endswith(".sequences")
+#                ):
+#                    self.dbinputfiles.append(files)
+#
+#            self.prepare_MFEprimer_Dbs(primer_qc_list)
+#
+#            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
+#
+#            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
+#
+#            self.mfold_analysis(mfoldinput)
+#
+#            selected_primer, excluded_primer = self.mfold_parser()
+#
+#            dimercheck = self.dimercheck_primer(
+#                selected_primer, excluded_primer)
+#
+#            choice = self.check_primerdimer(dimercheck)
+#
+#            total_results = self.write_results(choice)
+#
+#            if not total_results == []:
+#                info = (
+#                    "Found " + str(len(total_results))
+#                    + " primer pair(s) for " + self.target)
+#                print("\n" + info + "\n")
+#                G.logger("> " + info)
+#                duration = time.time() - self.start
+#                G.logger(
+#                    "> PrimerQC time: "
+#                    + str(timedelta(seconds=duration)).split(".")[0])
+#                return total_results
+#            else:
+#                error_msg = "No compatible primers found"
+#                print(error_msg)
+#                G.logger("> " + error_msg)
+#                errors.append([self.target, error_msg])
+#                duration = time.time() - self.start
+#                G.logger(
+#                    "> PrimerQC time: "
+#                    + str(timedelta(seconds=duration)).split(".")[0])
+#                return total_results
+#        else:
+#            error_msg = "No compatible primers found"
+#            duration = time.time() - self.start
+#            G.logger(
+#                "> PrimerQC time: "
+#                + str(timedelta(seconds=duration)).split(".")[0])
+#            print(error_msg)
+#            G.logger("> " + error_msg)
+#            errors.append([self.target, error_msg])
+#            return total_results
 
 class Summary:
     def __init__(self, configuration, total_results):
@@ -3707,7 +3816,8 @@ class Summary:
         self.results_dir = os.path.join(self.pangenome_dir, "results")
         self.blast_dir = os.path.join(self.results_dir, "blast")
         self.primer_dir = os.path.join(self.results_dir, "primer")
-        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
+        self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+        self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
