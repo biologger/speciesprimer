@@ -39,7 +39,7 @@ confargs = {
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": False, "nontargetlist": ["Lactobacillus sakei"]}
+    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
