@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+msg = (
+"""
+Works only in the Docker container!!!
+- Start the container
+    sudo docker start {Containername}
+- Start an interactive terminal in the container
+    sudo docker exec -it {Containername} bash
+- Start the test in the container terminal
+    pytest -vv /home/pipeline/tests/speciesprimer_test.py
+"""
+)
 
 import os
 import sys
 import shutil
 import pytest
 import json
+import time
 from Bio import SeqIO
-
 
 BASE_PATH = os.path.abspath(__file__).split("tests")[0]
 new_path = os.path.join(BASE_PATH, "bin")
@@ -19,8 +30,6 @@ from basicfunctions import GeneralFunctions as G
 
 testfiles_dir = os.path.join(BASE_PATH, "tests", "testfiles")
 ref_data = os.path.join(BASE_PATH, "tests", "testfiles", "ref")
-
-COMPLETE_TEST = False
 
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
@@ -173,10 +182,6 @@ def test_auto_run_config():
 def clean_before_tests(config):
     shutil.rmtree(os.path.join(config.path, config.target))
 
-def clean_up_after_test():
-    tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-    os.remove(tmp_path)
-
 def test_DataCollection(config):
     clean_before_tests(config)
     from speciesprimer import DataCollection
@@ -186,31 +191,6 @@ def test_DataCollection(config):
         email = DC.get_email_for_Entrez()
         assert email == "biologger@protonmail.com"
         return email
-
-    def internet_connection():
-        from urllib.request import urlopen
-        try:
-            response = urlopen('https://www.google.com/', timeout=5)
-#            return True
-            return False # for dev
-        except:
-            print("No internet connection!!! Skip online tests")
-            return False
-
-    def test_get_taxid(config):
-        email = DC.get_email_for_Entrez()
-        taxid, email = DC.get_taxid(config.target)
-        assert taxid == '28038'
-        clean_up_after_test()
-        return taxid
-
-    def test_ncbi_download(taxid, email):
-        DC.get_ncbi_links(taxid, email, 1)
-        DC.ncbi_download()
-        # clean up
-        fna = os.path.join(config.path, config.target, "genomic_fna")
-        shutil.rmtree(fna)
-        G.create_directory(fna)
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
@@ -243,17 +223,16 @@ def test_DataCollection(config):
             dirpath = os.path.join(targetdir, form + "_files")
             if os.path.isdir(dirpath):
                 shutil.rmtree(dirpath)
+        dirpath = os.path.join(targetdir, "fna_genomic")
+        if os.path.isdir(dirpath):
+            shutil.rmtree(dirpath)
+            G.create_directory(dirpath)
 
-
-    email = test_get_email_from_config(config)
+    test_get_email_from_config(config)
     DC.prepare_dirs()
-    if internet_connection():
-        taxid = test_get_taxid(config)
-        test_ncbi_download(taxid, email)
-    else:
-        G.create_directory(DC.gff_dir)
-        G.create_directory(DC.ffn_dir)
-        G.create_directory(DC.fna_dir)
+    G.create_directory(DC.gff_dir)
+    G.create_directory(DC.ffn_dir)
+    G.create_directory(DC.fna_dir)
     test_prokka_is_installed()
     prepare_prokka(config)
     test_run_prokka()
@@ -261,8 +240,6 @@ def test_DataCollection(config):
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)
     G.create_directory(DC.fna_dir)
-
-
 
 def test_QualityControl(config):
     testdir = os.path.join(BASE_PATH, "tests", "testfiles")
@@ -814,6 +791,7 @@ def test_blastparser(config):
     # primer blastparser function
 #    create_primerBLAST_DBIDS(self, nonred_dict)
 
+#    get_alignmentdata(self, alignment)
 
 def test_PrimerDesign(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -1142,10 +1120,60 @@ def test_PrimerQualityControl_structures(config):
         + 'GCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCCGCGGGTGGCGGTTTGTTT'
         + 'AGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT']
 
-def test_clean_files(config):
-    test = config.path
-    shutil.rmtree(test)
-    tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-    if os.path.isfile(tmp_path):
-        os.remove(tmp_path)
+def test_summary(config):
+    total_results = [
+        [
+            'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2',
+            'TACCAAGCAACAACGCCATG', 59.4, 0.63,
+            'ACACACACGCTGCCCATTAG', 60.95, 0.99,
+            'None', 'None', 'None', 106, 82.53,
+            'TACCAAGCAAC...',
+            'TACCAAGCAACAACGCCATGTC...']]
 
+    from speciesprimer import Summary
+    su = Summary(config, total_results)
+    su.run_summary("normal")
+    files = []
+    for filename in os.listdir(su.summ_dir):
+        files.append(filename)
+
+    ref_files = [
+        "Lb_curva_primer.csv", "Lb_curva_qc_sequences_details.csv",
+        "mostcommonhits.csv", "Lb_curva_qc_sequences.csv"]
+    files.sort()
+    ref_files.sort()
+    assert files == ref_files
+
+    shutil.rmtree(su.summ_dir)
+
+    su.run_summary("last")
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    configfile = "config_" + today + ".json"
+    stats = "Lb_curva_pipeline_stats_" + today + ".txt"
+
+    ref_files = [
+        "Lb_curva_primer.csv", "Lb_curva_qc_sequences_details.csv",
+        "mostcommonhits.csv", "Lb_curva_qc_sequences.csv", configfile,
+        stats]
+
+    files = []
+    for filename in os.listdir(su.summ_dir):
+        files.append(filename)
+
+    files.sort()
+    ref_files.sort()
+    assert files == ref_files
+
+
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+
+    remove_test_files(config)
+
+if __name__ == "__main__":
+    print(msg)
