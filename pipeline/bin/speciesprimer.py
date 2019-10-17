@@ -882,7 +882,7 @@ class QualityControl:
                     z = dict(zip(tuple(recid), tuple(recseq)))
                     a = {v: k for k, v in z.items()}
                     o.write(">" + str(a[q]) + "\n" + str(q) + "\n")
-                    qc_seqs.append([">" + str(a[q]) + "\n", str(q) + "\n"])
+                    qc_seqs.append([str(a[q]), str(q)])
 
         return qc_seqs
 
@@ -1707,14 +1707,14 @@ class CoreGeneSequences:
                         seq = item
                         count += 1
                         conserv_seqs.append(
-                            ["> " + seq_name + "\n", seq + "\n"])
+                            [seq_name, seq])
                         self.conserved_dict.update({seq_name: seq})
 
         if len(conserv_seqs) > 0:
             with open(result_path, "w") as f:
                 for seq in conserv_seqs:
-                    f.write(seq[0])
-                    f.write(seq[1])
+                    f.write(">" + seq[0] + "\n")
+                    f.write(seq[1] + "\n")
             info = "Number of conserved sequences: " + str(len(conserv_seqs))
             PipelineStatsCollector(self.target_dir).write_stat(info)
             print(info)
@@ -1798,9 +1798,9 @@ class BlastPrep():
                     self.directory, self.filename + ".part-"+str(key))
                 with open(file_name, "w") as f:
                     for item in self.list_dict[key]:
-                        f.write(item[0])
-                        inputsequences.append(item[0].split(">")[1].strip())
-                        f.write(item[1])
+                        f.write(">" + item[0] + "\n")
+                        inputsequences.append(item[0])
+                        f.write(item[1] + "\n")
         return inputsequences
 
     def run_blastprep(self):
@@ -2752,6 +2752,7 @@ class PrimerQualityControl:
         self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
         self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
         self.hairpin_dir = os.path.join(self.primer_qc_dir, "hairpin")
+        self.primerdimer_dir = os.path.join(self.primer_qc_dir, "primerdimer")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.primer3_dict = primer3_dict
@@ -2762,57 +2763,6 @@ class PrimerQualityControl:
         self.mfethreshold = self.config.mfethreshold
         self.referencegenomes = 10
         self.dbinputfiles = []
-
-    def collect_primer(self):
-        G.logger("Run: collect_primer(" + self.target + ")")
-        primer_sorted = []
-        for key in self.primer3_dict:
-            if not self.primer3_dict[key]["Primer_pairs"] == 0:
-                for item in self.primer3_dict[key]:
-                    if "Primer_pair_" in item:
-                        primer_sorted.append([
-                            key, item,
-                            self.primer3_dict[key][item]["primer_P_penalty"]])
-
-        primer_sorted.sort(key=lambda x: float(x[2]))
-        for count, item in enumerate(primer_sorted):
-            self.get_blast_input(item)
-
-        if len(self.primerlist) == 0:
-            info = "potential Primer pair(s): 0"
-            error_msg = "No primers found for conserved sequences"
-            PipelineStatsCollector(self.target_dir).write_stat(info)
-            print("\n" + error_msg)
-            G.logger("> " + error_msg)
-            G.logger("> " + info)
-            errors.append([self.target, error_msg])
-            return 1
-
-        else:
-            info = (
-                "Number of potential primer pair(s) found "
-                + str(len(self.primerlist)//2))
-            print("\n" + info + "\n")
-            G.logger("> " + info)
-            PipelineStatsCollector(self.target_dir).write_stat(
-                "potential primer pair(s): "
-                + str(len(self.primerlist)//2))
-            return 0
-
-    def get_blast_input(self, item):
-        # start new primername definition here
-        # start 15.12.2017
-        # get primername without direction split("_")
-        p_fwd_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
-            + "_P" + item[1].split("_")[-1]) + "_F"
-        p_rev_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
-            + "_P" + item[1].split("_")[-1]) + "_R"
-        p_fwd_seq = self.primer3_dict[item[0]][item[1]]['primer_L_sequence']
-        p_rev_seq = self.primer3_dict[item[0]][item[1]]['primer_R_sequence']
-        self.primerlist.append([">"+p_fwd_name + "\n", p_fwd_seq + "\n"])
-        self.primerlist.append([">"+p_rev_name + "\n", p_rev_seq + "\n"])
 
     def get_primerinfo(self, selected_seqs, mode):
         G.logger("Run: get_primerinfo(" + self.target + ")")
@@ -2884,7 +2834,7 @@ class PrimerQualityControl:
 
     def make_nontargetDB(self, inputfiles):
         db_name = inputfiles
-        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".sqlite3.db")
+        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".primerqc")
         if not os.path.isfile(db_path):
             G.logger("> Start index non-target DB " + inputfiles)
             print("\nStart index non-target DB " + inputfiles)
@@ -3019,7 +2969,7 @@ class PrimerQualityControl:
 
         def make_templateDB():
             db_name = "template.sequences"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
+            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
             if not os.path.isfile(db_path):
                 G.logger("> create template DB")
                 print("\ncreate template DB")
@@ -3038,7 +2988,7 @@ class PrimerQualityControl:
 
         def make_assemblyDB():
             db_name = H.abbrev(self.target, dict_path) + ".genomic"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
+            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
             if not os.path.isfile(db_path):
                 G.logger("> create target genome assembly DB")
                 print("\ncreate target genome assembly DB")
@@ -3077,32 +3027,31 @@ class PrimerQualityControl:
         ) as primefile:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-
         db = "template.sequences"
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
-
+        cmd = [
+            "mfeprimer", "-in", primefile.name, "-db", db, "-mismatch", "-json"]
+        cmd = " ".join(cmd)        
         result = G.read_shelloutput(
             cmd, printcmd=False, logcmd=False, printoption=False)
-        os.unlink(primefile.name)
-        if len(result) == 2:
-            val = result[1].split("\t")
-            pp_F = "_".join(val[1].split("_")[0:-1])
-            pp_R = "_".join(val[2].split("_")[0:-1])
-            p_F = "_".join(val[1].split("_")[0:-2])
-            primername = val[3]
-            ppc = float(val[4])
-            if (
-                pp_F == pp_R and p_F == primername
-                and ppc >= float(self.mfethreshold)
-            ):
-                ppc_val = ppc - float(self.mfethreshold)
-                return [[nameF, seqF, nameR, seqR, templ_seq, ppc_val], result]
-            else:
-                return [[None], result]
+        os.unlink(primefile.name)        
+        line = result[0].split("Primer Quality Reports")[0]
+        pqcdict = json.loads(line)
+        ampinfo = pqcdict["AmpList"]
+
+        num_amp = len(ampinfo)
+        amplist = []
+        for data in ampinfo:
+            desc = data["FastaDesc"]
+            ppc = round(data["PPC"],2)
+            
+            seq = data["Seq"]
+            fp = data["Fp"]["Seq"]["Id"]
+            rp = data["Rp"]["Seq"]["Id"]
+            amplist.append([ppc, fp, rp, seq])
+        if num_amp == 1:
+            return [primerinfo, amplist]
         else:
-            return [[None], result]
+            return [[None], amplist]
 
     def MFEprimer_nontarget(self, primerinfo, inputfiles):
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
@@ -3166,16 +3115,15 @@ class PrimerQualityControl:
         outputlist = []
         with open("MFEprimer_" + name + ".csv", "w") as f:
             writer = csv.writer(f)
+            writer.writerow(["PPC", "Pf", "Pr", "AmpSeq"])
             for item in input_list:
                 # item[0] is the primerinfo
                 if len(item[0]) > 1:
                     if not item[0] in outputlist:
                         outputlist.append(item[0])
                 # item[1] are the results of MFEprimer
-                if len(item[1]) > 1:
-                    for values in item[1]:
-                        val = values.split("\t")
-                        writer.writerow(val)
+                for result in item[1]:
+                    writer.writerow(result)
 
         return outputlist
 
@@ -3195,72 +3143,74 @@ class PrimerQualityControl:
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
         template_list = G.run_parallel(self.MFEprimer_template, primerinfos)
+#        print(template_list)
         check_nontarget = self.write_MFEprimer_results(
                 template_list, "template")
-        msg = " primer pair(s) with good target binding"
-        info1 = str(len(check_nontarget)) + msg
-        print("\n\n" + info1 + "\n")
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs with good target binding: "
-            + str(len(check_nontarget)))
-        G.logger("> " + info1)
-
-        nontarget_lists = []
-        print("\nStart MFEprimer with nontarget DB\n")
-        G.logger("> Start MFEprimer with nontarget DB")
-        for index, inputfiles in enumerate(self.dbinputfiles):
-            info_msg = (
-                "nontarget DB " + str(index+1) + "/"
-                + str(len(self.dbinputfiles)))
-            print(info_msg)
-            G.logger(info_msg)
-            nontarget_list = G.run_parallel(
-                self.MFEprimer_nontarget, check_nontarget, inputfiles)
-            nontarget_lists = list(
-                itertools.chain(nontarget_lists, nontarget_list))
-
-        # if the MFEprimer_nontarget.csv has only the table header
-        # and no results, then no primer binding was detected
-        #  and the primers passed the QC
-        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
-        msg = " primer pair(s) passed non-target PCR check"
-        info2 = str(len(check_assembly)) + msg
-        print("\n\n" + info2 + "\n")
-        G.logger("> " + info2)
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs left after non-target QC: "
-            + str(len(check_assembly)))
-
-        print("\nStart MFEprimer with assembly DB\n")
-        G.logger("> Start MFEprimer with assembly DB")
-
-        assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
-        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
-        msg = " primer pair(s) passed secondary PCR amplicon check\n"
-        info3 = str(len(check_final)) + msg
-        print("\n\n" + info3 + "\n")
-        G.logger("> " + info3)
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs left after secondary amplicon QC: "
-            + str(len(check_final)))
-        os.chdir(self.primer_dir)
-
-        # new 07.11.2018 add PPC to results file
-        for item in template_list:
-            nameF = item[0][0]
-            if nameF is not None:
-                pname = "_".join(nameF.split("_")[0:-1])
-                ppc = item[0][5] + float(self.mfethreshold)
-                target_id = "_".join(pname.split("_")[-3:-1])
-                primerpair = "Primer_pair_" + pname.split("_P")[-1]
-                self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
-
-        primername_list = []
-        for primerinfo in check_final:
-            primername = "_".join(primerinfo[0].split("_")[0:-1])
-            primername_list.append(primername)
-
-        return primername_list
+#        print(check_nontarget)
+#        msg = " primer pair(s) with good target binding"
+#        info1 = str(len(check_nontarget)) + msg
+#        print("\n\n" + info1 + "\n")
+#        PipelineStatsCollector(self.target_dir).write_stat(
+#            "primer pairs with good target binding: "
+#            + str(len(check_nontarget)))
+#        G.logger("> " + info1)
+#
+#        nontarget_lists = []
+#        print("\nStart MFEprimer with nontarget DB\n")
+#        G.logger("> Start MFEprimer with nontarget DB")
+#        for index, inputfiles in enumerate(self.dbinputfiles):
+#            info_msg = (
+#                "nontarget DB " + str(index+1) + "/"
+#                + str(len(self.dbinputfiles)))
+#            print(info_msg)
+#            G.logger(info_msg)
+#            nontarget_list = G.run_parallel(
+#                self.MFEprimer_nontarget, check_nontarget, inputfiles)
+#            nontarget_lists = list(
+#                itertools.chain(nontarget_lists, nontarget_list))
+#
+#        # if the MFEprimer_nontarget.csv has only the table header
+#        # and no results, then no primer binding was detected
+#        #  and the primers passed the QC
+#        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
+#        msg = " primer pair(s) passed non-target PCR check"
+#        info2 = str(len(check_assembly)) + msg
+#        print("\n\n" + info2 + "\n")
+#        G.logger("> " + info2)
+#        PipelineStatsCollector(self.target_dir).write_stat(
+#            "primer pairs left after non-target QC: "
+#            + str(len(check_assembly)))
+#
+#        print("\nStart MFEprimer with assembly DB\n")
+#        G.logger("> Start MFEprimer with assembly DB")
+#
+#        assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
+#        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
+#        msg = " primer pair(s) passed secondary PCR amplicon check\n"
+#        info3 = str(len(check_final)) + msg
+#        print("\n\n" + info3 + "\n")
+#        G.logger("> " + info3)
+#        PipelineStatsCollector(self.target_dir).write_stat(
+#            "primer pairs left after secondary amplicon QC: "
+#            + str(len(check_final)))
+#        os.chdir(self.primer_dir)
+#
+#        # new 07.11.2018 add PPC to results file
+#        for item in template_list:
+#            nameF = item[0][0]
+#            if nameF is not None:
+#                pname = "_".join(nameF.split("_")[0:-1])
+#                ppc = item[0][5] + float(self.mfethreshold)
+#                target_id = "_".join(pname.split("_")[-3:-1])
+#                primerpair = "Primer_pair_" + pname.split("_P")[-1]
+#                self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
+#
+#        primername_list = []
+#        for primerinfo in check_final:
+#            primername = "_".join(primerinfo[0].split("_")[0:-1])
+#            primername_list.append(primername)
+#
+#        return primername_list
 
     def mfold_analysis(self, mfoldinputlist):
         info = "Start mfold analysis of PCR products"
@@ -3614,26 +3564,92 @@ class PrimerQualityControl:
             results = []
             return results
 
-    def get_inputsequences(self, primerlist):
-        inputsequences = []
-        for primer in primerlist:
-            inputsequences.append(primer[0].split(">")[1].strip())
-        return inputsequences
+    def collect_primer(self):
+        G.logger("Run: collect_primer(" + self.target + ")")
+        G.create_directory(self.hairpin_dir)
+        primer_sorted = []
+        for key in self.primer3_dict:
+            if not self.primer3_dict[key]["Primer_pairs"] == 0:
+                for item in self.primer3_dict[key]:
+                    if "Primer_pair_" in item:
+                        primer_sorted.append([
+                            key, item,
+                            self.primer3_dict[key][item]["primer_P_penalty"]])
 
-    def write_primerlist(self):
+        primer_sorted.sort(key=lambda x: float(x[2]))       
+        self.write_primerlist(primer_sorted)
+
+        if len(self.primerlist) == 0:
+            info = "potential Primer pair(s): 0"
+            error_msg = "No primers found for conserved sequences"
+            PipelineStatsCollector(self.target_dir).write_stat(info)
+            print("\n" + error_msg)
+            G.logger("> " + error_msg)
+            G.logger("> " + info)
+            errors.append([self.target, error_msg])
+            return 1
+
+        else:
+            info = (
+                "Number of potential primer pair(s) found "
+                + str(len(self.primerlist)))
+            print("\n" + info + "\n")
+            G.logger("> " + info)
+            PipelineStatsCollector(self.target_dir).write_stat(
+                "potential primer pair(s): "
+                + str(len(self.primerlist)))
+            return 0
+
+    def write_primerlist(self, primer_sorted):
         filepath = os.path.join(self.hairpin_dir, "primerlist.fa")
-        with open(filepath, "w") as f:
-            for item in self.primerlist:
-                for primer in item:
-                    f.write(primer)
+        if (
+            not os.path.isfile(filepath) 
+            or os.stat(filepath).st_size == 0):
+            with open(filepath, "w") as f:        
+                for item in primer_sorted:
+                    prefix = H.abbrev(self.target, dict_path) + "_"
+                    gene = item[0]
+                    num = "_P" + item[1].split("_")[-1]
+                    pname = prefix + gene + num
+                    p_fwd_name = pname + "_F"
+                    p_rev_name = pname + "_R"
+                    p_data = self.primer3_dict[item[0]][item[1]]
+                    p_fwd_seq = p_data['primer_L_sequence']
+                    p_rev_seq = p_data['primer_R_sequence']
+                    p_infos = [p_fwd_name, p_fwd_seq, p_rev_name, p_rev_seq]
+                    self.primerlist.append(p_infos)
+                    for index, primer in enumerate(p_infos):
+                        if (index % 2) == 0:
+                            f.write(">" + primer + "\n")
+                        else:
+                            f.write(primer + "\n")
+        else:
+            for item in primer_sorted:
+                prefix = H.abbrev(self.target, dict_path) + "_"
+                gene = item[0]
+                num = "_P" + item[1].split("_")[-1]
+                pname = prefix + gene + num
+                p_fwd_name = pname + "_F"
+                p_rev_name = pname + "_R"
+                p_data = self.primer3_dict[item[0]][item[1]]
+                p_fwd_seq = p_data['primer_L_sequence']
+                p_rev_seq = p_data['primer_R_sequence']
+                p_infos = [p_fwd_name, p_fwd_seq, p_rev_name, p_rev_seq]
+                if not p_infos in self.primerlist:
+                    self.primerlist.append(p_infos)            
 
-    def hairpin_check(self):
+    def hairpin_check(self): 
         hairpins = []
         os.chdir(self.hairpin_dir)
-        cmd = ["mfeprimer-hairpin", "-in", "primerlist.fa", ">", "hairpin_check.txt"]
-        cmd = " ".join(cmd)
-        G.run_shell(cmd)
-        with open("hairpin_check.txt") as f:
+        if (
+            not os.path.isfile("hairpin_results.txt")
+            or os.stat("hairpin_results.txt").st_size == 0):
+            cmd = [
+                "mfeprimer-hairpin", "-in", "primerlist.fa",
+                ">", "hairpin_results.txt"]
+            cmd = " ".join(cmd)
+            G.run_shell(cmd)
+        with open("hairpin_results.txt") as f:
             for line in f:
                 line = line.strip()
                 if line == "No hairpins found.":
@@ -3643,46 +3659,128 @@ class PrimerQualityControl:
                     hairpins.append(hairpin)
                     
         return hairpins
+
+    def primerdimer_check(self, hairpin):
+        summ_file = "primerdimer_summary.csv"
+        G.create_directory(self.primerdimer_dir)
+        os.chdir(self.primerdimer_dir)
+        if (
+            not os.path.isfile(summ_file) or
+            os.stat(summ_file).st_size == 0):
+            dimers = G.run_parallel(
+                self.run_mfeprimerdimer,self.primerlist, hairpin)
+            header = [
+                "Primer pair", "Dimer 1", "deltaG (kcal/mol)", 
+                "Dimer 2", "deltaG (kcal/mol)",
+                "Dimer 3", "deltaG (kcal/mol)"]
+            with open(summ_file, "w") as f:
+                writer = csv.writer(f)
+                writer.writerow(header)
+                writer.writerows(dimers)
+        
+    def run_mfeprimerdimer(self, primerinfo, hairpins):
+        [nameF, seqF, nameR, seqR] = primerinfo
+        pp_name = "_".join(primerinfo[0].split("_")[0:-1])
+        if not pp_name in hairpins:
+            with tempfile.NamedTemporaryFile(
+                mode='w+', dir=self.primer_qc_dir, prefix="primer",
+                suffix=".fa", delete=False
+            ) as primefile:
+                primefile.write(
+                    ">" + nameF + "\n" + seqF + "\n>"
+                    + nameR + "\n" + seqR + "\n")    
+            cmd = [
+                "mfeprimer-dimer", "-in", primefile.name, "-cutoff", "4",
+                "-endmm", "false", "-endvipmm", "2", "-gaprun", "3"]
+            cmd = " ".join(cmd)
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
+            os.unlink(primefile.name)
+            if len(result) == 1:
+                return [pp_name, result[0]]
+            else:                
+                parts = len(result)//5
+                datalist = [pp_name]
+                for i in range(0, parts):
+                    data = result[i*5:i*5+2]
+                    dimer = data[0].split(": ")[1]
+                    dG = data[1].split(" ")[3] 
+                    datalist.append(dimer)
+                    datalist.append(dG)
+                return datalist
+        else:
+            return [pp_name, "hairpin"]
+
+    def filter_primerdimer(self):
+        summ_file = "primerdimer_summary.csv"
+        primer = []
+        blastseqs = []
+        with open(summ_file) as f:
+            r = csv.reader(f)
+            next(r, None)
+            for row in r:
+                if len(row) == 1:
+                    p_name = row[0]
+                    info = "no primerdimer data for " + p_name
+                    print("n" + info + "\n")
+                    G.logger(info)  
+                elif len(row) == 2:
+                    p_name = row[0]
+                    d1 = row[1]
+                    if d1 == "No dimers found.":
+                        primer.append(p_name)
+                else:
+                    p_name = row[0]
+                    dg_val = row[2::2]
+                    dg_list = [float(i) for i in dg_val]
+                    dimer = min(dg_list)
+                    if dimer >= self.config.mpprimer:
+                        primer.append(p_name)                    
+       
+        for primerinfo in self.primerlist:
+            pp_name = "_".join(primerinfo[0].split("_")[0:-1])
+            if pp_name in primer:
+                blastseqs.append(primerinfo)
                 
+        return [primer, blastseqs]
+        
 
     def run_primer_qc(self):
         print("Run: run_primer_qc(" + self.target + ")")
         G.logger("Run: run_primer_qc(" + self.target + ")")
+        G.create_directory(self.primer_qc_dir)
         total_results = []
-        if self.collect_primer() == 0:            
-            G.create_directory(self.primerblast_dir)
-            G.create_directory(self.hairpin_dir)
+        if self.collect_primer() == 0:             
             blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
-            self.write_primerlist()
             hairpins = self.hairpin_check()
-            print(hairpins)
-        
+            self.primerdimer_check(hairpins)
+            primerlist, blastseqs = self.filter_primerdimer()
             
-#            if not os.path.isfile(blastsum):
-#                prep = BlastPrep(
-#                    self.primerblast_dir, self.primerlist,
-#                    "primer", self.config.blastseqs)
-#                use_cores, inputseqs = prep.run_blastprep()
+            if not os.path.isfile(blastsum):
+                G.create_directory(self.primerblast_dir)  
+                prep = BlastPrep(
+                    self.primerblast_dir, blastseqs,
+                    "primer", self.config.blastseqs)
+                use_cores, inputseqs = prep.run_blastprep()
+                bla = Blast(self.config, self.primerblast_dir, "primer")
+                bla.run_blast("primer", use_cores)
+
+            self.call_blastparser.run_blastparser("primer")
+
+            primer_spec_list = self.get_primerinfo(primerlist, "mfeprimer")
+
+            for files in os.listdir(self.primer_qc_dir):
+                if (
+                    files.startswith("BLASTnontarget")
+                    and files.endswith(".sequences")
+                ):
+                    self.dbinputfiles.append(files)
+
+            self.prepare_MFEprimer_Dbs(primer_spec_list)
 #
-#                bla = Blast(self.config, self.primerblast_dir, "primer")
-#                bla.run_blast("primer", use_cores)
-#            else:
-#                inputseqs = self.get_inputsequences(self.primerlist)
-#
-#            self.call_blastparser.run_blastparser("primer")
-#
-#            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
-#
-#            for files in os.listdir(self.primer_qc_dir):
-#                if (
-#                    files.startswith("BLASTnontarget")
-#                    and files.endswith(".sequences")
-#                ):
-#                    self.dbinputfiles.append(files)
-#
-#            self.prepare_MFEprimer_Dbs(primer_qc_list)
-#
-#            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
+            survived_MFEp = self.MFEprimer_QC(primer_spec_list)
+            
+            print(survived_MFEp)
 #
 #            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
 #

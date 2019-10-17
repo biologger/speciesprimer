@@ -281,12 +281,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 #        check_final = pqc.write_MFEprimer_results(results, "assembly")
 #        assert check_final == ref
 
-    def get_primer3_dict():
-        reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
-        with open(reffile) as f:
-            for line in f:
-                primer3dict = json.loads(line)
-        return primer3dict
+
         
 
     def test_fullMFEprimer_run():
@@ -298,37 +293,260 @@ def test_PrimerQualityControl_specificitycheck(config):
             primer_name_list = pqc.MFEprimer_QC(primerinfos)
             assert len(primer_name_list) == outcome[index]
 
-    def create_primerlist(inputseqs):
-        primer_qc_list = pqc.get_primerinfo(inputseqs, "mfeprimer")
-        primerfile = os.path.join(pqc.primer_qc_dir, "primerfile.fa")
-        with open(primerfile, "w") as f:            
-            for primerinfo in primer_qc_list:
-                [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
-                f.write(
-                        ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")                
+#    def create_primerlist(inputseqs):
+#        primer_qc_list = pqc.get_primerinfo(inputseqs, "mfeprimer")
+#        primerfile = os.path.join(pqc.primer_qc_dir, "primerfile.fa")
+#        with open(primerfile, "w") as f:            
+#            for primerinfo in primer_qc_list:
+#                [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
+#                f.write(
+#                        ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")                
 
-    mockprimer = [
-        [
-            ">Lb_curva_mock_1_P0_F\n", 
-            "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC\n"],
-        [">Lb_curva_mock_1_P0_R\n", "CGCCGCCACGTAAACAAG\n"],
-        [
-            ">Lb_curva_mock_9_P3_R\n", 
-            "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC\n"],
-        [">Lb_curva_mock_9_P3_F\n", "CGCAGCAACACACACACG\n"]
-                ]          
+    ref_primer = [
+        'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_2_P0', 'Lb_curva_g1243_1_P2', 
+        'Lb_curva_gshAB_11_P0', 'Lb_curva_comFA_2_P1', 'Lb_curva_comFA_5_P0', 
+        'Lb_curva_g1243_1_P3', 'Lb_curva_g1243_2_P0', 'Lb_curva_g4295_1_P0', 
+        'Lb_curva_g1243_1_P4', 'Lb_curva_comFA_2_P2', 'Lb_curva_comFA_5_P1', 
+        'Lb_curva_comFA_4_P1', 'Lb_curva_g4430_1_P1', 'Lb_curva_g1243_1_P6', 
+        'Lb_curva_g4430_1_P0', 'Lb_curva_gshAB_3_P0', 'Lb_curva_gshAB_11_P1', 
+        'Lb_curva_comFA_5_P2', 'Lb_curva_comFA_4_P2', 'Lb_curva_gshAB_11_P2', 
+        'Lb_curva_g4295_1_P1', 'Lb_curva_g1243_1_P7', 'Lb_curva_g4430_1_P2', 
+        'Lb_curva_gshAB_2_P1', 'Lb_curva_comFA_4_P3', 'Lb_curva_gshAB_2_P2', 
+        'Lb_curva_gshAB_3_P1', 'Lb_curva_gshAB_1_P0', 'Lb_curva_g4295_1_P2', 
+        'Lb_curva_comFA_6_P0', 'Lb_curva_comFA_3_P1', 'Lb_curva_comFA_5_P3', 
+        'Lb_curva_g1243_1_P8', 'Lb_curva_comFA_4_P4', 'Lb_curva_comFA_6_P1', 
+        'Lb_curva_g1243_1_P9', 'Lb_curva_gshAB_2_P4', 'Lb_curva_g4295_1_P3', 
+        'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P5', 'Lb_curva_gshAB_11_P3', 
+        'Lb_curva_g4295_1_P4', 'Lb_curva_g4430_1_P3', 'Lb_curva_gshAB_6_P0', 
+        'Lb_curva_comFA_5_P5', 'Lb_curva_comFA_5_P4', 'Lb_curva_comFA_5_P6', 
+        'Lb_curva_gshAB_2_P6', 'Lb_curva_g4295_1_P5', 'Lb_curva_g4295_1_P6', 
+        'Lb_curva_asnS_2_P0', 'Lb_curva_g4295_1_P7', 'Lb_curva_comFA_3_P2', 
+        'Lb_curva_gshAB_3_P2', 'Lb_curva_asnS_1_P0', 'Lb_curva_g4295_1_P8', 
+        'Lb_curva_gshAB_8_P0', 'Lb_curva_comFA_5_P7', 'Lb_curva_comFA_5_P8', 
+        'Lb_curva_g4295_1_P9']
+
+    newmockprimer = {
+        "mock_1": {
+            "Primer_pairs": 2, "Template_seq": 
+            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN", 
+            "Primer_pair_0": {
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
+                "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}, 
+            "Primer_pair_1": {
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
+                "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}}, 
+        "mock_9": {
+            "Primer_pairs": 1, "Template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
+            "Primer_pair_3":{
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
+                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC", 
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
+                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC", 
+                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095, 
+                "primer_R_TM": 60.029, "product_size": 88}},
+                
+        "dimer_1": {
+                "Primer_pairs": 1, "Template_seq": "NNNN", 
+                "Primer_pair_0":{
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
+                "primer_R_sequence": "TTTTTTAAAAAA", 
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
+                "amplicon_seq": "NNNN", 
+                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095, 
+                "primer_R_TM": 60.029, "product_size": 88}}}
+
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
+    config.blastdbv5 = False
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        dbfile = os.path.join(testfiles_dir, "primer_customdb.fas")
+        with open(dbfile, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbfile
+
+    def create_customblastdb(config, infile):
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+            
+    def get_primer3_dict():
+        reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+        with open(reffile) as f:
+            for line in f:
+                primer3dict = json.loads(line)
+        return primer3dict
+
+    pqc = PrimerQualityControl(config, {})
+    exitstat = pqc.collect_primer()
+    assert exitstat == 1
     primer3dict = get_primer3_dict()
-    pqc = PrimerQualityControl(config, primer3dict)
-#    pqc = test_collect_primer(config)
-#    inputseqs = primerBLAST(config)
-#    test_get_primerinfo(inputseqs)
-#    create_primerlist(inputseqs)
-#    test_MFEprimer_DBs()
-#    test_MFEprimer(inputseqs)
-#    primerinfos = pqc.get_primerinfo(inputseqs, "mfeprimer")
-#    test_fullMFEprimer_run()
-    for primer in mockprimer:
-        pqc.primerlist.append(primer)
+    primer3dict.update(newmockprimer)
+    pqc = PrimerQualityControl(config, primer3dict) 
+    
+    exitstat = pqc.collect_primer()
+    assert exitstat == 0
+    
+    hairpins = pqc.hairpin_check()
+    hairpins.sort()
+    ref_hairpins = [
+        'Lb_curva_mock_9_P3', 'Lb_curva_mock_1_P1', 'Lb_curva_mock_1_P0']
+    ref_hairpins.sort()
+    assert hairpins == ref_hairpins
+    
+    pqc.primerdimer_check(hairpins)
+    primerlist, blastseqs = pqc.filter_primerdimer()
+#    print(primer)
+    primerlist.sort()
+    ref_primer.sort()
+    assert primerlist == ref_primer
+            
+    blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")    
+    infile = dbinputfiles()
+    create_customblastdb(config, infile)
+    
+    if not os.path.isfile(blastsum):
+        G.create_directory(pqc.primerblast_dir)  
+        prep = BlastPrep(
+            pqc.primerblast_dir, blastseqs,
+            "primer", pqc.config.blastseqs)
+        use_cores, inputseqs = prep.run_blastprep()
+        bla = Blast(pqc.config, pqc.primerblast_dir, "primer")
+        bla.run_blast("primer", use_cores)
+
+    pqc.call_blastparser.run_blastparser("primer")
+
+    primer_spec_list = pqc.get_primerinfo(primerlist, "mfeprimer")
+
+    for files in os.listdir(pqc.primer_qc_dir):
+        if (
+            files.startswith("BLASTnontarget")
+            and files.endswith(".sequences")
+        ):
+            pqc.dbinputfiles.append(files)
+
+    pqc.prepare_MFEprimer_Dbs(primer_spec_list)
+    os.chdir(pqc.primer_qc_dir)
+#    for item in primer_spec_list:
+#        pqc.MFEprimer_template(item)
+#        break
+#    
     pqc.run_primer_qc()
+#    resultlist = G.run_parallel(pqc.run_mfeprimerdimer, pqc.primerlist, hairpins)
+
+ 
+    
+    
 
 test_PrimerQualityControl_specificitycheck(config)
+
+def benchmark_primerblastparser(config):
+# neue idee threshold für anzahl BLASTDB extraction für die extraktion der 
+# ganzen sequenz und anschliessende sequenz extraktion mittels indexierung
+    
+    # sort according accession
+    # sub sort according position? possible?
+
+    def write_DBIDS(self, prefix, part, suffix, info):
+        filename = prefix + str(part) + suffix
+        filepath = os.path.join(self.primer_qc_dir, filename)
+        with open(filepath, "a+") as f:
+            f.write(info)
+
+    def create_primerBLAST_DBIDS(self, nonred_dict):
+        print("\nGet sequence accessions of BLAST hits\n")
+        G.logger("> Get sequence accessions of BLAST hits")
+        G.create_directory(self.primer_qc_dir)
+        DBID_files = []
+        idcount = 0
+        part = 0
+        for files in os.listdir(self.primer_qc_dir):
+            if files.startswith("primerBLAST_DBIDS"):
+                DBID_files.append(files)
+                with open(os.path.join(self.primer_qc_dir, files), "r") as f:
+                    for line in f:
+                        idcount = idcount + 1
+                part = part + 1
+
+        if len(DBID_files) == 0:
+            written = []
+            prefix = "primerBLAST_DBIDS"
+            suffix = ".txt"
+
+            for key in nonred_dict.keys():
+                if not len(nonred_dict[key]) == 0:
+                    for species in nonred_dict[key]:
+                        db_id = nonred_dict[key][species]['main_id']
+                        sbjct_start = (
+                            nonred_dict[key][species]["subject_start"])
+                        if not [db_id, sbjct_start] in written:
+                            written.append([db_id, sbjct_start])
+                            idcount = idcount + 1
+                            part = idcount//self.maxgroupsize
+                            info = str(db_id) + " " + str(sbjct_start) + "\n"
+                            self.write_DBIDS(prefix, part, suffix, info)
+                            filename = prefix + str(part) + suffix
+                            if filename not in DBID_files:
+                                DBID_files.append(filename)
+
+        if idcount == 0:
+            print("Error did not find any sequences for the non-target DB")
+            G.logger("> Error did not find any sequences for non-target DB")
+            return
+        else:
+            ntseq = str(idcount)
+            info1 = ntseq + " sequences for non-target DB"
+            info2 = "Start extraction of sequences from BLAST DB"
+            print("\n" + info1)
+            print(info2)
+            G.logger("> " + info1)
+            G.logger("> " + info2)
+            pool = multiprocessing.Pool(processes=4)
+            results = [
+                pool.apply_async(
+                    self.write_nontarget_sequences, args=(files,))
+                for files in DBID_files]
+            output = [p.get() for p in results]
+                                
+    def run_blastparser(self, conserved_seq_dict):
+        if self.mode == "primer":
+            file_path = os.path.join(self.primerblast_dir, "nontargethits.json")
+            G.logger("Run: run_blastparser(" + self.target + "), primer")
+            align_dict = self.blast_parser(self.primerblast_dir)
+            if not os.path.isfile(file_path):
+                nonred_dict = self.remove_redundanthits(align_dict)
+                self.write_nontargethits(
+                        self.primerblast_dir, nonred_dict,
+                        "json")
+            else:
+                nonred_dict = align_dict
+            self.create_primerBLAST_DBIDS(nonred_dict)
+
+            duration = time.time() - self.start
+            G.logger(
+                "> Primer blast parser time: "
+                + str(timedelta(seconds=duration)).split(".")[0])
+           
