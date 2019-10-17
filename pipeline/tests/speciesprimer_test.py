@@ -402,8 +402,9 @@ def test_QualityControl(config):
         qc_seqs = QC.choose_sequence(qc_gene)
         assert len(qc_seqs) == 1
         assert len(qc_seqs[0]) == 2
-        assert len(qc_seqs[0][0]) == 23
-        assert len(qc_seqs[0][1]) == 1569
+        # these values changed due to removal of fasta style ">" and new line
+        assert len(qc_seqs[0][0]) == 21
+        assert len(qc_seqs[0][1]) == 1568
         return qc_seqs
 
     def qc_blast(qc_gene):
@@ -718,7 +719,7 @@ def test_blastprep(config):
     input_list = []
     for i in range(0,5000):
         i = i + 1
-        elem = [">seq_"+ str(i) + "\n", i *"A" + "\n"]
+        elem = ["seq_"+ str(i), i *"A"]
         input_list.append(elem)
     name = "test"
     directory = tmpdir
