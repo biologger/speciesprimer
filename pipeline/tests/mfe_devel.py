@@ -24,7 +24,7 @@ from basicfunctions import GeneralFunctions as G
 
 
 confargs = {
-    "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
+    "ignore_qc": False, "mfethreshold": 80, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
     "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
     "offline": False,
@@ -327,7 +327,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 
     newmockprimer = {
         "mock_1": {
-            "Primer_pairs": 2, "Template_seq": 
+            "Primer_pairs": 2, "template_seq": 
             "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN", 
             "Primer_pair_0": {
                 "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
@@ -344,7 +344,7 @@ def test_PrimerQualityControl_specificitycheck(config):
                 "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
                 "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}}, 
         "mock_9": {
-            "Primer_pairs": 1, "Template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
+            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
             "Primer_pair_3":{
                 "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
                 "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC", 
@@ -354,7 +354,7 @@ def test_PrimerQualityControl_specificitycheck(config):
                 "primer_R_TM": 60.029, "product_size": 88}},
                 
         "dimer_1": {
-                "Primer_pairs": 1, "Template_seq": "NNNN", 
+                "Primer_pairs": 1, "template_seq": "NNNN", 
                 "Primer_pair_0":{
                 "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
                 "primer_R_sequence": "TTTTTTAAAAAA", 
@@ -458,10 +458,73 @@ def test_PrimerQualityControl_specificitycheck(config):
 #    resultlist = G.run_parallel(pqc.run_mfeprimerdimer, pqc.primerlist, hairpins)
 
  
-    
-    
+def dev_new_QC(config):
+    from speciesprimer import PrimerQualityControl
+    newmockprimer = {
+        "mock_1": {
+            "Primer_pairs": 2, "template_seq": 
+            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN", 
+            "Primer_pair_0": {
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "template_seq": "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN",
+                "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
+                "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}, 
+            "Primer_pair_1": {
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
+                "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}}, 
+        "mock_9": {
+            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
+            "Primer_pair_3":{
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
+                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC", 
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
+                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC", 
+                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095, 
+                "primer_R_TM": 60.029, "product_size": 88}},
+                
+        "dimer_1": {
+                "Primer_pairs": 1, "template_seq": "NNNN", 
+                "Primer_pair_0":{
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
+                "primer_R_sequence": "TTTTTTAAAAAA", 
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
+                "amplicon_seq": "NNNN", 
+                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095, 
+                "primer_R_TM": 60.029, "product_size": 88}}}
 
-test_PrimerQualityControl_specificitycheck(config)
+    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
+    config.blastdbv5 = False
+
+    def get_primer3_dict():
+        reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+        with open(reffile) as f:
+            for line in f:
+                primer3dict = json.loads(line)
+        return primer3dict
+
+    primer3dict = get_primer3_dict()
+    primer3dict.update(newmockprimer)
+
+#    print(primer3dict)
+    pqc = PrimerQualityControl(config, primer3dict)
+#    pqc.run_primer_qc()
+    os.chdir(pqc.primer_qc_dir)
+    pqc.run_primer_qc()
+            
+    
+dev_new_QC(config)
+    
+#test_PrimerQualityControl_specificitycheck(config)
 
 def benchmark_primerblastparser(config):
 # neue idee threshold für anzahl BLASTDB extraction für die extraktion der 
