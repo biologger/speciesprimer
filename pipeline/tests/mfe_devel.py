@@ -505,6 +505,37 @@ def dev_new_QC(config):
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
     config.blastdbv5 = False
 
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        dbfile = os.path.join(testfiles_dir, "primer_customdb.fas")
+        with open(dbfile, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbfile
+
+    def create_customblastdb(config, infile):
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+            
+    def get_primer3_dict():
+        reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+        with open(reffile) as f:
+            for line in f:
+                primer3dict = json.loads(line)
+        return primer3dict
+
     def get_primer3_dict():
         reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
         with open(reffile) as f:
@@ -516,15 +547,114 @@ def dev_new_QC(config):
     primer3dict.update(newmockprimer)
 
 #    print(primer3dict)
+    from speciesprimer import BlastPrep
+    import multiprocessing
     pqc = PrimerQualityControl(config, primer3dict)
-#    pqc.run_primer_qc()
-    os.chdir(pqc.primer_qc_dir)
+    dbfile = dbinputfiles()
+    create_customblastdb(config, dbfile)
+
+#    os.chdir(pqc.primer_qc_dir)
+#    total_results = []
+#    if pqc.collect_primer() == 0:
+#        blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")
+#        hairpins = pqc.hairpin_check()
+#        pqc.primerdimer_check(hairpins)
+#
+#    excluded = pqc.filter_primerdimer()
+#    pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
+##    pqc.run_primer_qc()
+#    nontarget_input = pqc.MFEprimer_QC_first(excluded)
+#    nontarget_blastseqs = []
+#    for primer in nontarget_input:
+#        nontarget_blastseqs.append(primer[0:4])
+#        ppc = primer[6]
+#        pp_name = "_".join(primer[0].split("_")[0:-1])
+#        target_id = "_".join(pp_name.split("_")[-3:-1])
+#        primerpair = "Primer_pair_" + pp_name.split("_P")[-1]
+#        pqc.primer3_dict[target_id][primerpair].update({"PPC": ppc})
+#
+#    blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")
+#
+#    if not os.path.isfile(blastsum):
+#        G.create_directory(pqc.primerblast_dir)
+#        prep = BlastPrep(
+#            pqc.primerblast_dir, nontarget_blastseqs,
+#            "primer", pqc.config.blastseqs)
+#        use_cores, inputseqs = prep.run_blastprep()
+#        bla = Blast(pqc.config, pqc.primerblast_dir, "primer")
+#        bla.run_blast("primer", use_cores)
+#
+#    pqc.call_blastparser.run_blastparser("primer")
+##
+##            primer_spec_list = self.get_primerinfo(primerlist, "mfeprimer")
+##
+#    
+#    for files in os.listdir(pqc.primer_qc_dir):
+#        if (
+#            files.startswith("BLASTnontarget")
+#            and files.endswith(".sequences")
+#        ):
+#            pqc.dbinputfiles.append(files)
+#
+#    # parallelization try
+#    pool = multiprocessing.Pool(processes=4)
+#    results = [
+#        pool.apply_async(
+#            pqc.make_nontargetDB, args=(inputfiles,))
+#        for inputfiles in pqc.dbinputfiles]
+#    output = [p.get() for p in results]
+#    
+#    for primerinfo in nontarget_input:
+#        pqc.MFEprimer_nontarget(primerinfo)
+    
     pqc.run_primer_qc()
+    
+#    hairpins = pqc.hairpin_check()   
+#
+#    for i in range(0,2000):
+#        pqc.primerlist.append(pqc.primerlist[0]) 
+
+#    pqc.primerdimer_check(hairpins)
+#    excluded = pqc.filter_primerdimer()
+#    primerinfos = []
+#    for primer in pqc.primerlist:
+#        pp_name = "_".join(primer[0].split("_")[0:-1])
+#        if pp_name not in excluded:
+#            primerinfos.append(primer)
+#    os.chdir(pqc.primer_qc_dir)
+#    
+#    template_results = G.run_parallel(pqc.MFEprimer_template, primerinfos)
+#    assembly_input = pqc.write_MFEprimer_results(
+#            template_results, "template")
+#    start = time.time()
+#    assembly_results = G.run_parallel(pqc.MFEprimer_assembly, assembly_input)
+#    nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly")
+#
+#    print(len(nontarget_input))
+#    duration = time.time() - start
+#    print("parallel assembly: "
+#                + str(timedelta(seconds=duration)).split(".")[0])   
             
     
 dev_new_QC(config)
     
 #test_PrimerQualityControl_specificitycheck(config)
+
+def speed_up(config):
+    from speciesprimer import BlastParser
+
+    bla = BlastParser(config, "primer")
+    
+    file_path = os.path.join(bla.primerblast_dir, "nontargethits.json")
+    with open(file_path) as f:
+        for line in f:
+            nonred_dict = json.loads(line)
+    start = time.time()
+    bla.create_primerBLAST_DBIDS(nonred_dict)
+    duration = time.time() - start
+    print("parallel assembly: "
+                + str(timedelta(seconds=duration)).split(".")[0])  
+
 
 def benchmark_primerblastparser(config):
 # neue idee threshold für anzahl BLASTDB extraction für die extraktion der 
