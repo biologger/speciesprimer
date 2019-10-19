@@ -2266,12 +2266,16 @@ class BlastParser:
                     for line in f:
                         statuscount = statuscount + 1
                         line = line.strip("\n")
+                        
                         db_id = line.split(" ")[0]
                         sbjct_start = line.split(" ")[1]
                         fasta_seq = self.get_seq_range(
-                                [db_id, sbjct_start], 2000)
+                                [db_id, sbjct_start], 2000)                       
+                        name = fasta_seq[0].split(":")
+                        fasta_seq[0] = name[0] + "_" + "_".join(name[1].split("-"))
                         fasta_info = "\n".join(fasta_seq) + "\n"
                         r.write(fasta_info)
+
             else:
                 info2 = "Skip writing " + filename
                 print(info2)
@@ -2766,743 +2770,6 @@ class PrimerQualityControl:
         self.referencegenomes = 10
         self.dbinputfiles = []
 
-    def get_primerinfo(self, selected_seqs, mode):
-        G.logger("Run: get_primerinfo(" + self.target + ")")
-        val_list = []
-        for item in selected_seqs:
-            try:
-                if len(item) == 2:
-                    item = item[0]
-                if (item.endswith("_F") or item.endswith("_R")):
-                    primer_name = "_".join(item.split("_")[0:-1])
-                else:
-                    primer_name = item
-                target_id = "_".join(primer_name.split("_")[-3:-1])
-                primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
-                template_seq = self.primer3_dict[target_id]["template_seq"]
-                x = self.primer3_dict[target_id][primerpair]
-                pp_penalty = round(x["primer_P_penalty"], 2)
-                pp_prodsize = x["product_size"]
-                pp_prodTM = round(x["product_TM"], 2)
-                amp_seq = x["amplicon_seq"]
-                lseq = x["primer_L_sequence"]
-                rseq = x["primer_R_sequence"]
-                lpen = round(x["primer_L_penalty"], 2)
-                rpen = round(x["primer_R_penalty"], 2)
-                lTM = round(x["primer_L_TM"], 2)
-                rTM = round(x["primer_R_TM"], 2)
-                if mode == "mfeprimer":
-                    info = [
-                        primer_name + "_F", lseq, primer_name + "_R", rseq,
-                        template_seq]
-                    if info not in val_list:
-                        val_list.append(info)
-                if mode == "mfold":
-                    info = [target_id, primerpair, amp_seq, primer_name]
-                    if info not in val_list:
-                        val_list.append(info)
-                if mode == "dimercheck":
-                    info = [
-                        primer_name, lseq, rseq]
-                    if info not in val_list:
-                        val_list.append(info)
-                if mode == "results":
-                    ppc = x['PPC']
-                    if self.config.probe:
-                        iseq = x["primer_I_sequence"]
-                        ipen = round(x["primer_I_penalty"], 2)
-                        iTM = round(x["primer_I_TM"], 2)
-                    else:
-                        iseq = "None"
-                        ipen = "None"
-                        iTM = "None"
-
-                    info = [
-                        primer_name, ppc, pp_penalty, target_id,
-                        lseq, lTM, lpen,
-                        rseq, rTM, rpen,
-                        iseq, iTM, ipen,
-                        pp_prodsize, pp_prodTM, amp_seq,
-                        template_seq]
-                    if info not in val_list:
-                        val_list.append(info)
-
-            except Exception:
-                G.logger(
-                    "error in get_primerinfo()"
-                    + str(sys.exc_info()))
-
-        return val_list
-
-    def make_nontargetDB(self, inputfiles):
-        db_name = inputfiles
-        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".primerqc")
-        if not os.path.isfile(db_path):
-            G.logger("> Start index non-target DB " + inputfiles)
-            print("\nStart index non-target DB " + inputfiles)
-            self.index_Database(db_name)
-            print("Done indexing non-target DB " + inputfiles)
-            G.logger("> Done indexing non-target DB " + inputfiles)
-
-        infile = os.path.join(self.primer_qc_dir, inputfiles)
-        if os.stat(infile).st_size == 0:
-            msg = "Problem with non-target DB " + inputfiles
-            + " input file is empty"
-            G.logger("> " + msg)
-            print("\n" + msg)
-
-    def index_Database(self, db_name):
-        start = time.time()
-        os.chdir(self.primer_qc_dir)
-        cmd = ["mfeprimer-index", "-i", db_name]
-        G.run_subprocess(cmd)
-        os.chdir(self.primer_dir)
-        end = time.time() - start
-        G.logger(
-            "Run: index_Database(" + db_name + ") time: "
-            + str(timedelta(seconds=end)))
-
-    def prepare_MFEprimer_Dbs(self, primerinfos):
-        G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
-        G.create_directory(self.primer_qc_dir)
-
-        def create_template_db(primerinfos):
-            wrote = []
-            file_path = os.path.join(self.primer_qc_dir, "template.sequences")
-            with open(file_path, "w") as f:
-                for nameF, seqF, nameR, seqR, temp_seq, amp_seq in primerinfos:
-                    if temp_seq not in wrote:
-                        primername = "_".join(nameF.split("_")[0:-2])
-                        f.write(">" + primername + "\n" + temp_seq + "\n")
-                        wrote.append(temp_seq)
-
-        def get_QC_data():
-            qc_data = []
-            if os.path.isdir(self.summ_dir):
-                for files in os.listdir(self.summ_dir):
-                    if files.endswith("_qc_sequences.csv"):
-                        file_path = os.path.join(self.summ_dir, files)
-                        with open(file_path) as f:
-                            reader = csv.reader(f)
-                            next(reader, None)
-                            for row in reader:
-                                qc_data.append(row)
-            return qc_data
-
-        def create_assembly_db(db_name):
-            # add option to choose a folder for Reference genomes?
-            qc_data = get_QC_data()
-
-            remove = []
-            qc_acc = []
-            assembly_dict = {}
-            ref_assembly = []
-            for item in qc_data:
-                accession = item[0]
-                assembly_stat = item[2]
-                rRNA = item[4]
-                tuf = item[6]
-                recA = item[8]
-                dnaK = item[10]
-                pheS = item[12]
-                qc_list = rRNA, tuf, recA, dnaK, pheS
-                assembly_dict.update({accession: assembly_stat})
-
-                if self.config.ignore_qc is True:
-                    for qc_gene in qc_list:
-                        if accession not in qc_acc:
-                            qc_acc.append(accession)
-                else:
-                    for qc_gene in qc_list:
-                        if "passed QC" == qc_gene:
-                            if accession not in qc_acc:
-                                qc_acc.append(accession)
-                        elif "" == qc_gene:
-                            if accession not in qc_acc:
-                                qc_acc.append(accession)
-                        else:
-                            if accession not in remove:
-                                remove.append(accession)
-
-            check = set(qc_acc) - set(remove)
-            check = list(check)
-            check.sort()
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if assembly_dict[item] == "Complete Genome":
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if assembly_dict[item] == "Chromosome":
-                            if item not in ref_assembly:
-                                ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if assembly_dict[item] == "Scaffold":
-                            if item not in ref_assembly:
-                                ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-            ref_assembly.sort()
-            target_fasta = []
-            for files in os.listdir(self.fna_dir):
-                for item in ref_assembly:
-                    acc = "v".join(item.split("."))
-                    if acc in files:
-                        if files.endswith(".fna"):
-                            with open(os.path.join(self.fna_dir, files)) as f:
-                                records = SeqIO.parse(f, "fasta")
-                                target_fasta.append(list(records))
-
-            file_path = os.path.join(self.primer_qc_dir, db_name)
-            with open(file_path, "w") as fas:
-                for item in target_fasta:
-                    SeqIO.write(item, fas, "fasta")
-
-        def make_templateDB():
-            db_name = "template.sequences"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
-            if not os.path.isfile(db_path):
-                G.logger("> create template DB")
-                print("\ncreate template DB")
-                create_template_db(primerinfos)
-                G.logger("> index template DB")
-                print("index template DB")
-                self.index_Database(db_name)
-                G.logger("> Done indexing template DB")
-                print("Done indexing template DB")
-            infile = os.path.join(self.primer_qc_dir, db_name)
-            if os.stat(infile).st_size == 0:
-                msg = "Problem with " + db_name
-                + " input file is empty"
-                G.logger("> " + msg)
-                print("\n" + msg)
-
-        def make_assemblyDB():
-            db_name = H.abbrev(self.target, dict_path) + ".genomic"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
-            if not os.path.isfile(db_path):
-                G.logger("> create target genome assembly DB")
-                print("\ncreate target genome assembly DB")
-                create_assembly_db(db_name)
-                G.logger("> index target genome assembly DB")
-                print("index target genome assembly DB")
-                self.index_Database(db_name)
-                G.logger("> Done indexing genome assembly DB")
-                print("Done indexing genome assembly DB")
-
-            infile = os.path.join(self.primer_qc_dir, db_name)
-            if os.stat(infile).st_size == 0:
-                msg = "Problem with " + db_name + " input file is empty"
-                G.logger("> " + msg)
-                print("\n!!!" + msg + "!!!\n")
-
-        process_make_templateDB = Process(target=make_templateDB)
-        process_make_assemblyDB = Process(target=make_assemblyDB)
-        process_make_templateDB.start()
-        process_make_assemblyDB.start()
-        process_make_templateDB.join()
-        process_make_assemblyDB.join()
-
-        # parallelization try
-        pool = multiprocessing.Pool(processes=4)
-        results = [
-            pool.apply_async(self.make_nontargetDB, args=(inputfiles,))
-            for inputfiles in self.dbinputfiles]
-        output = [p.get() for p in results]
-
-
-
-    def MFEprimer_nontarget(self, primerinfo, inputfiles):
-        result = []
-        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = inputfiles
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
-        while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
-        os.unlink(primefile.name)
-        if not len(result) == 1:
-            for index, item in enumerate(result):
-                if index > 0:
-                    val = item.split("\t")
-                    result_ppc = float(val[4])
-                    if result_ppc > ppc_val:
-                        return [[None], result]
-
-        return [primerinfo, result]
-
-    def write_MFEprimer_results(self, input_list, name):
-        outputlist = []
-        with open("MFEprimer_" + name + ".csv", "w") as f:
-            writer = csv.writer(f)
-            writer.writerow(["PPC", "Pf", "Pr", "AmpSeq"])
-            for item in input_list:
-                # item[0] is the primerinfo
-                if len(item[0]) > 1:
-#                    if not item[0] in outputlist:
-                        outputlist.append(item[0])
-                # item[1] are the results of MFEprimer
-                for result in item[1]:
-                    writer.writerow(result)
-
-        return outputlist
-
-    def MFEprimer_QC(self, primerinfos):
-        # option: also allow user provided non-target database created with
-        # MFEprimer for primer QC
-        G.logger("Run: MFEprimer_QC(" + self.target + ")")
-        info_msg = "Start primer quality control(" + self.target + ")"
-        print(info_msg)
-        G.logger("> " + info_msg)
-        os.chdir(self.primer_qc_dir)
-
-        info0 = str(len(primerinfos)) + " primer pair(s) to check"
-        print("\n" + info0 + "\n")
-        G.logger("> " + info0)
-
-        print("Start MFEprimer with template DB\n")
-        G.logger("> Start MFEprimer with template DB")
-        template_list = G.run_parallel(self.MFEprimer_template, primerinfos)
-#        print(template_list)
-        check_genomic = self.write_MFEprimer_results(
-                template_list, "template")
-#        print(check_nontarget)
-#        msg = " primer pair(s) with good target binding"
-#        info1 = str(len(check_nontarget)) + msg
-#        print("\n\n" + info1 + "\n")
-#        PipelineStatsCollector(self.target_dir).write_stat(
-#            "primer pairs with good target binding: "
-#            + str(len(check_nontarget)))
-#        G.logger("> " + info1)
-#
-#        nontarget_lists = []
-#        print("\nStart MFEprimer with nontarget DB\n")
-#        G.logger("> Start MFEprimer with nontarget DB")
-#        for index, inputfiles in enumerate(self.dbinputfiles):
-#            info_msg = (
-#                "nontarget DB " + str(index+1) + "/"
-#                + str(len(self.dbinputfiles)))
-#            print(info_msg)
-#            G.logger(info_msg)
-#            nontarget_list = G.run_parallel(
-#                self.MFEprimer_nontarget, check_nontarget, inputfiles)
-#            nontarget_lists = list(
-#                itertools.chain(nontarget_lists, nontarget_list))
-#
-#        # if the MFEprimer_nontarget.csv has only the table header
-#        # and no results, then no primer binding was detected
-#        #  and the primers passed the QC
-#        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
-#        msg = " primer pair(s) passed non-target PCR check"
-#        info2 = str(len(check_assembly)) + msg
-#        print("\n\n" + info2 + "\n")
-#        G.logger("> " + info2)
-#        PipelineStatsCollector(self.target_dir).write_stat(
-#            "primer pairs left after non-target QC: "
-#            + str(len(check_assembly)))
-#
-#        print("\nStart MFEprimer with assembly DB\n")
-#        G.logger("> Start MFEprimer with assembly DB")
-#
-#        assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
-#        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
-#        msg = " primer pair(s) passed secondary PCR amplicon check\n"
-#        info3 = str(len(check_final)) + msg
-#        print("\n\n" + info3 + "\n")
-#        G.logger("> " + info3)
-#        PipelineStatsCollector(self.target_dir).write_stat(
-#            "primer pairs left after secondary amplicon QC: "
-#            + str(len(check_final)))
-#        os.chdir(self.primer_dir)
-#
-#        # new 07.11.2018 add PPC to results file
-#        for item in template_list:
-#            nameF = item[0][0]
-#            if nameF is not None:
-#                pname = "_".join(nameF.split("_")[0:-1])
-#                ppc = item[0][5] + float(self.mfethreshold)
-#                target_id = "_".join(pname.split("_")[-3:-1])
-#                primerpair = "Primer_pair_" + pname.split("_P")[-1]
-#                self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
-#
-#        primername_list = []
-#        for primerinfo in check_final:
-#            primername = "_".join(primerinfo[0].split("_")[0:-1])
-#            primername_list.append(primername)
-#
-#        return primername_list
-
-    def mfold_analysis(self, mfoldinputlist):
-        info = "Start mfold analysis of PCR products"
-        print(info)
-        G.logger("> " + info)
-        G.logger("Run: mfold_analysis(" + self.target + ")")
-        print("Run: mfold_analysis(" + self.target + ")")
-
-        if os.path.isdir(self.mfold_dir):
-            shutil.rmtree(self.mfold_dir)
-        G.create_directory(self.mfold_dir)
-        os.chdir(self.mfold_dir)
-
-        for mfoldinput in mfoldinputlist:
-            abbr = H.abbrev(self.target, dict_path)
-            self.prep_mfold(mfoldinput, abbr)
-        os.chdir(self.target_dir)
-
-    def prep_mfold(self, mfoldinput, abbr):
-        target_id, primerpair, amplicon_seq, primer_name = mfoldinput
-        # This removes the Genus species string to shorten the
-        # name for mfold (especially for subspecies names). mfold has
-        # problems with too long filenames / paths
-        short_name = primer_name.split(abbr + "_")[1]
-        dir_path = os.path.join(self.mfold_dir, target_id)
-        subdir_path = os.path.join(dir_path, primerpair)
-        pcr_name = short_name + "_PCR"
-        if len(amplicon_seq) >= self.config.minsize:
-            G.create_directory(dir_path)
-            G.create_directory(subdir_path)
-            self.run_mfold(subdir_path, pcr_name, amplicon_seq)
-
-    def run_mfold(self, subdir_path, seq_name, description):
-        file_path = os.path.join(subdir_path, seq_name)
-        with open(file_path, "w") as f:
-            f.write("> " + seq_name + "\n" + description)
-        if not os.path.isfile(file_path + ".det"):
-            os.chdir(subdir_path)
-            mfold_cmd = [
-                "mfold", "SEQ=" + seq_name, "NA=DNA", "T=60", "MG_CONC=0.003"]
-            G.run_subprocess(mfold_cmd, False, True, False, False)
-            os.chdir(self.mfold_dir)
-
-    def mfold_parser(self):
-        selected_primer = []
-        excluded_primer = []
-        info = "Run: mfold_parser(" + self.target + ")\n"
-        print(info)
-        G.logger(info)
-        file_list = self.find_mfold_results()
-        pas = open(os.path.join(self.mfold_dir, "mfold_passed.csv"), "w")
-        pos_results = csv.writer(pas)
-        pos_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
-        fail = open(os.path.join(self.mfold_dir, "mfold_failed.csv"), "w")
-        neg_results = csv.writer(fail)
-        neg_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
-        for mfoldfiles in file_list:
-            mfold = self.read_files(mfoldfiles)
-
-            if len(mfold) == 1:
-                selected, passed, excluded, failed = mfold[0]
-                if not (selected is None or passed is None):
-                    selected_primer.append(selected)
-                    filename, structure, dG, dH, dS, Tm = passed
-                    pos_results.writerow([selected, structure, dG, dH, dS, Tm])
-                else:
-                    excluded_primer.append(excluded)
-                    filename, structure, dG, dH, dS, Tm = failed
-                    neg_results.writerow([excluded, structure, dG, dH, dS, Tm])
-
-            elif len(mfold) > 1:
-                test = []
-                for structure_nr in mfold:
-                    selected, passed, excluded, failed = structure_nr
-                    if not (selected is None or passed is None):
-                        test.append([selected, passed, excluded, failed])
-
-                if len(test) == len(mfold):
-                    selected = test[0][0]
-                    selected_primer.append(selected)
-
-                    for index, structure_nr in enumerate(mfold):
-                        selected_name, passed, excluded, failed = structure_nr
-                        filename, structure, dG, dH, dS, Tm = passed
-                        if index == 0:
-                            pos_results.writerow(
-                                [selected, structure, dG, dH, dS, Tm])
-                        else:
-                            pos_results.writerow(
-                                ["", structure, dG, dH, dS, Tm])
-                else:
-                    if mfold[0][2] is None:
-                        excluded = mfold[0][0]
-                    else:
-                        excluded = mfold[0][2]
-                    excluded_primer.append(excluded)
-                    for index, structure_nr in enumerate(mfold):
-                        selected, passed, excluded_name, failed = structure_nr
-                        if passed is None:
-                            filename, structure, dG, dH, dS, Tm = failed
-                            if index == 0:
-                                neg_results.writerow(
-                                    [excluded, structure, dG, dH, dS, Tm])
-                            else:
-                                neg_results.writerow(
-                                    ["", structure, dG, dH, dS, Tm])
-                        if failed is None:
-                            filename, structure, dG, dH, dS, Tm = passed
-                            if index == 0:
-                                neg_results.writerow(
-                                    [excluded, structure, dG, dH, dS, Tm])
-                            else:
-                                neg_results.writerow(
-                                    ["", structure, dG, dH, dS, Tm])
-
-            else:
-                pass
-
-        pas.close()
-        fail.close()
-        ex = str(len(excluded_primer))
-        pas = str(len(selected_primer))
-        ex_info = ex + " primer pair(s) excluded by mfold"
-        pass_info = pas + " primer pair(s) to continue"
-        print("\n\n" + ex_info + "\n")
-        print(pass_info)
-        G.logger("> " + ex_info)
-        G.logger("> " + pass_info)
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs left after mfold: "
-            + str(len(selected_primer)))
-
-        if self.config.intermediate is False:
-            for dirs in os.listdir(self.mfold_dir):
-                dir_path = os.path.join(self.mfold_dir, dirs)
-                if os.path.isdir(dir_path):
-                    shutil.rmtree(dir_path)
-
-        return selected_primer, excluded_primer
-
-    def find_mfold_results(self):
-        file_list = []
-        for root, dirs, files in os.walk(self.mfold_dir):
-            for item in files:
-                if item.endswith(".det"):
-                    if os.path.join(root, item) not in file_list:
-                        file_list.append(os.path.join(root, item))
-
-        return file_list
-
-    def parse_values(self, file, line):
-        structure = line
-        v = "".join(islice(file, 0, 1)).strip()
-        dG = v.split("=")[1].split("d")[0].strip()
-        dH = v.split("=")[2].split("d")[0].strip()
-        dS = v.split("=")[3].split("T")[0].strip()
-        Tm = v.split("=")[4].strip(" ").split(" ", 1)[0]
-        try:
-            y = float(Tm)
-            y
-        except ValueError:
-            Tm = "999"
-
-        return structure, dG, dH, dS, Tm
-
-    def interpret_values(self, name, primername, mfoldvalues):
-        structure, dG, dH, dS, Tm = mfoldvalues
-        mfold_output = [name, structure, dG, dH, dS, Tm]
-
-        if float(dG) <= float(self.config.mfold):
-            return [None, None, primername, mfold_output]
-        else:
-            return [primername, mfold_output, None, None]
-
-    def get_primername(self, name):
-        # adds the genus species info again to the
-        # primername after mfold
-        primer_name = (
-            H.abbrev(self.target, dict_path) + "_"
-            + "_".join(name.split("_")[0:-1]))
-        return primer_name
-
-    def read_files(self, filename):
-        results = []
-        with open(filename, "r", errors="ignore") as f:
-            for line in f:
-                line = line.strip()
-                if re.search("Structure", line):
-                    name = "".join(islice(f, 1, 2)).strip()
-                    primername = self.get_primername(name)
-                    mfoldvalues = self.parse_values(f, line)
-                    results.append(
-                        self.interpret_values(
-                            name, primername, mfoldvalues))
-
-        return results
-
-    def dimercheck_primer(self, selected_seqs, excluded_primer):
-        G.logger("Run: dimercheck_primer(" + self.target + ")")
-        dimercheck = []
-        for primer in selected_seqs:
-            primername = "_".join(primer[0].split("_")[0:-1])
-            if primername not in excluded_primer:
-                if primer not in dimercheck:
-                    dimercheck.append(primer)
-
-        return dimercheck
-
-    def check_primerdimer(self, dimercheck):
-        info = "Start analysis of primer dimers"
-        print(info)
-        G.logger("> " + info)
-        G.logger("Run: check_primerdimer(" + self.target + ")")
-
-        def get_primer_name(item, primer_direction):
-            name = (
-                H.abbrev(self.target, dict_path) + "_" + primer_direction + "_"
-                + "_".join(item[0].split("_")[-4:]))
-            return name
-
-        def write_dimercheck_input(item, primer_name, lseq, rseq):
-            fwd_name = primer_name + "_F"
-            rev_name = primer_name + "_R"
-            fwd_file = os.path.join(self.dimercheck_dir, fwd_name)
-            rev_file = os.path.join(self.dimercheck_dir, rev_name)
-            p_file = os.path.join(self.dimercheck_dir, primer_name)
-            with open(fwd_file, "w") as f:
-                f.write(
-                    ">"+fwd_name+"\n"+lseq+"\n>"+fwd_name + "_d\n"+lseq+"\n")
-            with open(rev_file, "w") as f:
-                f.write(
-                    ">"+rev_name+"\n"+rseq+"\n>"+rev_name + "_d\n"+rseq+"\n")
-            with open(p_file, "w") as f:
-                f.write(">"+fwd_name+"\n"+lseq+"\n>"+rev_name+"\n"+rseq+"\n")
-
-        def get_dimercheck_output(item, primer_name, lseq, rseq, choice):
-            test = []
-            summary_data = []
-            fwd_name = primer_name + "_F"
-            rev_name = primer_name + "_R"
-            fwd_file = os.path.join(
-                self.dimercheck_dir, fwd_name + "_dimer_out")
-            rev_file = os.path.join(
-                self.dimercheck_dir, rev_name + "_dimer_out")
-            p_file = os.path.join(
-                self.dimercheck_dir, primer_name + "_dimer_out")
-            names = [fwd_name, rev_name, primer_name]
-            files = [fwd_file, rev_file, p_file]
-            summary_data.append(primer_name)
-            for file_name in files:
-                with open(file_name, "r") as f:
-                    for line in f:
-                        line = line.strip().split("\t")
-                        val = float(line[2].strip())
-                        summary_data.append(val)
-                        if file_name == p_file:
-                            if val >= float(self.config.mpprimer):
-                                name = file_name.split("/")[-1].split(
-                                    "_dimer_out")[0]
-                                test.append(name)
-                        else:
-                            if val >= float(self.config.mpprimer) - 1:
-                                name = file_name.split("/")[-1].split(
-                                    "_dimer_out")[0]
-                                test.append(name)
-
-                if self.config.intermediate is False:
-                    outfile = file_name
-                    name = os.path.basename(outfile).split("_dimer_out")[0]
-                    infile = os.path.join(self.dimercheck_dir, name)
-                    os.remove(outfile)
-                    os.remove(infile)
-
-            if test == names:
-                if primer_name not in choice:
-                    choice.append(primer_name)
-
-            return summary_data
-
-        def run_primerdimer_check():
-            choice = []
-            if os.path.isdir(self.dimercheck_dir):
-                shutil.rmtree(self.dimercheck_dir)
-            G.create_directory(self.dimercheck_dir)
-            primer_data = self.get_primerinfo(
-                dimercheck, mode="dimercheck")
-            for item in primer_data:
-                write_dimercheck_input(item, item[0], item[1], item[2])
-
-            for files in os.listdir(self.dimercheck_dir):
-                if not fnmatch.fnmatch(files, "*_dimer_out"):
-                    input_file = os.path.join(self.dimercheck_dir, files)
-                    output_file = os.path.join(
-                        self.dimercheck_dir, files + "_dimer_out")
-                    dimer_cmd = (
-                        "MPprimer_dimer_check.pl -f " + input_file + " -d 3 > "
-                        + output_file)
-
-                    G.run_shell(
-                        dimer_cmd, printcmd=False, logcmd=False,
-                        log=False, printoption=False)
-
-            dimer_summary = []
-            for item in primer_data:
-                summary_data = get_dimercheck_output(
-                    item, item[0], item[1], item[2], choice)
-                dimer_summary.append(summary_data)
-            filepath = os.path.join(
-                self.dimercheck_dir, "dimercheck_summary.csv")
-            if len(dimer_summary) > 0:
-                with open(filepath, "w") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(
-                        ["primer", "fwd-fwd dG", "rev-rev dG", "fwd-rev dG"])
-                    for dimer in dimer_summary:
-                        writer.writerow(dimer)
-            return choice
-
-        choice = run_primerdimer_check()
-        info = str(len(choice)) + " primer left after primer-dimer check"
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs left after primer QC: "
-            + str(len(choice)))
-        print("\n" + info)
-        G.logger("> " + info)
-        return choice
-
-    def write_results(self, choice):
-        G.logger("Run: write_results(" + self.target + ")")
-        header = [
-            "Primer name", "PPC", "Primer penalty", "Gene",
-            "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
-            "Primer rev seq", "Primer rev TM", "Primer rev penalty",
-            "Probe seq)", "Probe TM", "Probe penalty",
-            "Amplicon size", "Amplicon TM", "Amplicon sequence",
-            "Template sequence"]
-        if len(choice) > 0:
-            results = self.get_primerinfo(choice, mode="results")
-            results.sort(key=lambda x: float(x[1]), reverse=True)
-            file_path = os.path.join(
-                    self.results_dir,
-                    H.abbrev(self.target, dict_path) + "_primer.csv")
-
-            with open(file_path, "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(header)
-                for result in results:
-                    writer.writerow(result)
-            return results
-        else:
-            results = []
-            return results
-
     def write_primerlist(self, primer_sorted):
         filepath = os.path.join(self.hairpin_dir, "primerlist.fa")
         if (
@@ -3669,6 +2936,173 @@ class PrimerQualityControl:
 
         return excluded
 
+    def prepare_MFEprimer_Dbs(self, primerinfos):
+        G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
+        G.create_directory(self.primer_qc_dir)
+        self.make_MFEprimer_Dbs(primerinfos)
+
+    def create_template_db(self, primerinfos):
+        wrote = []
+        file_path = os.path.join(self.primer_qc_dir, "template.sequences")
+        with open(file_path, "w") as f:
+            for nameF, seqF, nameR, seqR, temp_seq, amp_seq in primerinfos:
+                if temp_seq not in wrote:
+                    primername = "_".join(nameF.split("_")[0:-2])
+                    f.write(">" + primername + "\n" + temp_seq + "\n")
+                    wrote.append(temp_seq)
+
+    def get_QC_data(self):
+        qc_data = []
+        if os.path.isdir(self.summ_dir):
+            for files in os.listdir(self.summ_dir):
+                if files.endswith("_qc_sequences.csv"):
+                    file_path = os.path.join(self.summ_dir, files)
+                    with open(file_path) as f:
+                        reader = csv.reader(f)
+                        next(reader, None)
+                        for row in reader:
+                            qc_data.append(row)
+        return qc_data
+
+    def create_assembly_db(self, db_name):
+        # add option to choose a folder for Reference genomes?
+        qc_data = self.get_QC_data()
+
+        remove = []
+        qc_acc = []
+        assembly_dict = {}
+        ref_assembly = []
+        for item in qc_data:
+            accession = item[0]
+            assembly_stat = item[2]
+            rRNA = item[4]
+            tuf = item[6]
+            recA = item[8]
+            dnaK = item[10]
+            pheS = item[12]
+            qc_list = rRNA, tuf, recA, dnaK, pheS
+            assembly_dict.update({accession: assembly_stat})
+
+            if self.config.ignore_qc is True:
+                for qc_gene in qc_list:
+                    if accession not in qc_acc:
+                        qc_acc.append(accession)
+            else:
+                for qc_gene in qc_list:
+                    if "passed QC" == qc_gene:
+                        if accession not in qc_acc:
+                            qc_acc.append(accession)
+                    elif "" == qc_gene:
+                        if accession not in qc_acc:
+                            qc_acc.append(accession)
+                    else:
+                        if accession not in remove:
+                            remove.append(accession)
+
+        check = set(qc_acc) - set(remove)
+        check = list(check)
+        check.sort()
+        for item in check:
+            if len(ref_assembly) < self.referencegenomes:
+                if assembly_dict[item] == "Complete Genome":
+                    if item not in ref_assembly:
+                        ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if assembly_dict[item] == "Chromosome":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if assembly_dict[item] == "Scaffold":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if item not in ref_assembly:
+                        ref_assembly.append(item)
+
+        ref_assembly.sort()
+        target_fasta = []
+        for files in os.listdir(self.fna_dir):
+            for item in ref_assembly:
+                acc = "v".join(item.split("."))
+                if acc in files:
+                    if files.endswith(".fna"):
+                        with open(os.path.join(self.fna_dir, files)) as f:
+                            records = SeqIO.parse(f, "fasta")
+                            target_fasta.append(list(records))
+
+        file_path = os.path.join(self.primer_qc_dir, db_name)
+        with open(file_path, "w") as fas:
+            for item in target_fasta:
+                SeqIO.write(item, fas, "fasta")
+                    
+            
+
+    def make_MFEprimer_Dbs(self, primerinfos):
+        def make_templateDB():
+            db_name = "template.sequences"
+            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
+            if not os.path.isfile(db_path):
+                G.logger("> create template DB")
+                print("\ncreate template DB")
+                self.create_template_db(primerinfos)
+                G.logger("> index template DB")
+                print("index template DB")
+                self.index_Database(db_name)
+                G.logger("> Done indexing template DB")
+                print("Done indexing template DB")
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name
+                + " input file is empty"
+                G.logger("> " + msg)
+                print("\n" + msg)
+
+        def make_assemblyDB():
+            db_name = H.abbrev(self.target, dict_path) + ".genomic"
+            db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
+            if not os.path.isfile(db_path):
+                G.logger("> create target genome assembly DB")
+                print("\ncreate target genome assembly DB")
+                self.create_assembly_db(db_name)
+                G.logger("> index target genome assembly DB")
+                print("index target genome assembly DB")
+                self.index_Database(db_name)
+                G.logger("> Done indexing genome assembly DB")
+                print("Done indexing genome assembly DB")
+
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name + " input file is empty"
+                G.logger("> " + msg)
+                print("\n!!!" + msg + "!!!\n")
+
+        process_make_templateDB = Process(target=make_templateDB)
+        process_make_assemblyDB = Process(target=make_assemblyDB)
+        process_make_templateDB.start()
+        process_make_assemblyDB.start()
+        process_make_templateDB.join()
+        process_make_assemblyDB.join()
+
+    def index_Database(self, db_name):
+        start = time.time()
+        os.chdir(self.primer_qc_dir)
+        cmd = ["mfeprimer-index", "-i", db_name]
+        G.run_subprocess(cmd)
+        os.chdir(self.primer_dir)
+        end = time.time() - start
+        G.logger(
+            "Run: index_Database(" + db_name + ") time: "
+            + str(timedelta(seconds=end)))
+
     def collect_primer(self):
         G.logger("Run: collect_primer(" + self.target + ")")
         G.create_directory(self.hairpin_dir)
@@ -3705,7 +3139,22 @@ class PrimerQualityControl:
                 + str(len(self.primerlist)))
             return 0
 
-    def MFEprimer_QC_first(self, excluded):
+    def write_MFEprimer_results(self, input_list, name):
+        outputlist = []
+        with open("MFEprimer_" + name + ".csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["PPC", "Pf", "Pr", "AmpSeq"])
+            for item in input_list:
+                # item[0] is the primerinfo
+                if len(item[0]) > 1:
+                    outputlist.append(item[0])
+                # item[1] are the results of MFEprimer
+                for result in item[1]:
+                    writer.writerow(result)
+
+        return outputlist
+
+    def primer_specificity_check(self, excluded):
         # option: also allow user provided non-target database created with
         # MFEprimer for primer QC
         G.logger("Run: MFEprimer_QC(" + self.target + ")")
@@ -3741,7 +3190,32 @@ class PrimerQualityControl:
         assembly_results = G.run_parallel(self.MFEprimer_assembly, assembly_input)
         nontarget_input = self.write_MFEprimer_results(assembly_results, "assembly")
 
-        print(len(nontarget_input))
+        msg = " primer pair(s) passed secondary PCR amplicon check\n"
+        info2 = str(len(nontarget_input)) + msg
+        print("\n\n" + info2 + "\n")
+        G.logger("> " + info2)
+        PipelineStatsCollector(self.target_dir).write_stat(
+            "primer pairs left after secondary amplicon QC: "
+            + str(len(nontarget_input)))
+
+        self.run_primerBLAST(nontarget_input)                  
+        self.prepare_nontargetDB()
+
+        os.chdir(self.primer_qc_dir)        
+        nontarget_results = G.run_parallel(
+            self.MFEprimer_nontarget, nontarget_input)            
+        specific_primers = self.write_MFEprimer_results(
+                nontarget_results, "nontarget")
+        
+        msg = " primer pair(s) passed non-target PCR check"
+        info2 = str(len(specific_primers)) + msg
+        print("\n\n" + info2 + "\n")
+        G.logger("> " + info2)
+        PipelineStatsCollector(self.target_dir).write_stat(
+            "primer pairs left after non-target QC: "
+            + str(len(specific_primers)))
+
+        return specific_primers
 
     def MFEprimer_template(self, primerinfo):
         result = []
@@ -3805,7 +3279,6 @@ class PrimerQualityControl:
         pqcdict = json.loads(line)
         ampinfo = pqcdict["AmpList"]
         num_amp = len(ampinfo)
-#        print(num_amp)
         amplist = []
         for data in ampinfo:
             fdesc = data["FastaDesc"]
@@ -3836,6 +3309,385 @@ class PrimerQualityControl:
                 return [[pp_name], amplist]
         return [primerinfo, amplist]
 
+    def run_primerBLAST(self, nontarget_input):
+        nontarget_blastseqs = []
+        for primer in nontarget_input:
+            nontarget_blastseqs.append(primer[0:4])
+            ppc = primer[6]
+            pp_name = "_".join(primer[0].split("_")[0:-1])
+            target_id = "_".join(pp_name.split("_")[-3:-1])
+            primerpair = "Primer_pair_" + pp_name.split("_P")[-1]
+            self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
+
+        blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
+
+        if not os.path.isfile(blastsum):
+            G.create_directory(self.primerblast_dir)
+            prep = BlastPrep(
+                self.primerblast_dir, nontarget_blastseqs,
+                "primer", self.config.blastseqs)
+            use_cores, inputseqs = prep.run_blastprep()
+            bla = Blast(self.config, self.primerblast_dir, "primer")
+            bla.run_blast("primer", use_cores)
+
+        self.call_blastparser.run_blastparser("primer")      
+
+    def make_nontargetDB(self, inputfiles):
+        db_name = inputfiles
+        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".primerqc")
+        if not os.path.isfile(db_path):
+            G.logger("> Start index non-target DB " + inputfiles)
+            print("\nStart index non-target DB " + inputfiles)
+            self.index_Database(db_name)
+            print("Done indexing non-target DB " + inputfiles)
+            G.logger("> Done indexing non-target DB " + inputfiles)
+
+        infile = os.path.join(self.primer_qc_dir, inputfiles)
+        if os.stat(infile).st_size == 0:
+            msg = "Problem with non-target DB " + inputfiles
+            + " input file is empty"
+            G.logger("> " + msg)
+            print("\n" + msg)
+
+    def prepare_nontargetDB(self):
+        for files in os.listdir(self.primer_qc_dir):
+            if (
+                files.startswith("BLASTnontarget")
+                and files.endswith(".sequences")
+            ):
+                self.dbinputfiles.append(files)
+        # parallelization try
+        pool = multiprocessing.Pool(processes=4)
+        results = [
+            pool.apply_async(
+                self.make_nontargetDB, args=(inputfiles,))
+            for inputfiles in self.dbinputfiles]
+        output = [p.get() for p in results]  
+
+    def MFEprimer_nontarget(self, primerinfo):
+        result = []
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = primerinfo
+        pp_name = "_".join(nameF.split("_")[0:-1])
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=self.primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "mfeprimer", "-in", primefile.name, "-mismatch", "-json"]
+        for db in self.dbinputfiles:
+            cmd.append("-db")
+            cmd.append(db)
+        cmd = " ".join(cmd)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
+        os.unlink(primefile.name)
+        line = result[0].split("Primer Quality Reports")[0]
+        pqcdict = json.loads(line) 
+        ampinfo = pqcdict["AmpList"]
+        hairpinfo = pqcdict["HairpinList"]
+        dimerinfo = pqcdict["DimerList"]
+        if hairpinfo:
+            return [[pp_name], [["hairpin"]]]
+        elif dimerinfo:
+            return [[pp_name], [["primerdimer"]]]
+        else:
+            if ampinfo:        
+                amplist = []
+                for data in ampinfo:
+                    fdesc = data["FastaDesc"]
+                    targetseq = fdesc.split(">")[1].strip()
+                    ppc = round(data["PPC"],2)
+                    seq = data["Seq"]
+                    fp = data["Fp"]["Seq"]["Id"]
+                    rp = data["Rp"]["Seq"]["Id"]
+                    ampsize = data["Size"]
+                    amplist.append([ppc, fp, rp, targetseq, ampsize, seq])
+                    
+                return [[pp_name], amplist]
+        
+        return [primerinfo, [["no amplicon"]]]
+
+    def mfold_analysis(self, mfoldinputlist):
+        info = "Start mfold analysis of PCR products"
+        print(info)
+        G.logger("> " + info)
+        G.logger("Run: mfold_analysis(" + self.target + ")")
+        print("Run: mfold_analysis(" + self.target + ")")
+
+        if os.path.isdir(self.mfold_dir):
+            shutil.rmtree(self.mfold_dir)
+        G.create_directory(self.mfold_dir)
+        os.chdir(self.mfold_dir)
+
+        for mfoldinput in mfoldinputlist:
+            abbr = H.abbrev(self.target, dict_path)
+            self.prep_mfold(mfoldinput, abbr)
+        os.chdir(self.target_dir)
+
+    def prep_mfold(self, mfoldinput, abbr):
+        # This removes the Genus species string to shorten the
+        # name for mfold (especially for subspecies names). mfold has
+        # problems with too long filenames / paths        
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = mfoldinput
+        primer_name = "_".join(nameF.split("_")[0:-1])
+        target_id = "_".join(primer_name.split("_")[-3:-1])
+        primerpair = "Primer_pair_" + primer_name.split("_P")[-1]          
+        
+        short_name = primer_name.split(abbr + "_")[1]
+        dir_path = os.path.join(self.mfold_dir, target_id)
+        subdir_path = os.path.join(dir_path, primerpair)
+        pcr_name = short_name + "_PCR"
+        if len(amp_seq) >= self.config.minsize:
+            G.create_directory(dir_path)
+            G.create_directory(subdir_path)
+            self.run_mfold(subdir_path, pcr_name, amp_seq)
+
+    def run_mfold(self, subdir_path, seq_name, description):
+        file_path = os.path.join(subdir_path, seq_name)
+        with open(file_path, "w") as f:
+            f.write("> " + seq_name + "\n" + description)
+        if not os.path.isfile(file_path + ".det"):
+            os.chdir(subdir_path)
+            mfold_cmd = [
+                "mfold", "SEQ=" + seq_name, "NA=DNA", "T=60", "MG_CONC=0.003"]
+            G.run_subprocess(mfold_cmd, False, True, False, False)
+            os.chdir(self.mfold_dir)
+
+    def mfold_parser(self):
+        selected_primer = []
+        excluded_primer = []
+        info = "Run: mfold_parser(" + self.target + ")\n"
+        print(info)
+        G.logger(info)
+        file_list = self.find_mfold_results()
+        pas = open(os.path.join(self.mfold_dir, "mfold_passed.csv"), "w")
+        pos_results = csv.writer(pas)
+        pos_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
+        fail = open(os.path.join(self.mfold_dir, "mfold_failed.csv"), "w")
+        neg_results = csv.writer(fail)
+        neg_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
+        for mfoldfiles in file_list:
+            mfold = self.read_files(mfoldfiles)
+
+            if len(mfold) == 1:
+                selected, passed, excluded, failed = mfold[0]
+                if not (selected is None or passed is None):
+                    selected_primer.append(selected)
+                    filename, structure, dG, dH, dS, Tm = passed
+                    pos_results.writerow([selected, structure, dG, dH, dS, Tm])
+                else:
+                    excluded_primer.append(excluded)
+                    filename, structure, dG, dH, dS, Tm = failed
+                    neg_results.writerow([excluded, structure, dG, dH, dS, Tm])
+
+            elif len(mfold) > 1:
+                test = []
+                for structure_nr in mfold:
+                    selected, passed, excluded, failed = structure_nr
+                    if not (selected is None or passed is None):
+                        test.append([selected, passed, excluded, failed])
+
+                if len(test) == len(mfold):
+                    selected = test[0][0]
+                    selected_primer.append(selected)
+
+                    for index, structure_nr in enumerate(mfold):
+                        selected_name, passed, excluded, failed = structure_nr
+                        filename, structure, dG, dH, dS, Tm = passed
+                        if index == 0:
+                            pos_results.writerow(
+                                [selected, structure, dG, dH, dS, Tm])
+                        else:
+                            pos_results.writerow(
+                                ["", structure, dG, dH, dS, Tm])
+                else:
+                    if mfold[0][2] is None:
+                        excluded = mfold[0][0]
+                    else:
+                        excluded = mfold[0][2]
+                    excluded_primer.append(excluded)
+                    for index, structure_nr in enumerate(mfold):
+                        selected, passed, excluded_name, failed = structure_nr
+                        if passed is None:
+                            filename, structure, dG, dH, dS, Tm = failed
+                            if index == 0:
+                                neg_results.writerow(
+                                    [excluded, structure, dG, dH, dS, Tm])
+                            else:
+                                neg_results.writerow(
+                                    ["", structure, dG, dH, dS, Tm])
+                        if failed is None:
+                            filename, structure, dG, dH, dS, Tm = passed
+                            if index == 0:
+                                neg_results.writerow(
+                                    [excluded, structure, dG, dH, dS, Tm])
+                            else:
+                                neg_results.writerow(
+                                    ["", structure, dG, dH, dS, Tm])
+
+            else:
+                pass
+
+        pas.close()
+        fail.close()
+        ex = str(len(excluded_primer))
+        pas = str(len(selected_primer))
+        ex_info = ex + " primer pair(s) excluded by mfold"
+        pass_info = pas + " primer pair(s) to continue"
+        print("\n\n" + ex_info + "\n")
+        print(pass_info)
+        G.logger("> " + ex_info)
+        G.logger("> " + pass_info)
+        PipelineStatsCollector(self.target_dir).write_stat(
+            "primer pairs left after mfold: "
+            + str(len(selected_primer)))
+
+        if self.config.intermediate is False:
+            for dirs in os.listdir(self.mfold_dir):
+                dir_path = os.path.join(self.mfold_dir, dirs)
+                if os.path.isdir(dir_path):
+                    shutil.rmtree(dir_path)
+
+        return selected_primer, excluded_primer
+
+    def find_mfold_results(self):
+        file_list = []
+        for root, dirs, files in os.walk(self.mfold_dir):
+            for item in files:
+                if item.endswith(".det"):
+                    if os.path.join(root, item) not in file_list:
+                        file_list.append(os.path.join(root, item))
+
+        return file_list
+
+    def parse_values(self, file, line):
+        structure = line
+        v = "".join(islice(file, 0, 1)).strip()
+        dG = v.split("=")[1].split("d")[0].strip()
+        dH = v.split("=")[2].split("d")[0].strip()
+        dS = v.split("=")[3].split("T")[0].strip()
+        Tm = v.split("=")[4].strip(" ").split(" ", 1)[0]
+        try:
+            y = float(Tm)
+            y
+        except ValueError:
+            Tm = "999"
+
+        return structure, dG, dH, dS, Tm
+
+    def interpret_values(self, name, primername, mfoldvalues):
+        structure, dG, dH, dS, Tm = mfoldvalues
+        mfold_output = [name, structure, dG, dH, dS, Tm]
+
+        if float(dG) <= float(self.config.mfold):
+            return [None, None, primername, mfold_output]
+        else:
+            return [primername, mfold_output, None, None]
+
+    def get_primername(self, name):
+        # adds the genus species info again to the
+        # primername after mfold
+        primer_name = (
+            H.abbrev(self.target, dict_path) + "_"
+            + "_".join(name.split("_")[0:-1]))
+        return primer_name
+
+    def read_files(self, filename):
+        results = []
+        with open(filename, "r", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if re.search("Structure", line):
+                    name = "".join(islice(f, 1, 2)).strip()
+                    primername = self.get_primername(name)
+                    mfoldvalues = self.parse_values(f, line)
+                    results.append(
+                        self.interpret_values(
+                            name, primername, mfoldvalues))
+
+        return results
+
+    def get_primerinfo(self, selected_seqs):
+        G.logger("Run: get_primerinfo(" + self.target + ")")
+        val_list = []
+        for item in selected_seqs:
+            try:
+                if len(item) == 2:
+                    item = item[0]
+                if (item.endswith("_F") or item.endswith("_R")):
+                    primer_name = "_".join(item.split("_")[0:-1])
+                else:
+                    primer_name = item
+                target_id = "_".join(primer_name.split("_")[-3:-1])
+                primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
+                template_seq = self.primer3_dict[target_id]["template_seq"]
+                x = self.primer3_dict[target_id][primerpair]
+                pp_penalty = round(x["primer_P_penalty"], 2)
+                pp_prodsize = x["product_size"]
+                pp_prodTM = round(x["product_TM"], 2)
+                amp_seq = x["amplicon_seq"]
+                lseq = x["primer_L_sequence"]
+                rseq = x["primer_R_sequence"]
+                lpen = round(x["primer_L_penalty"], 2)
+                rpen = round(x["primer_R_penalty"], 2)
+                lTM = round(x["primer_L_TM"], 2)
+                rTM = round(x["primer_R_TM"], 2)
+                ppc = x['PPC']
+                if self.config.probe:
+                    iseq = x["primer_I_sequence"]
+                    ipen = round(x["primer_I_penalty"], 2)
+                    iTM = round(x["primer_I_TM"], 2)
+                else:
+                    iseq = "None"
+                    ipen = "None"
+                    iTM = "None"
+
+                info = [
+                    primer_name, ppc, pp_penalty, target_id,
+                    lseq, lTM, lpen,
+                    rseq, rTM, rpen,
+                    iseq, iTM, ipen,
+                    pp_prodsize, pp_prodTM, amp_seq,
+                    template_seq]
+                if info not in val_list:
+                    val_list.append(info)
+
+            except Exception:
+                G.logger(
+                    "error in get_primerinfo()"
+                    + str(sys.exc_info()))
+
+        return val_list
+
+    def write_results(self, choice):
+        G.logger("Run: write_results(" + self.target + ")")
+        header = [
+            "Primer name", "PPC", "Primer penalty", "Gene",
+            "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
+            "Primer rev seq", "Primer rev TM", "Primer rev penalty",
+            "Probe seq)", "Probe TM", "Probe penalty",
+            "Amplicon size", "Amplicon TM", "Amplicon sequence",
+            "Template sequence"]
+        if len(choice) > 0:
+            results = self.get_primerinfo(choice)
+            results.sort(key=lambda x: float(x[1]), reverse=True)
+            file_path = os.path.join(
+                    self.results_dir,
+                    H.abbrev(self.target, dict_path) + "_primer.csv")
+
+            with open(file_path, "w") as f:
+                writer = csv.writer(f)
+                writer.writerow(header)
+                for result in results:
+                    writer.writerow(result)
+            return results
+        else:
+            results = []
+            return results
+
     def run_primer_qc(self):
         print("Run: run_primer_qc(" + self.target + ")")
         G.logger("Run: run_primer_qc(" + self.target + ")")
@@ -3843,79 +3695,37 @@ class PrimerQualityControl:
         os.chdir(self.primer_qc_dir)
         total_results = []
         if self.collect_primer() == 0:
-            blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
             hairpins = self.hairpin_check()
             self.primerdimer_check(hairpins)
             excluded = self.filter_primerdimer()
             self.prepare_MFEprimer_Dbs(self.primerlist)
-            survived_MFEp1 = self.MFEprimer_QC_first(excluded)
+            specific_primers = self.primer_specificity_check(excluded)
+            self.mfold_analysis(specific_primers)
+            selected_primer, excluded_primer = self.mfold_parser()
 
+            total_results = self.write_results(selected_primer)
 
-
-#            hairpins = self.hairpin_check()
-#            self.primerdimer_check(hairpins)
-#            primerlist, blastseqs = self.filter_primerdimer()
-#
-#            if not os.path.isfile(blastsum):
-#                G.create_directory(self.primerblast_dir)
-#                prep = BlastPrep(
-#                    self.primerblast_dir, blastseqs,
-#                    "primer", self.config.blastseqs)
-#                use_cores, inputseqs = prep.run_blastprep()
-#                bla = Blast(self.config, self.primerblast_dir, "primer")
-#                bla.run_blast("primer", use_cores)
-#
-#            self.call_blastparser.run_blastparser("primer")
-#
-#            primer_spec_list = self.get_primerinfo(primerlist, "mfeprimer")
-#
-#            for files in os.listdir(self.primer_qc_dir):
-#                if (
-#                    files.startswith("BLASTnontarget")
-#                    and files.endswith(".sequences")
-#                ):
-#                    self.dbinputfiles.append(files)
-#
-#            self.prepare_MFEprimer_Dbs(primer_spec_list)
-##
-#            survived_MFEp = self.MFEprimer_QC(primer_spec_list)
-#
-#            print(survived_MFEp)
-#
-#            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
-#
-#            self.mfold_analysis(mfoldinput)
-#
-#            selected_primer, excluded_primer = self.mfold_parser()
-#
-#            dimercheck = self.dimercheck_primer(
-#                selected_primer, excluded_primer)
-#
-#            choice = self.check_primerdimer(dimercheck)
-#
-#            total_results = self.write_results(choice)
-#
-#            if not total_results == []:
-#                info = (
-#                    "Found " + str(len(total_results))
-#                    + " primer pair(s) for " + self.target)
-#                print("\n" + info + "\n")
-#                G.logger("> " + info)
-#                duration = time.time() - self.start
-#                G.logger(
-#                    "> PrimerQC time: "
-#                    + str(timedelta(seconds=duration)).split(".")[0])
-#                return total_results
-#            else:
-#                error_msg = "No compatible primers found"
-#                print(error_msg)
-#                G.logger("> " + error_msg)
-#                errors.append([self.target, error_msg])
-#                duration = time.time() - self.start
-#                G.logger(
-#                    "> PrimerQC time: "
-#                    + str(timedelta(seconds=duration)).split(".")[0])
-#                return total_results
+            if not total_results == []:
+                info = (
+                    "Found " + str(len(total_results))
+                    + " primer pair(s) for " + self.target)
+                print("\n" + info + "\n")
+                G.logger("> " + info)
+                duration = time.time() - self.start
+                G.logger(
+                    "> PrimerQC time: "
+                    + str(timedelta(seconds=duration)).split(".")[0])
+                return total_results
+            else:
+                error_msg = "No compatible primers found"
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                duration = time.time() - self.start
+                G.logger(
+                    "> PrimerQC time: "
+                    + str(timedelta(seconds=duration)).split(".")[0])
+                return total_results
         else:
             error_msg = "No compatible primers found"
             duration = time.time() - self.start
@@ -3926,83 +3736,6 @@ class PrimerQualityControl:
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
             return total_results
-
-#    def run_primer_qc(self):
-#        G.logger("Run: run_primer_qc(" + self.target + ")")
-#        total_results = []
-#        if self.collect_primer() == 0:
-#            G.create_directory(self.primerblast_dir)
-#            blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
-#            if not os.path.isfile(blastsum):
-#                prep = BlastPrep(
-#                    self.primerblast_dir, self.primerlist,
-#                    "primer", self.config.blastseqs)
-#                use_cores, inputseqs = prep.run_blastprep()
-#
-#                bla = Blast(self.config, self.primerblast_dir, "primer")
-#                bla.run_blast("primer", use_cores)
-#            else:
-#                inputseqs = self.get_inputsequences(self.primerlist)
-#
-#            self.call_blastparser.run_blastparser("primer")
-#
-#            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
-#
-#            for files in os.listdir(self.primer_qc_dir):
-#                if (
-#                    files.startswith("BLASTnontarget")
-#                    and files.endswith(".sequences")
-#                ):
-#                    self.dbinputfiles.append(files)
-#
-#            self.prepare_MFEprimer_Dbs(primer_qc_list)
-#
-#            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
-#
-#            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
-#
-#            self.mfold_analysis(mfoldinput)
-#
-#            selected_primer, excluded_primer = self.mfold_parser()
-#
-#            dimercheck = self.dimercheck_primer(
-#                selected_primer, excluded_primer)
-#
-#            choice = self.check_primerdimer(dimercheck)
-#
-#            total_results = self.write_results(choice)
-#
-#            if not total_results == []:
-#                info = (
-#                    "Found " + str(len(total_results))
-#                    + " primer pair(s) for " + self.target)
-#                print("\n" + info + "\n")
-#                G.logger("> " + info)
-#                duration = time.time() - self.start
-#                G.logger(
-#                    "> PrimerQC time: "
-#                    + str(timedelta(seconds=duration)).split(".")[0])
-#                return total_results
-#            else:
-#                error_msg = "No compatible primers found"
-#                print(error_msg)
-#                G.logger("> " + error_msg)
-#                errors.append([self.target, error_msg])
-#                duration = time.time() - self.start
-#                G.logger(
-#                    "> PrimerQC time: "
-#                    + str(timedelta(seconds=duration)).split(".")[0])
-#                return total_results
-#        else:
-#            error_msg = "No compatible primers found"
-#            duration = time.time() - self.start
-#            G.logger(
-#                "> PrimerQC time: "
-#                + str(timedelta(seconds=duration)).split(".")[0])
-#            print(error_msg)
-#            G.logger("> " + error_msg)
-#            errors.append([self.target, error_msg])
-#            return total_results
 
 class Summary:
     def __init__(self, configuration, total_results):
