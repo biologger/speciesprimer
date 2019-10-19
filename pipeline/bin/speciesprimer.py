@@ -2226,6 +2226,7 @@ class BlastParser:
         return selected_seqs
 
     def get_seq_range(self, db_id, overhang=2000):
+        fasta = []
         if self.config.customdb is not None:
             db = self.config.customdb
         else:
@@ -2245,8 +2246,9 @@ class BlastParser:
         seq_cmd = " ".join([
             "blastdbcmd", "-db", db, "-entry", accession,
             "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
-        fasta = G.read_shelloutput(
-            seq_cmd, printcmd=False, logcmd=False, printoption=False)
+        while fasta == []:
+            fasta = G.read_shelloutput(
+                seq_cmd, printcmd=False, logcmd=False, printoption=False)
 
         return fasta
 
@@ -3022,6 +3024,7 @@ class PrimerQualityControl:
 
 
     def MFEprimer_nontarget(self, primerinfo, inputfiles):
+        result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3033,8 +3036,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         if not len(result) == 1:
             for index, item in enumerate(result):
@@ -3626,7 +3630,8 @@ class PrimerQualityControl:
             return [pp_name, "hairpin"]
 
     def filter_primerdimer(self):
-        summ_file = "primerdimer_summary.csv"
+        summ_file = os.path.join(
+            self.primerdimer_dir, "primerdimer_summary.csv")
 
         excluded = []
         with open(summ_file) as f:
@@ -3739,6 +3744,7 @@ class PrimerQualityControl:
         print(len(nontarget_input))
 
     def MFEprimer_template(self, primerinfo):
+        result = []
         [nameF, seqF, nameR, seqR, temp_seq, amp_seq] = primerinfo
         pp_name = "_".join(nameF.split("_")[0:-1])
         with tempfile.NamedTemporaryFile(
@@ -3751,8 +3757,9 @@ class PrimerQualityControl:
         cmd = [
             "mfeprimer", "-in", primefile.name, "-db", db, "-mismatch", "-json"]
         cmd = " ".join(cmd)
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
 
         line = result[0].split("Primer Quality Reports")[0]
@@ -3777,7 +3784,7 @@ class PrimerQualityControl:
         return [[pp_name], amplist]
 
     def MFEprimer_assembly(self, primerinfo):
-        target_product = []
+        result = []
         [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = primerinfo
         pp_name = "_".join(nameF.split("_")[0:-1])
         with tempfile.NamedTemporaryFile(
@@ -3790,8 +3797,9 @@ class PrimerQualityControl:
         cmd = [
             "mfeprimer", "-in", primefile.name, "-db", db, "-mismatch", "-json"]
         cmd = " ".join(cmd)
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         line = result[0].split("Primer Quality Reports")[0]
         pqcdict = json.loads(line)
@@ -3809,46 +3817,24 @@ class PrimerQualityControl:
             ampsize = data["Size"]
             amplist.append([ppc, fp, rp, targetseq, ampsize, seq])
 
-        minppc = min(x[0] for x in amplist)
-        maxppc = max(x[0] for x in amplist)
-        minsz = min(x[4] for x in amplist)
-        maxsz = max(x[4] for x in amplist)
+        amplen = len(amp_seq)
+        for x in amplist:
+            if x[0] == ppc_val:
+                pass
+            else:
+                return [[pp_name], amplist]
+            if x[4] == amplen:
+                pass
+            else:
+                return [[pp_name], amplist]
         target_seqs = list((x[3] for x in amplist))
-#        print(target_seqs)
         counts = Counter(target_seqs)
         for values in counts.values():
             if values == 1:
                 pass
             else:
                 return [[pp_name], amplist]
-        if (
-            ppc_val == minppc == maxppc and
-            len(amp_seq) == minsz == maxsz):
-                return [primerinfo, amplist]
-        else:
-            return [[pp_name], amplist]
-
-        # if ampsize max and min == len(amp_seq)
-        # number of different amplicons == number of target genomes
-        ## ppc == target ppc
-#        print(amplist)
-
-#        for index, item in enumerate(result):
-#            if index > 0:
-#                val = item.split("\t")
-#                result_ppc = float(val[4])
-#                product_len = int(val[5])
-#                targetID = val[3]
-#                if result_ppc == ppc_val + self.mfethreshold:
-#                    target_product.append(targetID)
-#                elif result_ppc > ppc_val:
-#                    return [[None], result]
-#        counts = Counter(target_product)
-#        for item in counts.keys():
-#            if counts[item] == 1:
-#                return [primerinfo, result]
-#            else:
-#                return [[None], result]
+        return [primerinfo, amplist]
 
     def run_primer_qc(self):
         print("Run: run_primer_qc(" + self.target + ")")
