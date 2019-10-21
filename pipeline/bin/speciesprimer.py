@@ -1836,13 +1836,13 @@ class Blast:
             blast_cmd = [
                 "blastn", "-task", "dc-megablast", "-num_threads",
                 str(cores), "-query", blastfile, "-max_target_seqs",
-                "2000", "-evalue", "500", "-out", filename, "-outfmt", "5"]
+                "2000", "-out", filename, "-outfmt", "5"]
 
         if self.mode == "primer":
             blast_cmd = [
                 "blastn", "-task", "blastn-short", "-num_threads",
                 str(cores), "-query", blastfile,
-                "-evalue", "500", "-out", filename, "-outfmt", "5"]
+                "-out", filename, "-outfmt", "5"]
 
 
 
@@ -2265,20 +2265,20 @@ class BlastParser:
                         start = 1
                     inrange.append([key, item, start, stop])
                 else:
-                    if item < stop:                        
+                    if item < stop:
                         stop = item + overhang
                         inrange.append([key, item, start, stop])
                         if index == len(posdict[key]) - 1:
-                            nonreddata.append(inrange[-1])                            
+                            nonreddata.append(inrange[-1])
                     else:
                         nonreddata.append(inrange[-1])
-                        inrange = []                                                
+                        inrange = []
                         if item > overhang:
                             start = item - overhang
                         else:
                             start = 1
                         stop = item + overhang
-                        inrange.append([key, item, start, stop])           
+                        inrange.append([key, item, start, stop])
 
     def new_write_nontarget_sequences(self, files):
         self.sort_nontarget_sequences(files)
@@ -2421,7 +2421,7 @@ class BlastParser:
                             nonred_dict[key][species]["subject_start"])
                         if not pos in posdict[poskey]:
                             posdict[poskey].append(pos)
-    
+
             for key in posdict.keys():
                 posdict[key].sort()
                 inrange = []
@@ -2434,31 +2434,31 @@ class BlastParser:
                             start = 1
                         inrange.append([key, start, stop])
                     else:
-                        if item < stop:                        
+                        if item < stop:
                             stop = item + overhang
                             inrange.append([key, start, stop])
                             if index == len(posdict[key]) - 1:
-                                nonreddata.append(inrange[-1])                            
+                                nonreddata.append(inrange[-1])
                         else:
                             nonreddata.append(inrange[-1])
-                            inrange = []                                                
+                            inrange = []
                             if item > overhang:
                                 start = item - overhang
                             else:
                                 start = 1
                             stop = item + overhang
                             inrange.append([key, start, stop])
-                            
+
             with open(filepath, "w") as f:
                 writer = csv.writer(f)
                 header = ["Accession", "Start pos", "Stop pos"]
                 writer.writerow(header)
                 writer.writerows(nonreddata)
-            
+
         return nonreddata
 
     def highspeed_write_nontarget_sequences(self, nonreddata):
-        maxsize = 250
+        maxsize = 25000
         if self.config.customdb is not None:
             db = self.config.customdb
         else:
@@ -2466,12 +2466,19 @@ class BlastParser:
                 db = "nt_v5"
             else:
                 db = "nt"
-
+        info = "Found " + str(len(nonreddata)) + " sequences for the non-target DB"
+        G.logger(info)
+        print(info)
         parts = len(nonreddata)//maxsize
-        for part in range(0, parts):
+        if parts == 0:
+            printparts = 1
+        else:
+            printparts = parts
+        for part in range(0, parts + 1):
+            print("Working on part " + str(part + 1) + "/" + str(printparts))
             end = (part+1)*maxsize
             if end > len(nonreddata):
-                end = len(nonreddata) 
+                end = len(nonreddata)
             filename = "BLASTnontarget" + str(part) + ".sequences"
             filepath = os.path.join(self.primer_qc_dir, filename)
             if not os.path.isfile(filepath):
@@ -2480,27 +2487,24 @@ class BlastParser:
                 G.logger(info)
                 with open(filepath, "w") as r:
                     data = nonreddata[part*maxsize:end]
-                    print(data)
 
                     print("Start DB extraction")
 
                     fasta_seqs = G.run_parallel(
                             self.highspeed_get_seq_range, data, db)
-                    print(fasta_seqs)
                     for fastainfo in fasta_seqs:
-                        print(fastainfo)
                         name = fastainfo[0].split(":")
-                        fasta = name[0] + "_" + "_".join(name[1].split("-"))
-                        fastadata = "\n".join(fasta) + "\n"
+                        fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
+                        fastadata = "\n".join(fastainfo) + "\n"
                         r.write(fastadata)
             else:
                 info2 = "Skip writing " + filename
                 print(info2)
                 G.logger(info2)
                 return
-        info3 = "Finished writing" + filename
-        print(info3)
-        G.logger(info3)
+            info3 = "Finished writing" + filename
+            print(info3)
+            G.logger(info3)
 
     def highspeed_get_seq_range(self, extractdata, db):
         [accession, start, stop] = extractdata
@@ -2517,9 +2521,7 @@ class BlastParser:
         print("\nGet sequence accessions of BLAST hits\n")
         G.logger("> Get sequence accessions of BLAST hits")
         G.create_directory(self.primer_qc_dir)
-        print("Start sorting")
         nonreddata = self.highspeed_sort_nontarget_sequences(nonred_dict)
-        print("Start writing")
         self.highspeed_write_nontarget_sequences(nonreddata)
 
 

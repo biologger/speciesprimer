@@ -661,14 +661,6 @@ def speed_up(config):
         for line in f:
             nonred_dict = json.loads(line)
     print(len(nonred_dict))
-#    additional_data = []
-#    for key in nonred_dict.keys():
-#        additional_data.append([key, nonred_dict[key]])
-#    for item in additional_data:
-#        for i in range(0, 50):
-#            nonred_dict.update({item[0] + str(i): item[1]})
-#
-#    print(len(nonred_dict))
     print("start time")
     start = time.time()
     bla.highspeed_primerBLAST_DBIDS(nonred_dict)
@@ -676,25 +668,18 @@ def speed_up(config):
     print("new exract: "
                 + str(timedelta(seconds=duration)).split(".")[0])
 
-#    for filename in files:
-#        if os.path.isfile(filename):
-#            os.remove(filename)
-#
-#
-#    start = time.time()
-#    bla.create_primerBLAST_DBIDS(nonred_dict)
-#    duration = time.time() - start
-#    print("old exract: "
-#                + str(timedelta(seconds=duration)).split(".")[0])
+    for filename in files:
+        if os.path.isfile(filename):
+            os.remove(filename)
 
 
-"""
-Idee für redundanz zu reduizieren und weniger sequenzen zu extrahieren
-neue dict accession == key
-if key in newdict.keys update position
-ergibt eine list von positionen diese können danach schön nach accession sortiert ausgewertet werden
+    start = time.time()
+    bla.create_primerBLAST_DBIDS(nonred_dict)
+    duration = time.time() - start
+    print("old exract: "
+                + str(timedelta(seconds=duration)).split(".")[0])
 
-"""
+
 speed_up(config)
 
 # 4x worker parallel assembly: 0:00:50 (normal)
