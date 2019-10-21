@@ -282,7 +282,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 #        assert check_final == ref
 
 
-        
+
 
     def test_fullMFEprimer_run():
         outcome = [15, 42, 54, 65]
@@ -296,71 +296,71 @@ def test_PrimerQualityControl_specificitycheck(config):
 #    def create_primerlist(inputseqs):
 #        primer_qc_list = pqc.get_primerinfo(inputseqs, "mfeprimer")
 #        primerfile = os.path.join(pqc.primer_qc_dir, "primerfile.fa")
-#        with open(primerfile, "w") as f:            
+#        with open(primerfile, "w") as f:
 #            for primerinfo in primer_qc_list:
 #                [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
 #                f.write(
-#                        ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")                
+#                        ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
 
     ref_primer = [
-        'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_2_P0', 'Lb_curva_g1243_1_P2', 
-        'Lb_curva_gshAB_11_P0', 'Lb_curva_comFA_2_P1', 'Lb_curva_comFA_5_P0', 
-        'Lb_curva_g1243_1_P3', 'Lb_curva_g1243_2_P0', 'Lb_curva_g4295_1_P0', 
-        'Lb_curva_g1243_1_P4', 'Lb_curva_comFA_2_P2', 'Lb_curva_comFA_5_P1', 
-        'Lb_curva_comFA_4_P1', 'Lb_curva_g4430_1_P1', 'Lb_curva_g1243_1_P6', 
-        'Lb_curva_g4430_1_P0', 'Lb_curva_gshAB_3_P0', 'Lb_curva_gshAB_11_P1', 
-        'Lb_curva_comFA_5_P2', 'Lb_curva_comFA_4_P2', 'Lb_curva_gshAB_11_P2', 
-        'Lb_curva_g4295_1_P1', 'Lb_curva_g1243_1_P7', 'Lb_curva_g4430_1_P2', 
-        'Lb_curva_gshAB_2_P1', 'Lb_curva_comFA_4_P3', 'Lb_curva_gshAB_2_P2', 
-        'Lb_curva_gshAB_3_P1', 'Lb_curva_gshAB_1_P0', 'Lb_curva_g4295_1_P2', 
-        'Lb_curva_comFA_6_P0', 'Lb_curva_comFA_3_P1', 'Lb_curva_comFA_5_P3', 
-        'Lb_curva_g1243_1_P8', 'Lb_curva_comFA_4_P4', 'Lb_curva_comFA_6_P1', 
-        'Lb_curva_g1243_1_P9', 'Lb_curva_gshAB_2_P4', 'Lb_curva_g4295_1_P3', 
-        'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P5', 'Lb_curva_gshAB_11_P3', 
-        'Lb_curva_g4295_1_P4', 'Lb_curva_g4430_1_P3', 'Lb_curva_gshAB_6_P0', 
-        'Lb_curva_comFA_5_P5', 'Lb_curva_comFA_5_P4', 'Lb_curva_comFA_5_P6', 
-        'Lb_curva_gshAB_2_P6', 'Lb_curva_g4295_1_P5', 'Lb_curva_g4295_1_P6', 
-        'Lb_curva_asnS_2_P0', 'Lb_curva_g4295_1_P7', 'Lb_curva_comFA_3_P2', 
-        'Lb_curva_gshAB_3_P2', 'Lb_curva_asnS_1_P0', 'Lb_curva_g4295_1_P8', 
-        'Lb_curva_gshAB_8_P0', 'Lb_curva_comFA_5_P7', 'Lb_curva_comFA_5_P8', 
+        'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_2_P0', 'Lb_curva_g1243_1_P2',
+        'Lb_curva_gshAB_11_P0', 'Lb_curva_comFA_2_P1', 'Lb_curva_comFA_5_P0',
+        'Lb_curva_g1243_1_P3', 'Lb_curva_g1243_2_P0', 'Lb_curva_g4295_1_P0',
+        'Lb_curva_g1243_1_P4', 'Lb_curva_comFA_2_P2', 'Lb_curva_comFA_5_P1',
+        'Lb_curva_comFA_4_P1', 'Lb_curva_g4430_1_P1', 'Lb_curva_g1243_1_P6',
+        'Lb_curva_g4430_1_P0', 'Lb_curva_gshAB_3_P0', 'Lb_curva_gshAB_11_P1',
+        'Lb_curva_comFA_5_P2', 'Lb_curva_comFA_4_P2', 'Lb_curva_gshAB_11_P2',
+        'Lb_curva_g4295_1_P1', 'Lb_curva_g1243_1_P7', 'Lb_curva_g4430_1_P2',
+        'Lb_curva_gshAB_2_P1', 'Lb_curva_comFA_4_P3', 'Lb_curva_gshAB_2_P2',
+        'Lb_curva_gshAB_3_P1', 'Lb_curva_gshAB_1_P0', 'Lb_curva_g4295_1_P2',
+        'Lb_curva_comFA_6_P0', 'Lb_curva_comFA_3_P1', 'Lb_curva_comFA_5_P3',
+        'Lb_curva_g1243_1_P8', 'Lb_curva_comFA_4_P4', 'Lb_curva_comFA_6_P1',
+        'Lb_curva_g1243_1_P9', 'Lb_curva_gshAB_2_P4', 'Lb_curva_g4295_1_P3',
+        'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P5', 'Lb_curva_gshAB_11_P3',
+        'Lb_curva_g4295_1_P4', 'Lb_curva_g4430_1_P3', 'Lb_curva_gshAB_6_P0',
+        'Lb_curva_comFA_5_P5', 'Lb_curva_comFA_5_P4', 'Lb_curva_comFA_5_P6',
+        'Lb_curva_gshAB_2_P6', 'Lb_curva_g4295_1_P5', 'Lb_curva_g4295_1_P6',
+        'Lb_curva_asnS_2_P0', 'Lb_curva_g4295_1_P7', 'Lb_curva_comFA_3_P2',
+        'Lb_curva_gshAB_3_P2', 'Lb_curva_asnS_1_P0', 'Lb_curva_g4295_1_P8',
+        'Lb_curva_gshAB_8_P0', 'Lb_curva_comFA_5_P7', 'Lb_curva_comFA_5_P8',
         'Lb_curva_g4295_1_P9']
 
     newmockprimer = {
         "mock_1": {
-            "Primer_pairs": 2, "template_seq": 
-            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN", 
+            "Primer_pairs": 2, "template_seq":
+            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN",
             "Primer_pair_0": {
-                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
-                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
-                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15,
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG",
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342,
                 "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
                 "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
-                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}, 
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82},
             "Primer_pair_1": {
-                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
-                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
-                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15,
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG",
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342,
                 "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
                 "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
-                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}}, 
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}},
         "mock_9": {
-            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
+            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN",
             "Primer_pair_3":{
-                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
-                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC", 
-                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
-                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC", 
-                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095, 
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691,
+                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444,
+                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC",
+                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095,
                 "primer_R_TM": 60.029, "product_size": 88}},
-                
+
         "dimer_1": {
-                "Primer_pairs": 1, "template_seq": "NNNN", 
+                "Primer_pairs": 1, "template_seq": "NNNN",
                 "Primer_pair_0":{
-                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
-                "primer_R_sequence": "TTTTTTAAAAAA", 
-                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
-                "amplicon_seq": "NNNN", 
-                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095, 
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691,
+                "primer_R_sequence": "TTTTTTAAAAAA",
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444,
+                "amplicon_seq": "NNNN",
+                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095,
                 "primer_R_TM": 60.029, "product_size": 88}}}
 
     tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
@@ -392,7 +392,7 @@ def test_PrimerQualityControl_specificitycheck(config):
             "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
         G.run_subprocess(
             cmd, printcmd=False, logcmd=False, log=False, printoption=False)
-            
+
     def get_primer3_dict():
         reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
         with open(reffile) as f:
@@ -405,31 +405,31 @@ def test_PrimerQualityControl_specificitycheck(config):
     assert exitstat == 1
     primer3dict = get_primer3_dict()
     primer3dict.update(newmockprimer)
-    pqc = PrimerQualityControl(config, primer3dict) 
-    
+    pqc = PrimerQualityControl(config, primer3dict)
+
     exitstat = pqc.collect_primer()
     assert exitstat == 0
-    
+
     hairpins = pqc.hairpin_check()
     hairpins.sort()
     ref_hairpins = [
         'Lb_curva_mock_9_P3', 'Lb_curva_mock_1_P1', 'Lb_curva_mock_1_P0']
     ref_hairpins.sort()
     assert hairpins == ref_hairpins
-    
+
     pqc.primerdimer_check(hairpins)
     primerlist, blastseqs = pqc.filter_primerdimer()
 #    print(primer)
     primerlist.sort()
     ref_primer.sort()
     assert primerlist == ref_primer
-            
-    blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")    
+
+    blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")
     infile = dbinputfiles()
     create_customblastdb(config, infile)
-    
+
     if not os.path.isfile(blastsum):
-        G.create_directory(pqc.primerblast_dir)  
+        G.create_directory(pqc.primerblast_dir)
         prep = BlastPrep(
             pqc.primerblast_dir, blastseqs,
             "primer", pqc.config.blastseqs)
@@ -453,50 +453,50 @@ def test_PrimerQualityControl_specificitycheck(config):
 #    for item in primer_spec_list:
 #        pqc.MFEprimer_template(item)
 #        break
-#    
+#
     pqc.run_primer_qc()
 #    resultlist = G.run_parallel(pqc.run_mfeprimerdimer, pqc.primerlist, hairpins)
 
- 
+
 def dev_new_QC(config):
     from speciesprimer import PrimerQualityControl
     newmockprimer = {
         "mock_1": {
-            "Primer_pairs": 2, "template_seq": 
-            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN", 
+            "Primer_pairs": 2, "template_seq":
+            "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN",
             "Primer_pair_0": {
-                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
-                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
-                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15,
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG",
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342,
                 "template_seq": "NNNGGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCGNNN",
                 "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
                 "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
-                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}, 
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82},
             "Primer_pair_1": {
-                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15, 
-                "primer_R_sequence": "CGCCGCCACGTAAACAAG", 
-                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342, 
+                "primer_P_penalty": 5.913076, "primer_L_TM": 58.15,
+                "primer_R_sequence": "CGCCGCCACGTAAACAAG",
+                "primer_L_penalty": 2.886877, "primer_R_penalty": 3.007342,
                 "amplicon_seq": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCCNNNCTTGTTTACGTGGCGGCG",
                 "primer_L_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
-                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}}, 
+                "product_TM": 80.1424, "primer_R_TM": 57.03, "product_size": 82}},
         "mock_9": {
-            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN", 
+            "Primer_pairs": 1, "template_seq": "NNNCGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCCNNN",
             "Primer_pair_3":{
-                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
-                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC", 
-                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
-                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC", 
-                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095, 
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691,
+                "primer_R_sequence": "GGACACTCTTTCCCTACACGACGCTCTTCCGATCTATGGGAAAGAGTGTCCCCCC",
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444,
+                "amplicon_seq": "CGCAGCAACACACACACGNNNGGGGGGACACTCTTTCCCATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTCC",
+                "primer_L_sequence": "CGCAGCAACACACACACG", "product_TM": 81.2095,
                 "primer_R_TM": 60.029, "product_size": 88}},
-                
+
         "dimer_1": {
-                "Primer_pairs": 1, "template_seq": "NNNN", 
+                "Primer_pairs": 1, "template_seq": "NNNN",
                 "Primer_pair_0":{
-                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691, 
-                "primer_R_sequence": "TTTTTTAAAAAA", 
-                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444, 
-                "amplicon_seq": "NNNN", 
-                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095, 
+                "primer_P_penalty": 2.427616, "primer_L_TM": 59.691,
+                "primer_R_sequence": "TTTTTTAAAAAA",
+                "primer_L_penalty": 0.345215, "primer_R_penalty": 2.064444,
+                "amplicon_seq": "NNNN",
+                "primer_L_sequence": "TTTTTTAAAAAA", "product_TM": 81.2095,
                 "primer_R_TM": 60.029, "product_size": 88}}}
 
     tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
@@ -528,7 +528,7 @@ def dev_new_QC(config):
             "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
         G.run_subprocess(
             cmd, printcmd=False, logcmd=False, log=False, printoption=False)
-            
+
     def get_primer3_dict():
         reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
         with open(reffile) as f:
@@ -588,7 +588,7 @@ def dev_new_QC(config):
 ##
 ##            primer_spec_list = self.get_primerinfo(primerlist, "mfeprimer")
 ##
-#    
+#
 #    for files in os.listdir(pqc.primer_qc_dir):
 #        if (
 #            files.startswith("BLASTnontarget")
@@ -603,16 +603,16 @@ def dev_new_QC(config):
 #            pqc.make_nontargetDB, args=(inputfiles,))
 #        for inputfiles in pqc.dbinputfiles]
 #    output = [p.get() for p in results]
-#    
+#
 #    for primerinfo in nontarget_input:
 #        pqc.MFEprimer_nontarget(primerinfo)
-    
+
     pqc.run_primer_qc()
-    
-#    hairpins = pqc.hairpin_check()   
+
+#    hairpins = pqc.hairpin_check()
 #
 #    for i in range(0,2000):
-#        pqc.primerlist.append(pqc.primerlist[0]) 
+#        pqc.primerlist.append(pqc.primerlist[0])
 
 #    pqc.primerdimer_check(hairpins)
 #    excluded = pqc.filter_primerdimer()
@@ -622,7 +622,7 @@ def dev_new_QC(config):
 #        if pp_name not in excluded:
 #            primerinfos.append(primer)
 #    os.chdir(pqc.primer_qc_dir)
-#    
+#
 #    template_results = G.run_parallel(pqc.MFEprimer_template, primerinfos)
 #    assembly_input = pqc.write_MFEprimer_results(
 #            template_results, "template")
@@ -633,33 +633,73 @@ def dev_new_QC(config):
 #    print(len(nontarget_input))
 #    duration = time.time() - start
 #    print("parallel assembly: "
-#                + str(timedelta(seconds=duration)).split(".")[0])   
-            
-    
-dev_new_QC(config)
-    
+#                + str(timedelta(seconds=duration)).split(".")[0])
+
+
+#dev_new_QC(config)
+
 #test_PrimerQualityControl_specificitycheck(config)
 
 def speed_up(config):
     from speciesprimer import BlastParser
 
     bla = BlastParser(config, "primer")
-    
+
+    outfile = os.path.join(bla.primer_qc_dir, "BLASTnontarget0.sequences")
+    outfile2 = os.path.join(bla.primer_qc_dir, "primerBLAST_DBIDS0.txt")
+    files = [outfile, outfile2]
+    for filename in files:
+        if os.path.isfile(filename):
+            os.remove(filename)
+
     file_path = os.path.join(bla.primerblast_dir, "nontargethits.json")
     with open(file_path) as f:
         for line in f:
             nonred_dict = json.loads(line)
-    start = time.time()
-    bla.create_primerBLAST_DBIDS(nonred_dict)
-    duration = time.time() - start
-    print("parallel assembly: "
-                + str(timedelta(seconds=duration)).split(".")[0])  
+    print(len(nonred_dict))
+#    additional_data = []
+#    for key in nonred_dict.keys():
+#        additional_data.append([key, nonred_dict[key]])
+#    for item in additional_data:
+#        for i in range(0, 50):
+#            nonred_dict.update({item[0] + str(i): item[1]})
+#
+#    print(len(nonred_dict))
 
+    start = time.time()
+    bla.new_create_primerBLAST_DBIDS(nonred_dict)
+    duration = time.time() - start
+    print("new exract: "
+                + str(timedelta(seconds=duration)).split(".")[0])
+
+#    for filename in files:
+#        if os.path.isfile(filename):
+#            os.remove(filename)
+#
+#
+#    start = time.time()
+#    bla.create_primerBLAST_DBIDS(nonred_dict)
+#    duration = time.time() - start
+#    print("old exract: "
+#                + str(timedelta(seconds=duration)).split(".")[0])
+
+
+"""
+Idee für redundanz zu reduizieren und weniger sequenzen zu extrahieren
+neue dict accession == key
+if key in newdict.keys update position
+ergibt eine list von positionen diese können danach schön nach accession sortiert ausgewertet werden
+
+"""
+speed_up(config)
+
+# 4x worker parallel assembly: 0:00:50 (normal)
+# parallel exract: 0:00:09
 
 def benchmark_primerblastparser(config):
-# neue idee threshold für anzahl BLASTDB extraction für die extraktion der 
+# neue idee threshold für anzahl BLASTDB extraction für die extraktion der
 # ganzen sequenz und anschliessende sequenz extraktion mittels indexierung
-    
+
     # sort according accession
     # sub sort according position? possible?
 
@@ -723,7 +763,7 @@ def benchmark_primerblastparser(config):
                     self.write_nontarget_sequences, args=(files,))
                 for files in DBID_files]
             output = [p.get() for p in results]
-                                
+
     def run_blastparser(self, conserved_seq_dict):
         if self.mode == "primer":
             file_path = os.path.join(self.primerblast_dir, "nontargethits.json")
@@ -742,4 +782,4 @@ def benchmark_primerblastparser(config):
             G.logger(
                 "> Primer blast parser time: "
                 + str(timedelta(seconds=duration)).split(".")[0])
-           
+
