@@ -2255,58 +2255,30 @@ class BlastParser:
 
         for key in posdict.keys():
             posdict[key].sort()
-            print(len(posdict[key]))
-        for key in posdict.keys():
-            ind = 0
-            print(key)
             inrange = []
             for index, item in enumerate(posdict[key]):
-                if ind == index:
-                    print("item")
-                    print(item)
+                if index == 0:
                     stop = item + overhang
-                    print("stop")
-                    print(stop)
                     if item > overhang:
                         start = item - overhang
                     else:
                         start = 1
+                    inrange.append([key, item, start, stop])
                 else:
-
-                    if posdict[key][index] < stop:
-                        last = posdict[key][index]
-                        print("smaller")
-                        print(last)
-                        inrange.append(last)
-                        posdict[key].remove(last)
-                        stop = last + overhang
-
+                    if item < stop:                        
+                        stop = item + overhang
+                        inrange.append([key, item, start, stop])
+                        if index == len(posdict[key]) - 1:
+                            nonreddata.append(inrange[-1])                            
                     else:
-                        if not len(inrange) == 0:
-                            print(inrange)
-                            end = inrange[-1] + overhang
-                            nonreddata.append([key, item, start, end])
-
-                            print("item")
-                            print(item)
-                            print("stop")
-                            print(stop)
-                            inrange = []
-
-                        ind = ind + 1
-
-
-
-        print(posdict)
-        print(nonreddata)
-        for key in posdict.keys():
-            print(len(posdict[key]))
-#            for line in f:
-#                line = line.strip("\n")
-#                accession = line.split(" ")[0]
-#                seq_start = int(line.split(" ")[1])
-#                if accesion in posdict.keys():
-
+                        nonreddata.append(inrange[-1])
+                        inrange = []                                                
+                        if item > overhang:
+                            start = item - overhang
+                        else:
+                            start = 1
+                        stop = item + overhang
+                        inrange.append([key, item, start, stop])           
 
     def new_write_nontarget_sequences(self, files):
         self.sort_nontarget_sequences(files)
@@ -2428,6 +2400,15 @@ class BlastParser:
         with open(filepath, "a+") as f:
             f.write(info)
 
+    def highspeed()
+
+    def highspeed_primerBLAST_DBIDS(self, nonred_dict):
+        print("\nGet sequence accessions of BLAST hits\n")
+        G.logger("> Get sequence accessions of BLAST hits")
+        G.create_directory(self.primer_qc_dir)
+        
+
+
     def new_create_primerBLAST_DBIDS(self, nonred_dict):
         print("\nGet sequence accessions of BLAST hits\n")
         G.logger("> Get sequence accessions of BLAST hits")
@@ -2454,6 +2435,7 @@ class BlastParser:
                         db_id = nonred_dict[key][species]['main_id']
                         sbjct_start = (
                             nonred_dict[key][species]["subject_start"])
+                        # not required anymore if writing starts afterwards
                         if not [db_id, sbjct_start] in written:
                             written.append([db_id, sbjct_start])
                         ## attention for testing only

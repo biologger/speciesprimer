@@ -642,15 +642,19 @@ def dev_new_QC(config):
 
 def speed_up(config):
     from speciesprimer import BlastParser
-
+    outputfiles = []
     bla = BlastParser(config, "primer")
+    for files in os.listdir(bla.primer_qc_dir):
 
-    outfile = os.path.join(bla.primer_qc_dir, "BLASTnontarget0.sequences")
-    outfile2 = os.path.join(bla.primer_qc_dir, "primerBLAST_DBIDS0.txt")
-    files = [outfile, outfile2]
-    for filename in files:
+        if files.endswith(".sequences") or files.endswith(".txt"):
+            outfile = os.path.join(bla.primer_qc_dir, files)
+            outputfiles.append(outfile)
+
+    for filename in outputfiles:
         if os.path.isfile(filename):
+            print(filename)
             os.remove(filename)
+
 
     file_path = os.path.join(bla.primerblast_dir, "nontargethits.json")
     with open(file_path) as f:
@@ -665,7 +669,7 @@ def speed_up(config):
 #            nonred_dict.update({item[0] + str(i): item[1]})
 #
 #    print(len(nonred_dict))
-
+    print("start time")
     start = time.time()
     bla.new_create_primerBLAST_DBIDS(nonred_dict)
     duration = time.time() - start
