@@ -2400,13 +2400,127 @@ class BlastParser:
         with open(filepath, "a+") as f:
             f.write(info)
 
-    def highspeed()
+    def highspeed_sort_nontarget_sequences(self, nonred_dict):
+        nonreddata = []
+        filepath = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
+        overhang = 2000
+        if os.path.isfile(filepath):
+            with open(filepath, "r") as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    nonreddata.append(row)
+        else:
+            from collections import defaultdict
+            posdict = defaultdict(list)
+            for key in nonred_dict.keys():
+                if not len(nonred_dict[key]) == 0:
+                    for species in nonred_dict[key]:
+                        poskey = nonred_dict[key][species]['main_id']
+                        pos = int(
+                            nonred_dict[key][species]["subject_start"])
+                        if not pos in posdict[poskey]:
+                            posdict[poskey].append(pos)
+    
+            for key in posdict.keys():
+                posdict[key].sort()
+                inrange = []
+                for index, item in enumerate(posdict[key]):
+                    if index == 0:
+                        stop = item + overhang
+                        if item > overhang:
+                            start = item - overhang
+                        else:
+                            start = 1
+                        inrange.append([key, start, stop])
+                    else:
+                        if item < stop:                        
+                            stop = item + overhang
+                            inrange.append([key, start, stop])
+                            if index == len(posdict[key]) - 1:
+                                nonreddata.append(inrange[-1])                            
+                        else:
+                            nonreddata.append(inrange[-1])
+                            inrange = []                                                
+                            if item > overhang:
+                                start = item - overhang
+                            else:
+                                start = 1
+                            stop = item + overhang
+                            inrange.append([key, start, stop])
+                            
+            with open(filepath, "w") as f:
+                writer = csv.writer(f)
+                header = ["Accession", "Start pos", "Stop pos"]
+                writer.writerow(header)
+                writer.writerows(nonreddata)
+            
+        return nonreddata
+
+    def highspeed_write_nontarget_sequences(self, nonreddata):
+        maxsize = 250
+        if self.config.customdb is not None:
+            db = self.config.customdb
+        else:
+            if self.config.blastdbv5:
+                db = "nt_v5"
+            else:
+                db = "nt"
+
+        parts = len(nonreddata)//maxsize
+        for part in range(0, parts):
+            end = (part+1)*maxsize
+            if end > len(nonreddata):
+                end = len(nonreddata) 
+            filename = "BLASTnontarget" + str(part) + ".sequences"
+            filepath = os.path.join(self.primer_qc_dir, filename)
+            if not os.path.isfile(filepath):
+                info = "Start writing " + filename
+                print(info)
+                G.logger(info)
+                with open(filepath, "w") as r:
+                    data = nonreddata[part*maxsize:end]
+                    print(data)
+
+                    print("Start DB extraction")
+
+                    fasta_seqs = G.run_parallel(
+                            self.highspeed_get_seq_range, data, db)
+                    print(fasta_seqs)
+                    for fastainfo in fasta_seqs:
+                        print(fastainfo)
+                        name = fastainfo[0].split(":")
+                        fasta = name[0] + "_" + "_".join(name[1].split("-"))
+                        fastadata = "\n".join(fasta) + "\n"
+                        r.write(fastadata)
+            else:
+                info2 = "Skip writing " + filename
+                print(info2)
+                G.logger(info2)
+                return
+        info3 = "Finished writing" + filename
+        print(info3)
+        G.logger(info3)
+
+    def highspeed_get_seq_range(self, extractdata, db):
+        [accession, start, stop] = extractdata
+        fasta = []
+        seq_cmd = " ".join([
+            "blastdbcmd", "-db", db, "-entry", str(accession),
+            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
+        while fasta == []:
+            fasta = G.read_shelloutput(
+                seq_cmd, printcmd=False, logcmd=False, printoption=False)
+        return fasta
 
     def highspeed_primerBLAST_DBIDS(self, nonred_dict):
         print("\nGet sequence accessions of BLAST hits\n")
         G.logger("> Get sequence accessions of BLAST hits")
         G.create_directory(self.primer_qc_dir)
-        
+        print("Start sorting")
+        nonreddata = self.highspeed_sort_nontarget_sequences(nonred_dict)
+        print("Start writing")
+        self.highspeed_write_nontarget_sequences(nonreddata)
 
 
     def new_create_primerBLAST_DBIDS(self, nonred_dict):

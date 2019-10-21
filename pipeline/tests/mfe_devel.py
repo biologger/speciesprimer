@@ -671,7 +671,7 @@ def speed_up(config):
 #    print(len(nonred_dict))
     print("start time")
     start = time.time()
-    bla.new_create_primerBLAST_DBIDS(nonred_dict)
+    bla.highspeed_primerBLAST_DBIDS(nonred_dict)
     duration = time.time() - start
     print("new exract: "
                 + str(timedelta(seconds=duration)).split(".")[0])
