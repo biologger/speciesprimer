@@ -2554,14 +2554,14 @@ class BlastParser:
                         # not required anymore if writing starts afterwards
                         if not [db_id, sbjct_start] in written:
                             written.append([db_id, sbjct_start])
-                        ## attention for testing only
-                        idcount = idcount + 1
-                        part = idcount//self.maxgroupsize
-                        info = str(db_id) + " " + str(sbjct_start) + "\n"
-                        self.write_DBIDS(prefix, part, suffix, info)
-                        filename = prefix + str(part) + suffix
-                        if filename not in DBID_files:
-                            DBID_files.append(filename)
+                            ## attention for testing only
+                            idcount = idcount + 1
+                            part = idcount//self.maxgroupsize
+                            info = str(db_id) + " " + str(sbjct_start) + "\n"
+                            self.write_DBIDS(prefix, part, suffix, info)
+                            filename = prefix + str(part) + suffix
+                            if filename not in DBID_files:
+                                DBID_files.append(filename)
 
         print("finished writing seqs")
 
@@ -2610,14 +2610,13 @@ class BlastParser:
                             nonred_dict[key][species]["subject_start"])
                         if not [db_id, sbjct_start] in written:
                             written.append([db_id, sbjct_start])
-                        ## attention only for testing purpose indent afterwards
-                        idcount = idcount + 1
-                        part = idcount//self.maxgroupsize
-                        info = str(db_id) + " " + str(sbjct_start) + "\n"
-                        self.write_DBIDS(prefix, part, suffix, info)
-                        filename = prefix + str(part) + suffix
-                        if filename not in DBID_files:
-                            DBID_files.append(filename)
+                            idcount = idcount + 1
+                            part = idcount//self.maxgroupsize
+                            info = str(db_id) + " " + str(sbjct_start) + "\n"
+                            self.write_DBIDS(prefix, part, suffix, info)
+                            filename = prefix + str(part) + suffix
+                            if filename not in DBID_files:
+                                DBID_files.append(filename)
 
         if idcount == 0:
             print("Error did not find any sequences for the non-target DB")
