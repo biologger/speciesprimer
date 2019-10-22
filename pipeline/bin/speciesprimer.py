@@ -2225,182 +2225,47 @@ class BlastParser:
         print("\n" + info2)
         return selected_seqs
 
-    def new_get_seq_range(self, extractinfo):
-        [db, accession, start, stop] = extractinfo
-        fasta = []
-        seq_cmd = " ".join([
-            "blastdbcmd", "-db", db, "-entry", accession,
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
-        while fasta == []:
-            fasta = G.read_shelloutput(
-                seq_cmd, printcmd=False, logcmd=False, printoption=False)
-
-        name = fasta[0].split(":")
-        fasta = name[0] + "_" + "_".join(name[1].split("-"))
-        fasta_info = "\n".join(fasta) + "\n"
-        return fasta_info
-
-    def sort_nontarget_sequences(self, files):
-        nonreddata = []
-        overhang = 2000
-        from collections import defaultdict
-        posdict = defaultdict(list)
-        with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-            for line in f:
-                line = line.strip()
-                data = line.split(" ")
-                key, pos = data[0], int(data[1])
-                if not pos in posdict[key]:
-                    posdict[key].append(pos)
-
-        for key in posdict.keys():
-            posdict[key].sort()
-            inrange = []
-            for index, item in enumerate(posdict[key]):
-                if index == 0:
-                    stop = item + overhang
-                    if item > overhang:
-                        start = item - overhang
-                    else:
-                        start = 1
-                    inrange.append([key, item, start, stop])
+    def remove_redundanthits(self, align_dict):
+        nonred_dict = {}
+        for key in align_dict.keys():
+            n = 0
+            conv_seq = []
+            summarydict = {}
+            for hit in align_dict[key]:
+                species = list(hit.keys())[0]
+                (
+                    gi, db_id, coverage, identity, query, sub_start,
+                    evalue, score, subject, match, query_length
+                    ) = (
+                        hit[species]['gi'], hit[species]['db_id'],
+                        hit[species]['perc_coverage'],
+                        hit[species]['perc_ident'],
+                        hit[species]['query'], hit[species]['subject_start'],
+                        hit[species]['e_value'], hit[species]['score'],
+                        hit[species]['subject'], hit[species]['match'],
+                        hit[species]['query_length'])
+                if [species, subject] in conv_seq:
+                    summarydict[species]["gi_ids"].append(gi)
                 else:
-                    if item < stop:
-                        stop = item + overhang
-                        inrange.append([key, item, start, stop])
-                        if index == len(posdict[key]) - 1:
-                            nonreddata.append(inrange[-1])
+                    conv_seq.append([species, subject])
+                    if species in summarydict.keys():
+                        mainspecies = species + "_" + str(n)
+                        n = n + 1
                     else:
-                        nonreddata.append(inrange[-1])
-                        inrange = []
-                        if item > overhang:
-                            start = item - overhang
-                        else:
-                            start = 1
-                        stop = item + overhang
-                        inrange.append([key, item, start, stop])
+                        mainspecies = species
 
-    def new_write_nontarget_sequences(self, files):
-        self.sort_nontarget_sequences(files)
-        overhang = 2000
-        if self.config.customdb is not None:
-            db = self.config.customdb
-        else:
-            if self.config.blastdbv5:
-                db = "nt_v5"
-            else:
-                db = "nt"
-        statuscount = 0
-        part = files.split(".txt")[0][-1:]
-        with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-            filename = "BLASTnontarget" + str(part) + ".sequences"
-            filepath = os.path.join(self.primer_qc_dir, filename)
-            if not os.path.isfile(filepath):
-                info = "Start writing " + filename
-                print(info)
-                G.logger(info)
-                with open(filepath, "w") as r:
-                    extract = []
-                    for line in f:
-                        statuscount = statuscount + 1
-                        line = line.strip("\n")
+                    summ_info = {
+                        mainspecies: {
+                            "title": species, "query": query, "score": score,
+                            "main_id": gi, "identity": identity,
+                            "coverage": coverage, "sequence": subject,
+                            "query_length": query_length, "evalue": evalue,
+                            'subject_start': sub_start, "gi_ids": []}}
+                    summarydict.update(summ_info)
+            nonred_dict.update({key: summarydict})
+        return nonred_dict
 
-                        accession = line.split(" ")[0]
-                        seq_start = int(line.split(" ")[1])
-                        if seq_start > overhang:
-                            start = seq_start - overhang
-                        else:
-                            start = 1
-                        stop = seq_start + overhang
-
-                        extract.append([db, accession, start, stop])
-
-                    fasta_seqs = G.run_parallel(self.new_get_seq_range , extract)
-                    for fastainfo in fasta_seqs:
-#                fasta_seq = self.get_seq_range(extractinfo)
-#                name = fasta_seq[0].split(":")
-#                fasta_seq[0] = name[0] + "_" + "_".join(name[1].split("-"))
-#                fasta_info = "\n".join(fasta_seq) + "\n"
-                        r.write(fastainfo)
-
-            else:
-                info2 = "Skip writing " + filename
-                print(info2)
-                G.logger(info2)
-                return
-        info3 = "Finished writing" + filename
-        print(info3)
-        G.logger(info3)
-        return
-
-    def get_seq_range(self, db_id, overhang=2000):
-        fasta = []
-        if self.config.customdb is not None:
-            db = self.config.customdb
-        else:
-            if self.config.blastdbv5:
-                db = "nt_v5"
-            else:
-                db = "nt"
-        accession = db_id[0]
-        seq_start = int(db_id[1])
-        if seq_start > overhang:
-            start = seq_start - overhang
-        else:
-            start = 1
-
-        stop = seq_start + overhang
-
-        seq_cmd = " ".join([
-            "blastdbcmd", "-db", db, "-entry", accession,
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
-        while fasta == []:
-            fasta = G.read_shelloutput(
-                seq_cmd, printcmd=False, logcmd=False, printoption=False)
-
-        return fasta
-
-    def write_nontarget_sequences(self, files):
-        statuscount = 0
-        part = files.split(".txt")[0][-1:]
-        with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-            filename = "BLASTnontarget" + str(part) + ".sequences"
-            filepath = os.path.join(self.primer_qc_dir, filename)
-            if not os.path.isfile(filepath):
-                info = "Start writing " + filename
-                print(info)
-                G.logger(info)
-                with open(filepath, "w") as r:
-                    for line in f:
-                        statuscount = statuscount + 1
-                        line = line.strip("\n")
-
-                        db_id = line.split(" ")[0]
-                        sbjct_start = line.split(" ")[1]
-                        fasta_seq = self.get_seq_range(
-                                [db_id, sbjct_start], 2000)
-                        name = fasta_seq[0].split(":")
-                        fasta_seq[0] = name[0] + "_" + "_".join(name[1].split("-"))
-                        fasta_info = "\n".join(fasta_seq) + "\n"
-                        r.write(fasta_info)
-
-            else:
-                info2 = "Skip writing " + filename
-                print(info2)
-                G.logger(info2)
-                return
-        info3 = "Finished writing" + filename
-        print(info3)
-        G.logger(info3)
-        return
-
-    def write_DBIDS(self, prefix, part, suffix, info):
-        filename = prefix + str(part) + suffix
-        filepath = os.path.join(self.primer_qc_dir, filename)
-        with open(filepath, "a+") as f:
-            f.write(info)
-
-    def highspeed_sort_nontarget_sequences(self, nonred_dict):
+    def sort_nontarget_sequences(self, nonred_dict):
         nonreddata = []
         filepath = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
         overhang = 2000
@@ -2457,7 +2322,7 @@ class BlastParser:
 
         return nonreddata
 
-    def highspeed_write_nontarget_sequences(self, nonreddata):
+    def write_nontarget_sequences(self, nonreddata):
         maxsize = 25000
         if self.config.customdb is not None:
             db = self.config.customdb
@@ -2468,14 +2333,11 @@ class BlastParser:
                 db = "nt"
         info = "Found " + str(len(nonreddata)) + " sequences for the non-target DB"
         G.logger(info)
-        print(info)
-        parts = len(nonreddata)//maxsize
-        if parts == 0:
-            printparts = 1
-        else:
-            printparts = parts
-        for part in range(0, parts + 1):
-            print("Working on part " + str(part + 1) + "/" + str(printparts))
+        print("\n" + info + "\n")
+        parts = len(nonreddata)//maxsize + 1
+
+        for part in range(0, parts):
+            print("Working on part " + str(part + 1) + "/" + str(parts))
             end = (part+1)*maxsize
             if end > len(nonreddata):
                 end = len(nonreddata)
@@ -2491,7 +2353,7 @@ class BlastParser:
                     print("Start DB extraction")
 
                     fasta_seqs = G.run_parallel(
-                            self.highspeed_get_seq_range, data, db)
+                            self.get_seq_fromDB, data, db)
                     for fastainfo in fasta_seqs:
                         name = fastainfo[0].split(":")
                         fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
@@ -2506,7 +2368,7 @@ class BlastParser:
             print(info3)
             G.logger(info3)
 
-    def highspeed_get_seq_range(self, extractdata, db):
+    def get_seq_fromDB(self, extractdata, db):
         [accession, start, stop] = extractdata
         fasta = []
         seq_cmd = " ".join([
@@ -2517,165 +2379,16 @@ class BlastParser:
                 seq_cmd, printcmd=False, logcmd=False, printoption=False)
         return fasta
 
-    def highspeed_primerBLAST_DBIDS(self, nonred_dict):
+    def get_primerBLAST_DBIDS(self, nonred_dict):
         print("\nGet sequence accessions of BLAST hits\n")
         G.logger("> Get sequence accessions of BLAST hits")
         G.create_directory(self.primer_qc_dir)
-        nonreddata = self.highspeed_sort_nontarget_sequences(nonred_dict)
-        self.highspeed_write_nontarget_sequences(nonreddata)
-
-
-    def new_create_primerBLAST_DBIDS(self, nonred_dict):
-        print("\nGet sequence accessions of BLAST hits\n")
-        G.logger("> Get sequence accessions of BLAST hits")
-        G.create_directory(self.primer_qc_dir)
-        DBID_files = []
-        idcount = 0
-        part = 0
-        for files in os.listdir(self.primer_qc_dir):
-            if files.startswith("primerBLAST_DBIDS"):
-                DBID_files.append(files)
-                with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-                    for line in f:
-                        idcount = idcount + 1
-                part = part + 1
-
-        if len(DBID_files) == 0:
-            written = []
-            prefix = "primerBLAST_DBIDS"
-            suffix = ".txt"
-
-            for key in nonred_dict.keys():
-                if not len(nonred_dict[key]) == 0:
-                    for species in nonred_dict[key]:
-                        db_id = nonred_dict[key][species]['main_id']
-                        sbjct_start = (
-                            nonred_dict[key][species]["subject_start"])
-                        # not required anymore if writing starts afterwards
-                        if not [db_id, sbjct_start] in written:
-                            written.append([db_id, sbjct_start])
-                            ## attention for testing only
-                            idcount = idcount + 1
-                            part = idcount//self.maxgroupsize
-                            info = str(db_id) + " " + str(sbjct_start) + "\n"
-                            self.write_DBIDS(prefix, part, suffix, info)
-                            filename = prefix + str(part) + suffix
-                            if filename not in DBID_files:
-                                DBID_files.append(filename)
-
-        print("finished writing seqs")
-
-        if idcount == 0:
+        nonreddata = self.sort_nontarget_sequences(nonred_dict)
+        if len(nonreddata) == 0:
             print("Error did not find any sequences for the non-target DB")
             G.logger("> Error did not find any sequences for non-target DB")
             return
-        else:
-            ntseq = str(idcount)
-            info1 = ntseq + " sequences for non-target DB"
-            info2 = "Start extraction of sequences from BLAST DB"
-            print("\n" + info1)
-            print(info2)
-            G.logger("> " + info1)
-            G.logger("> " + info2)
-
-        for filename in DBID_files:
-            self.new_write_nontarget_sequences(filename)
-
-
-    def create_primerBLAST_DBIDS(self, nonred_dict):
-        print("\nGet sequence accessions of BLAST hits\n")
-        G.logger("> Get sequence accessions of BLAST hits")
-        G.create_directory(self.primer_qc_dir)
-        DBID_files = []
-        idcount = 0
-        part = 0
-        for files in os.listdir(self.primer_qc_dir):
-            if files.startswith("primerBLAST_DBIDS"):
-                DBID_files.append(files)
-                with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-                    for line in f:
-                        idcount = idcount + 1
-                part = part + 1
-
-        if len(DBID_files) == 0:
-            written = []
-            prefix = "primerBLAST_DBIDS"
-            suffix = ".txt"
-
-            for key in nonred_dict.keys():
-                if not len(nonred_dict[key]) == 0:
-                    for species in nonred_dict[key]:
-                        db_id = nonred_dict[key][species]['main_id']
-                        sbjct_start = (
-                            nonred_dict[key][species]["subject_start"])
-                        if not [db_id, sbjct_start] in written:
-                            written.append([db_id, sbjct_start])
-                            idcount = idcount + 1
-                            part = idcount//self.maxgroupsize
-                            info = str(db_id) + " " + str(sbjct_start) + "\n"
-                            self.write_DBIDS(prefix, part, suffix, info)
-                            filename = prefix + str(part) + suffix
-                            if filename not in DBID_files:
-                                DBID_files.append(filename)
-
-        if idcount == 0:
-            print("Error did not find any sequences for the non-target DB")
-            G.logger("> Error did not find any sequences for non-target DB")
-            return
-        else:
-            ntseq = str(idcount)
-            info1 = ntseq + " sequences for non-target DB"
-            info2 = "Start extraction of sequences from BLAST DB"
-            print("\n" + info1)
-            print(info2)
-            G.logger("> " + info1)
-            G.logger("> " + info2)
-            pool = multiprocessing.Pool(processes=4)
-            results = [
-                pool.apply_async(
-                    self.write_nontarget_sequences, args=(files,))
-                for files in DBID_files]
-            output = [p.get() for p in results]
-
-    def remove_redundanthits(self, align_dict):
-        nonred_dict = {}
-        for key in align_dict.keys():
-            n = 0
-            conv_seq = []
-            summarydict = {}
-            for hit in align_dict[key]:
-                species = list(hit.keys())[0]
-                (
-                    gi, db_id, coverage, identity, query, sub_start,
-                    evalue, score, subject, match, query_length
-                    ) = (
-                        hit[species]['gi'], hit[species]['db_id'],
-                        hit[species]['perc_coverage'],
-                        hit[species]['perc_ident'],
-                        hit[species]['query'], hit[species]['subject_start'],
-                        hit[species]['e_value'], hit[species]['score'],
-                        hit[species]['subject'], hit[species]['match'],
-                        hit[species]['query_length'])
-                if [species, subject] in conv_seq:
-                    summarydict[species]["gi_ids"].append(gi)
-                else:
-                    conv_seq.append([species, subject])
-                    if species in summarydict.keys():
-                        mainspecies = species + "_" + str(n)
-                        n = n + 1
-                    else:
-                        mainspecies = species
-
-                    summ_info = {
-                        mainspecies: {
-                            "title": species, "query": query, "score": score,
-                            "main_id": gi, "identity": identity,
-                            "coverage": coverage, "sequence": subject,
-                            "query_length": query_length, "evalue": evalue,
-                            'subject_start': sub_start, "gi_ids": []}}
-                    summarydict.update(summ_info)
-            nonred_dict.update({key: summarydict})
-        return nonred_dict
+        self.write_nontarget_sequences(nonreddata)
 
     def blast_parser(self, blast_dir):
         G.logger("Run: blast_parser")
@@ -2822,7 +2535,7 @@ class BlastParser:
             else:
                 nonred_dict = align_dict
 
-            self.create_primerBLAST_DBIDS(nonred_dict)
+            self.get_primerBLAST_DBIDS(nonred_dict)
 
             duration = time.time() - self.start
             G.logger(
