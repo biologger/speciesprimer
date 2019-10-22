@@ -111,7 +111,9 @@
       <p>
         <strong>{{ form.mfeprimer_threshold.label }}</strong> (--mfethreshold)
         <br>
-        higher threshold values mean more stringent selection
+        Higher threshold values mean more stringent selection. 
+        However, with MFEprimer-3.0 this is only used to assess the template PPC, 
+        which can also be seen and filtered in the primer results csv.
         <br>
         <br>
         {{ form.mfeprimer_threshold() }}

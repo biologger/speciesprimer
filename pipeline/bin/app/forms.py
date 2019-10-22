@@ -62,7 +62,7 @@ class SettingsForm(FlaskForm):
             " at 60°C calculated by mfold", default = -3.0)
     mpprimer = FloatField(
             "ΔG  threshold for 3'-end primer dimer binding", default = -3.5)
-    mfeprimer_threshold = SelectField("MFEprimer threshold for nontarget sequence PPC", coerce=int, choices=[(80, "80"), (85, "85"), (90, "90"), (95, "95"), (100, "100")], default=90)
+    mfeprimer_threshold = SelectField("MFEprimer threshold for template sequence PPC", coerce=int, choices=[(80, "80"), (85, "85"), (90, "90"), (95, "95"), (100, "100")], default=80)
     ignore_qc = BooleanField(
             "Include genomes that did not pass quality control")
     blastdbv5 = BooleanField("BLAST DB Version 5")

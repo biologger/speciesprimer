@@ -189,7 +189,7 @@ def reset_settings(form):
     ["rRNA"], False, False,
     ["all"], False, None,
     70, 200, False,
-    -3.0, -3.5, 90,
+    -3.0, -3.5, 80,
     False, None, 1000,
     False, False, False)
     return form

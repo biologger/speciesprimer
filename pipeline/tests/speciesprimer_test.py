@@ -731,9 +731,9 @@ def test_BLASTsettings(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 
-def test_blastparser(config):
-    pass
-    from speciesprimer import BlastParser
+#def test_blastparser(config):
+#    pass
+#    from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
     # primer blastparser function
 #    create_primerBLAST_DBIDS(self, nonred_dict)
@@ -794,27 +794,27 @@ newmockprimer = {
             "primer_R_TM": 60.029, "product_size": 88}}}
 
 ref_hairpins = [
-            'Lb_curva_mock_1_P0', 'Lb_curva_mock_1_P1', 
-            'Lb_curva_mock_9_P3']  
+            'Lb_curva_mock_1_P0', 'Lb_curva_mock_1_P1',
+            'Lb_curva_mock_9_P3']
 
 ref_excluded = [
-            'Lb_curva_asnS_2_P1', 'Lb_curva_comFA_2_P3', 
-            'Lb_curva_comFA_3_P0', 'Lb_curva_comFA_4_P0', 
-            'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P1', 
-            'Lb_curva_g1243_1_P5', 'Lb_curva_gshAB_2_P0', 
-            'Lb_curva_gshAB_2_P3', 'Lb_curva_mock_1_P0', 
+            'Lb_curva_asnS_2_P1', 'Lb_curva_comFA_2_P3',
+            'Lb_curva_comFA_3_P0', 'Lb_curva_comFA_4_P0',
+            'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P1',
+            'Lb_curva_g1243_1_P5', 'Lb_curva_gshAB_2_P0',
+            'Lb_curva_gshAB_2_P3', 'Lb_curva_mock_1_P0',
             'Lb_curva_mock_1_P1', 'Lb_curva_mock_9_P3']
 
 ref_results = [[
-        'Lb_curva_asnS_1_P0_F', 'AAACCATGTCGATGAAGAAGTTAAA', 
-     'Lb_curva_asnS_1_P0_R', 'TGCCATCACGTAATTGGAGGA', 
+        'Lb_curva_asnS_1_P0_F', 'AAACCATGTCGATGAAGAAGTTAAA',
+     'Lb_curva_asnS_1_P0_R', 'TGCCATCACGTAATTGGAGGA',
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
-     + 'TCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG', 
+     + 'TCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
-     + 'TCATTCCTCCAATTACGTGATGGCA', 83.54], 
+     + 'TCATTCCTCCAATTACGTGATGGCA', 83.54],
      [
-         'Lb_curva_asnS_2_P0_F', 'ACAAGAATCAAGTATGTGGGTGAC', 
-      'Lb_curva_asnS_2_P0_R', 'TGCTGTCACCAATTAATTCGATGT', 
+         'Lb_curva_asnS_2_P0_F', 'ACAAGAATCAAGTATGTGGGTGAC',
+      'Lb_curva_asnS_2_P0_R', 'TGCTGTCACCAATTAATTCGATGT',
       'AAGCCGTTTTCCAATTGGCAAAAGATGTNAAACAAGAATCAAGTATGTGGGTGACAGGGGTCATNC'
       + 'ATGAAGATACTCGTTCACACTTTGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGAC'
       + 'AGCAG', 'ACAAGAATCAAGTATGTGGGTGACAGGGGTCATNCATGAAGATACTCGTTCACACTT'
@@ -855,20 +855,20 @@ def test_PrimerQualityControl(config):
 
     def test_collect_primer(config):
         pqc = PrimerQualityControl(config, {})
-        assert pqc.collect_primer() == 1 
+        assert pqc.collect_primer() == 1
         primer3dict = get_primer3_dict()
         primer3dict.update(newmockprimer)
         pqc = PrimerQualityControl(config, primer3dict)
-        assert pqc.collect_primer() == 0 
-    
-    def test_hairpin_check(config):       
+        assert pqc.collect_primer() == 0
+
+    def test_hairpin_check(config):
         if pqc.collect_primer() == 0:
             hairpins = pqc.hairpin_check()
             hairpins.sort()
             assert hairpins == ref_hairpins
 
-    def test_primerdimer_check(config):            
-        pqc.primerdimer_check(ref_hairpins) 
+    def test_primerdimer_check(config):
+        pqc.primerdimer_check(ref_hairpins)
         excluded = pqc.filter_primerdimer()
         excluded.sort()
         assert excluded == ref_excluded
@@ -919,14 +919,14 @@ def test_PrimerQualityControl(config):
         assert len(assembly_input) == 60
 
         assembly_results = G.run_parallel(pqc.MFEprimer_assembly, assembly_input)
-        nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly")        
+        nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly")
         assert len(nontarget_input) == 57
 
         pqc.run_primerBLAST(nontarget_input)
         pqc.prepare_nontargetDB()
 
         os.chdir(pqc.primer_qc_dir)
-                
+
         nontarget_results = G.run_parallel(
             pqc.MFEprimer_nontarget, nontarget_input)
         specific_primers = pqc.write_MFEprimer_results(
@@ -935,7 +935,7 @@ def test_PrimerQualityControl(config):
         assert specific_primers[0] == ref_results[0]
         assert specific_primers[1] == ref_results[1]
         assert len(specific_primers) == 55
-        
+
         return specific_primers
 
     from speciesprimer import PrimerQualityControl
@@ -964,10 +964,10 @@ def test_PrimerQualityControl(config):
             specific_primers[2], specific_primers[46]]
     pqc.mfold_analysis(test_mfold)
     selected_primer, excluded_primer = pqc.mfold_parser()
-
+    selected_primer.sort()
+    excluded_primer.sort()
     assert selected_primer == ['Lb_curva_asnS_1_P0', 'Lb_curva_asnS_2_P0']
-    assert excluded_primer == ['Lb_curva_gshAB_2_P2', 'Lb_curva_comFA_2_P0']
-
+    assert excluded_primer == ['Lb_curva_comFA_2_P0', 'Lb_curva_gshAB_2_P2']
 
 def test_summary(config):
     total_results = [
@@ -1020,7 +1020,6 @@ def test_end(config):
         tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
-
 #    remove_test_files(config)
 
 if __name__ == "__main__":
