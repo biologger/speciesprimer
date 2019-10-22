@@ -504,60 +504,6 @@ def test_skip_pangenome_analysis(config):
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
 
-# old CoreGenes class will be removed soon
-#def test_CoreGenes(config):
-#    from speciesprimer import CoreGenes
-#    CG = CoreGenes(config)
-#    os.chdir(CG.pangenome_dir)
-#    def prepare_tests():
-#        if os.path.isdir(CG.ffn_dir):
-#            shutil.rmtree(CG.ffn_dir)
-#        new_ffn_dir = os.path.join(BASE_PATH, "tests", "testfiles", "ffn_files")
-#        shutil.copytree(new_ffn_dir, CG.ffn_dir)
-#
-#        if os.path.isdir(CG.gff_dir):
-#            shutil.rmtree(CG.gff_dir)
-#        new_gff_dir = os.path.join(BASE_PATH, "tests", "testfiles", "gff_files")
-#        shutil.copytree(new_gff_dir, CG.gff_dir)
-#
-#    def test_run_DBGenerator():
-#        CG.copy_DBGenerator()
-#        dbgpath = os.path.join(CG.pangenome_dir, "DBGenerator.py")
-#        assert os.path.isfile(dbgpath) == True
-#        CG.run_DBGenerator()
-#        genome_locus = os.path.join(CG.pangenome_dir, "genomas_locus.csv")
-#        locus_seq = os.path.join(CG.pangenome_dir, "locus_sequence.csv")
-#        pangen_locus = os.path.join(CG.pangenome_dir, "pangenoma_locus.csv")
-#        pangen = os.path.join(CG.pangenome_dir, "pangenoma.csv")
-#        assert os.path.isfile(genome_locus) == True
-#        assert os.path.isfile(locus_seq) == True
-#        assert os.path.isfile(pangen_locus) == True
-#        assert os.path.isfile(pangen) == True
-#        assert os.stat(genome_locus).st_size > 0
-#        assert os.stat(locus_seq).st_size > 0
-#        assert os.stat(pangen_locus).st_size > 0
-#        assert os.stat(pangen).st_size > 0
-#
-#    def test_create_sqldb():
-#        CG.create_sqldb()
-#        assert os.path.isfile(CG.target + ".db") == True
-#
-#    def test_coregene_extract():
-#        CG = CoreGenes(config)
-#        G.create_directory(CG.results_dir)
-#        ref_dir = os.path.join(
-#            BASE_PATH, "tests", "testfiles", "ref", "fasta")
-#        fasta_dir = os.path.join(CG.results_dir, "fasta")
-#        G.create_directory(fasta_dir)
-#        CG.coregene_extract()
-#        compare_ref_files(fasta_dir, ref_dir)
-#
-#
-#    prepare_tests()
-#    test_run_DBGenerator()
-#    test_create_sqldb()
-#    test_coregene_extract()
-
 def test_CoreGenes(config):
     from speciesprimer import CoreGenes
     CG = CoreGenes(config)
@@ -583,7 +529,7 @@ def test_CoreGenes(config):
 
     prepare_tests()
     test_coregene_extract(config)
-#
+
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
