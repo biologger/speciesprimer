@@ -446,13 +446,13 @@ class Input:
             print("\n" + target + ":")
             mfeprimer_th = input(
                 "MFEprimer threshold for nontarget sequence PPC "
-                "higher values mean more stringent selection.\ndefault=90\n> ")
+                "higher values mean more stringent selection.\ndefault=80\n> ")
             if mfeprimer_th:
                 if not type(eval(mfeprimer_th)) == int:
                     print("No valid input (float)")
                     return self.mfeprimer_threshold(target, index, listlen)
             else:
-                mfeprimer_th = 90
+                mfeprimer_th = 80
             if index == 0:
                 if not self.value_for_all(
                     "mfethreshold", int(mfeprimer_th), listlen
@@ -631,7 +631,7 @@ class Output:
             "nolist": False,
             "offline": False,
             "ignore_qc": False,
-            "mfethreshold": 90,
+            "mfethreshold": 80,
             "customdb": None,
             "blastseqs": 1000,
             "probe": False,

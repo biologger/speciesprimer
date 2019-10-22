@@ -2940,11 +2940,6 @@ class PrimerQualityControl:
 
         return excluded
 
-    def prepare_MFEprimer_Dbs(self, primerinfos):
-        G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
-        G.create_directory(self.primer_qc_dir)
-        self.make_MFEprimer_Dbs(primerinfos)
-
     def create_template_db(self, primerinfos):
         wrote = []
         file_path = os.path.join(self.primer_qc_dir, "template.sequences")
@@ -3048,9 +3043,9 @@ class PrimerQualityControl:
             for item in target_fasta:
                 SeqIO.write(item, fas, "fasta")
 
-
-
-    def make_MFEprimer_Dbs(self, primerinfos):
+    def prepare_MFEprimer_Dbs(self, primerinfos):
+        G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
+        G.create_directory(self.primer_qc_dir)
         def make_templateDB():
             db_name = "template.sequences"
             db_path = os.path.join(self.primer_qc_dir, db_name + ".primerqc")
@@ -3155,7 +3150,6 @@ class PrimerQualityControl:
                 # item[1] are the results of MFEprimer
                 for result in item[1]:
                     writer.writerow(result)
-
         return outputlist
 
     def MFEprimer_specificity_check(self, excluded):
@@ -3180,8 +3174,7 @@ class PrimerQualityControl:
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
         template_results = G.run_parallel(self.MFEprimer_template, primerinfos)
-        assembly_input = self.write_MFEprimer_results(
-                template_results, "template")
+        assembly_input = self.write_MFEprimer_results(template_results, "template")
 
         msg = " primer pair(s) with good target binding"
         info1 = str(len(assembly_input)) + msg
@@ -4090,7 +4083,7 @@ def commandline():
         "--mpprimer", type=float, default=-3.5, help="Delta G threshold for "
         "3'-end primer-primer binding calculated by MPprimer (default = -3.5)")
     parser.add_argument(
-        "--mfethreshold", type=int, default=90, help="Threshold for "
+        "--mfethreshold", type=int, default=80, help="Threshold for "
         " MFEprimer PPC for nontarget sequences (default = 90)")
     parser.add_argument(
         "--assemblylevel", "-l", nargs="*", type=str, default=["all"],
