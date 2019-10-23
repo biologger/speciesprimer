@@ -854,6 +854,7 @@ def test_PrimerQualityControl(config):
         if pqc.collect_primer() == 0:
             hairpins = pqc.hairpin_check()
             hairpins.sort()
+            print(hairpins)
             assert hairpins == ref_hairpins
 
     def test_primerdimer_check(config):
@@ -1003,15 +1004,15 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
-def test_end(config):
-    def remove_test_files(config):
-        test = config.path
-        shutil.rmtree(test)
-        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        os.chdir(BASE_PATH)
-    remove_test_files(config)
+#def test_end(config):
+#    def remove_test_files(config):
+#        test = config.path
+#        shutil.rmtree(test)
+#        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+#        if os.path.isfile(tmp_path):
+#            os.remove(tmp_path)
+#        os.chdir(BASE_PATH)
+#    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)

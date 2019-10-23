@@ -2829,7 +2829,7 @@ class PrimerQualityControl:
             not os.path.isfile("hairpin_results.txt")
             or os.stat("hairpin_results.txt").st_size == 0):
             cmd = [
-                "mfeprimer-hairpin", "-in", "primerlist.fa",
+                "mfeprimer3.1", "hairpin", "-i", "primerlist.fa",
                 ">", "hairpin_results.txt"]
             cmd = " ".join(cmd)
             G.run_shell(cmd)
@@ -2839,9 +2839,12 @@ class PrimerQualityControl:
                 if line == "No hairpins found.":
                     return []
                 elif "Hairpin" in line:
-                    hairpin = "_".join(line.split(": ")[1].split("_")[0:-1])
-                    if not hairpin in hairpins:
-                        hairpins.append(hairpin)
+                    if "List" in line or "Reports" in line:
+                        pass
+                    else:
+                        hairpin = "_".join(line.split(": ")[1].split("_")[0:-1])
+                        if not hairpin in hairpins:
+                            hairpins.append(hairpin)
 
         return hairpins
 
@@ -2877,28 +2880,31 @@ class PrimerQualityControl:
                     ">" + nameF + "\n" + seqF + "\n>"
                     + nameR + "\n" + seqR + "\n")
             cmd = [
-                "mfeprimer-dimer", "-in", primefile.name, "-cutoff", "4",
-                "-endmm", "false", "-endvipmm", "2", "-gaprun", "3"]
+                "mfeprimer3.1", "dimer", "-i", primefile.name,
+                "-m", "3", "-s", "4"]
             cmd = " ".join(cmd)
             while result == []:
                 result = G.read_shelloutput(
                     cmd, printcmd=False, logcmd=False, printoption=False)
             os.unlink(primefile.name)
-            if len(result) == 1:
-                return [pp_name, result[0]]
-            else:
-                parts = len(result)//5
-
-                datalist = [pp_name]
-                for i in range(0, parts):
-                    data = result[i*5:i*5+2]
-                    dimer = data[0].split(": ")[1]
-                    dG = data[1].split(" ")[3]
-                    datalist.append(dimer)
-                    datalist.append(dG)
-                return datalist
-        else:
-            return [pp_name, "hairpin"]
+            
+            print(result[5])
+            
+#            if len(result) == 1:
+#                return [pp_name, result[0]]
+#            else:
+#                parts = len(result)//5
+#
+#                datalist = [pp_name]
+#                for i in range(0, parts):
+#                    data = result[i*5:i*5+2]
+#                    dimer = data[0].split(": ")[1]
+#                    dG = data[1].split(" ")[3]
+#                    datalist.append(dimer)
+#                    datalist.append(dG)
+#                return datalist
+#        else:
+#            return [pp_name, "hairpin"]
 
     def filter_primerdimer(self):
         summ_file = os.path.join(
@@ -3094,7 +3100,7 @@ class PrimerQualityControl:
     def index_Database(self, db_name):
         start = time.time()
         os.chdir(self.primer_qc_dir)
-        cmd = ["mfeprimer-index", "-i", db_name]
+        cmd = ["mfeprimer3.1, index", "-i", db_name]
         G.run_subprocess(cmd)
         os.chdir(self.primer_dir)
         end = time.time() - start
@@ -3226,7 +3232,7 @@ class PrimerQualityControl:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         db = "template.sequences"
         cmd = [
-            "mfeprimer", "-in", primefile.name, "-db", db, "-mismatch", "-json"]
+            "mfeprimer3.1", "-i", primefile.name, "-db", db, "-mismatch", "-json"]
         cmd = " ".join(cmd)
         while result == []:
             result = G.read_shelloutput(
@@ -3236,6 +3242,12 @@ class PrimerQualityControl:
         line = result[0].split("Primer Quality Reports")[0]
         pqcdict = json.loads(line)
         ampinfo = pqcdict["AmpList"]
+        hairpinfo = pqcdict["HairpinList"]
+        dimerinfo = pqcdict["DimerList"]
+        if hairpinfo:
+            return [[pp_name], [["hairpin"]]]
+        elif dimerinfo:
+            return [[pp_name], [["primerdimer"]]]
         num_amp = len(ampinfo)
         amplist = []
         for data in ampinfo:
@@ -3266,7 +3278,7 @@ class PrimerQualityControl:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         db = H.abbrev(self.target, dict_path) + ".genomic"
         cmd = [
-            "mfeprimer", "-in", primefile.name, "-db", db, "-mismatch", "-json"]
+            "mfeprimer3.1", "-i", primefile.name, "-db", db, "-mismatch", "-json"]
         cmd = " ".join(cmd)
         while result == []:
             result = G.read_shelloutput(
@@ -3275,6 +3287,12 @@ class PrimerQualityControl:
         line = result[0].split("Primer Quality Reports")[0]
         pqcdict = json.loads(line)
         ampinfo = pqcdict["AmpList"]
+        hairpinfo = pqcdict["HairpinList"]
+        dimerinfo = pqcdict["DimerList"]
+        if hairpinfo:
+            return [[pp_name], [["hairpin"]]]
+        elif dimerinfo:
+            return [[pp_name], [["primerdimer"]]]
         num_amp = len(ampinfo)
         amplist = []
         for data in ampinfo:
@@ -3372,7 +3390,7 @@ class PrimerQualityControl:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         cmd = [
-            "mfeprimer", "-in", primefile.name, "-mismatch", "-json"]
+            "mfeprimer3.1", "-i", primefile.name, "-mismatch", "-json"]
         for db in self.dbinputfiles:
             cmd.append("-db")
             cmd.append(db)
