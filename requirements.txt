@@ -1,9 +1,0 @@
-numpy
-biopython
-wget
-psutil
-flask
-flask-wtf
-mydaemon
-gunicorn
-
