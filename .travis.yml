@@ -2,13 +2,11 @@ language: python
 
 python: 3.5
 
-
-
 services:
  - docker
  
 before_install:
- - docker build -t biologger/speciesprimer
+ - docker build -t biologger/speciesprimer .
  - docker run -e TZ=Europe/Amsterdam -p 5000:5000 -p 9001:9001 biologger/speciesprimer /bin/sh -c "cd /home/pipeline/tests"
  - docker ps -a
  - docker run biologger/speciesprimer /bin/sh -c "cd /home/pipeline/tests; pytest --cov=speciesprimer"
