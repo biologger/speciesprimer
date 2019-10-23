@@ -503,60 +503,6 @@ def test_skip_pangenome_analysis(config):
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
 
-# old CoreGenes class will be removed soon
-#def test_CoreGenes(config):
-#    from speciesprimer import CoreGenes
-#    CG = CoreGenes(config)
-#    os.chdir(CG.pangenome_dir)
-#    def prepare_tests():
-#        if os.path.isdir(CG.ffn_dir):
-#            shutil.rmtree(CG.ffn_dir)
-#        new_ffn_dir = os.path.join(BASE_PATH, "tests", "testfiles", "ffn_files")
-#        shutil.copytree(new_ffn_dir, CG.ffn_dir)
-#
-#        if os.path.isdir(CG.gff_dir):
-#            shutil.rmtree(CG.gff_dir)
-#        new_gff_dir = os.path.join(BASE_PATH, "tests", "testfiles", "gff_files")
-#        shutil.copytree(new_gff_dir, CG.gff_dir)
-#
-#    def test_run_DBGenerator():
-#        CG.copy_DBGenerator()
-#        dbgpath = os.path.join(CG.pangenome_dir, "DBGenerator.py")
-#        assert os.path.isfile(dbgpath) == True
-#        CG.run_DBGenerator()
-#        genome_locus = os.path.join(CG.pangenome_dir, "genomas_locus.csv")
-#        locus_seq = os.path.join(CG.pangenome_dir, "locus_sequence.csv")
-#        pangen_locus = os.path.join(CG.pangenome_dir, "pangenoma_locus.csv")
-#        pangen = os.path.join(CG.pangenome_dir, "pangenoma.csv")
-#        assert os.path.isfile(genome_locus) == True
-#        assert os.path.isfile(locus_seq) == True
-#        assert os.path.isfile(pangen_locus) == True
-#        assert os.path.isfile(pangen) == True
-#        assert os.stat(genome_locus).st_size > 0
-#        assert os.stat(locus_seq).st_size > 0
-#        assert os.stat(pangen_locus).st_size > 0
-#        assert os.stat(pangen).st_size > 0
-#
-#    def test_create_sqldb():
-#        CG.create_sqldb()
-#        assert os.path.isfile(CG.target + ".db") == True
-#
-#    def test_coregene_extract():
-#        CG = CoreGenes(config)
-#        G.create_directory(CG.results_dir)
-#        ref_dir = os.path.join(
-#            BASE_PATH, "tests", "testfiles", "ref", "fasta")
-#        fasta_dir = os.path.join(CG.results_dir, "fasta")
-#        G.create_directory(fasta_dir)
-#        CG.coregene_extract()
-#        compare_ref_files(fasta_dir, ref_dir)
-#
-#
-#    prepare_tests()
-#    test_run_DBGenerator()
-#    test_create_sqldb()
-#    test_coregene_extract()
-
 def test_CoreGenes(config):
     from speciesprimer import CoreGenes
     CG = CoreGenes(config)
@@ -571,7 +517,6 @@ def test_CoreGenes(config):
         shutil.copytree(new_gff_dir, CG.gff_dir)
 
     def test_coregene_extract(config):
-
         G.create_directory(CG.results_dir)
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         G.create_directory(fasta_dir)
@@ -582,7 +527,7 @@ def test_CoreGenes(config):
 
     prepare_tests()
     test_coregene_extract(config)
-#
+
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
@@ -789,7 +734,7 @@ def test_blastparser(config):
     from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
     # primer blastparser function
-#    create_primerBLAST_DBIDS(self, nonred_dict)
+#    get_primerBLAST_DBIDS(self, nonred_dict)
 
 #    get_alignmentdata(self, alignment)
 
@@ -880,12 +825,6 @@ def test_PrimerQualityControl_specificitycheck(config):
         G.create_directory(pqc.primer_qc_dir)
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
-        shutil.copy(reffile, tofile)
-        reffile = os.path.join(testfiles_dir, "primerBLAST_DBIDS0.txt")
-        tofile = os.path.join(pqc.primer_qc_dir, "primerBLAST_DBIDS0.txt")
-        shutil.copy(reffile, tofile)
-        tofile = os.path.join(pqc.primer_qc_dir, "BLASTnontarget0.sequences")
-        reffile = os.path.join(testfiles_dir, "BLASTnontarget0.sequences")
         shutil.copy(reffile, tofile)
 
         pqc.call_blastparser.run_blastparser("primer")
@@ -985,7 +924,7 @@ def test_PrimerQualityControl_specificitycheck(config):
             'AmpID\tFpID\tRpID\tHitID\tPPC\tSize\tAmpGC\tFpTm\tRpTm\tFpDg'
              + '\tRpDg\tBindingStart\tBindingStop\tAmpSeq',
              '1\tLb_curva_asnS_1_P0_F\tLb_curva_asnS_1_P0_F'
-             + '\tNZ_CP020459.1:1524567-1528567\t-16.4\t364\t37.09\t7.26'
+             + '\tNZ_CP020459.1_1524567_1528567\t-16.4\t364\t37.09\t7.26'
              + '\t15.22\t-4.51\t-6.20\t3075\t3409\t'
              + 'aaaccatgtcgatgAAGAAGTTAAAaaaccagctgaattagacaaatacctaaagagtatt'
              + 'gactaattcattacaaaaaaagatcccgtcaatgacgagatctttttttatgctcaattact'
@@ -1043,17 +982,21 @@ def test_PrimerQualityControl_specificitycheck(config):
     test_MFEprimer(inputseqs)
     test_fullMFEprimer_run()
 
-    with open("tmp_p3dict.json", "w") as f:
+    tmpdict = os.path.join(pqc.primer_qc_dir, "tmp_p3dict.json")
+    with open(tmpdict, "w") as f:
         f.write(json.dumps(pqc.primer3_dict))
 
 def test_PrimerQualityControl_structures(config):
     from speciesprimer import PrimerQualityControl
-    with open("tmp_p3dict.json") as f:
+    pqc = PrimerQualityControl(config, {})
+    tmpdict = os.path.join(pqc.primer_qc_dir, "tmp_p3dict.json")
+    with open(tmpdict) as f:
         for line in f:
             primer3dict = json.loads(line)
     pqc = PrimerQualityControl(config, primer3dict)
-    if os.path.isfile("tmp_p3dict.json"):
-        os.remove("tmp_p3dict.json")
+
+    if os.path.isfile(tmpdict):
+        os.remove(tmpdict)
 
     def test_mfold():
         spec_output = [
@@ -1172,8 +1115,9 @@ def test_end(config):
         tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
+        os.chdir(BASE_PATH)
 
-    remove_test_files(config)
+#    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
