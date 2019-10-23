@@ -995,6 +995,7 @@ def test_PrimerQualityControl(config):
             hairpins = pqc.hairpin_check()
             hairpins.sort()
             assert hairpins == ref_hairpins
+            return hairpins
 
     def test_primerdimer_check(config):            
         pqc.primerdimer_check(ref_hairpins) 
@@ -1081,20 +1082,26 @@ def test_PrimerQualityControl(config):
     create_customblastdb(config, dbfile)
     G.create_directory(pqc.primer_qc_dir)
     os.chdir(pqc.primer_qc_dir)
-
+    filepath = os.path.join(pqc.primerdimer_dir, "primerdimer_summary.csv")
+    if os.path.isfile(filepath):
+        os.remove(filepath)
     test_collect_primer(config)
-    test_hairpin_check(config)
-    test_primerdimer_check(config)
-    test_MFEprimer_DBs(config)
-    specific_primers = test_MFEprimer_specificity_check(config)
-    test_mfold = [
-            specific_primers[0], specific_primers[1],
-            specific_primers[2], specific_primers[46]]
-    pqc.mfold_analysis(test_mfold)
-    selected_primer, excluded_primer = pqc.mfold_parser()
+    hairpin = test_hairpin_check(config)
+    print(hairpin)
+#    test_primerdimer_check(config)
+    for primer in pqc.primerlist:
+        result = pqc.run_mfeprimerdimer(primer, hairpin)
 
-    assert selected_primer == ['Lb_curva_asnS_1_P0', 'Lb_curva_asnS_2_P0']
-    assert excluded_primer == ['Lb_curva_gshAB_2_P2', 'Lb_curva_comFA_2_P0']
+#    test_MFEprimer_DBs(config)
+#    specific_primers = test_MFEprimer_specificity_check(config)
+#    test_mfold = [
+#            specific_primers[0], specific_primers[1],
+#            specific_primers[2], specific_primers[46]]
+#    pqc.mfold_analysis(test_mfold)
+#    selected_primer, excluded_primer = pqc.mfold_parser()
+#
+#    assert selected_primer == ['Lb_curva_asnS_1_P0', 'Lb_curva_asnS_2_P0']
+#    assert excluded_primer == ['Lb_curva_gshAB_2_P2', 'Lb_curva_comFA_2_P0']
 
 test_PrimerQualityControl(config)
 

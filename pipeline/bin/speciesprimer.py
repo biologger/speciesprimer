@@ -2881,17 +2881,43 @@ class PrimerQualityControl:
                     + nameR + "\n" + seqR + "\n")
             cmd = [
                 "mfeprimer3.1", "dimer", "-i", primefile.name,
-                "-m", "3", "-s", "4"]
+                "-m", "3", "-s", "4", "-d", config.mpprimer]
             cmd = " ".join(cmd)
             while result == []:
                 result = G.read_shelloutput(
                     cmd, printcmd=False, logcmd=False, printoption=False)
             os.unlink(primefile.name)
             
-            print(result[5])
-            
-#            if len(result) == 1:
-#                return [pp_name, result[0]]
+            dimerlist = result[5]
+#            print(dimerlist)
+#            for index, item in enumerate(result):
+#                try:
+#                    print(index,item)
+#                except UnicodeEncodeError:
+#                    if "," in item:
+#                        print(index, item.split(",")[2])
+#            
+            if dimerlist == "Dimer List (0)":
+                return [pp_name, result[6]]
+            else:
+                numdimers = int(dimerlist.split("(")[1].split(")")[0])
+                print(numdimers)
+                for i in range(0, numdimers):
+                    primernames = result[i*5+6]
+                    print(primernames)
+                    data = result[i*5+6+1]
+                    g = data.split(" ")
+                    print(g[1], g[4], g[9])
+#                    firstresult = result[6+i]
+#                    
+#                    if "Dimer" in firstresult:
+#                        print(firstresult)
+#                        print(result[(6+i+5)*i])
+#                    try:
+#                        print()
+#                    except UnicodeEncodeError:
+#                        print("unicode error")
+#                        print(result[6+i+4])
 #            else:
 #                parts = len(result)//5
 #
