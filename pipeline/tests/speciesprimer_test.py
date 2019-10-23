@@ -59,16 +59,12 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
-
     config.save_config()
-
     return config
 
 def compare_ref_files(results_dir, ref_dir):
-
     resfileslist = []
     reffileslist = []
-
     resrecords = []
     refrecords = []
     def compare_files(resfiles, reffiles):
@@ -116,7 +112,6 @@ def compare_ref_files(results_dir, ref_dir):
         reffiles = os.path.join(ref_dir)
         compare_files(resfiles, reffiles)
 
-
 def test_CLIconf(config):
     assert config.minsize == confargs['minsize']
     assert config.maxsize == confargs['maxsize']
@@ -137,7 +132,7 @@ def test_CLIconf(config):
     assert config.qc_gene == confargs['qc_gene']
     assert config.blastdbv5 == confargs['blastdbv5']
 
-def test_auto_run_config():
+def test_auto_run_config(config):
     from speciesprimer import auto_run
     t = os.path.join(BASE_PATH, "tests", "testfiles", "tmp_config.json")
     # Docker only
@@ -243,16 +238,14 @@ def test_DataCollection(config):
 
 def test_QualityControl(config):
     testdir = os.path.join(BASE_PATH, "tests", "testfiles")
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(config.path, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
+    G.create_directory(tmpdir)
     targetdir = os.path.join(config.path, config.target)
     config.blastdbv5 = False
     qc_gene = config.qc_gene[0]
-    G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
-
-
 
     def create_customblastdb():
         infile = os.path.join(testdir, "customdb.fas")
@@ -278,7 +271,6 @@ def test_QualityControl(config):
         with open(filename, "w") as f:
             for line in lines:
                 f.write(line)
-
 
     def prepare_QC_testfiles(config):
         # GCF_004088235v1_20191001
@@ -328,7 +320,6 @@ def test_QualityControl(config):
 
         make_maxcontigs()
         remove_qc_seq()
-
 
     prepare_QC_testfiles(config)
     create_customblastdb()
@@ -533,13 +524,12 @@ def test_CoreGenes(config):
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(config.path, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
     config.blastdbv5 = False
     CGS = CoreGeneSequences(config)
-
 
     def test_seq_alignments():
         # skip this test because of variation in alignments
@@ -616,8 +606,9 @@ def test_CoreGeneSequences(config):
         with open(os.path.join(CGS.blast_dir, "nontargethits.json"), "w") as f:
             f.write(json.dumps(non_dict))
 
-
     def test_run_coregeneanalysis(config):
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
         G.create_directory(tmpdir)
         def create_customblastdb(config):
             infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
@@ -653,12 +644,11 @@ def test_CoreGeneSequences(config):
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
 
-
 def test_blastprep(config):
     from speciesprimer import BlastPrep
     testconditions = [[100, 50], [500,10], [1000,5], [2000,3], [5000,1]]
     listlengths = [50*[100], 10*[500], 5*[1000], [1667,1667,1666], [5000]]
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(config.path, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
@@ -695,7 +685,7 @@ def test_blastprep(config):
 def test_BLASTsettings(config):
     import multiprocessing
     from speciesprimer import Blast
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(config.path, "tmp")
     bl = Blast(config, tmpdir, "test")
     blastfiles = bl.search_blastfiles(tmpdir)
     assert len(blastfiles) == 5
@@ -727,7 +717,7 @@ def test_BLASTsettings(config):
             else:
                 # there should not be any other modes
                 assert cmd[2] == "error"
-            assert cmd[-1] == db_outcome[i]
+            assert cmd[-1] == db_outcome[i]        
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 
@@ -821,7 +811,6 @@ ref_results = [[
       + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA', 84.49]]
 
 def test_PrimerQualityControl(config):
-
     def dbinputfiles():
         filenames = [
             "GCF_004088235v1_20191001.fna",
@@ -939,9 +928,10 @@ def test_PrimerQualityControl(config):
         return specific_primers
 
     from speciesprimer import PrimerQualityControl
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(config.path, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
+    G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
     config.blastdbv5 = False
 
@@ -1020,7 +1010,8 @@ def test_end(config):
         tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
-#    remove_test_files(config)
+        os.chdir(BASE_PATH)
+    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
