@@ -67,7 +67,7 @@ class Config:
     def get_config(self, target):
         minsize = self.config_dict[target]["minsize"]
         maxsize = self.config_dict[target]["maxsize"]
-        mpprimer = self.config_dict[target]["mpprimer"]
+        dimer = self.config_dict[target]["dimer"]
         exception = self.config_dict[target]["exception"]
         path = self.config_dict[target]["path"]
         intermediate = self.config_dict[target]["intermediate"]
@@ -79,29 +79,29 @@ class Config:
         nolist = self.config_dict[target]["nolist"]
         offline = self.config_dict[target]["offline"]
         ignore_qc = self.config_dict[target]["ignore_qc"]
-        mfethreshold = self.config_dict[target]["mfethreshold"]
+        mismatches = self.config_dict[target]["mismatches"]
         customdb = self.config_dict[target]["customdb"]
         blastseqs = self.config_dict[target]["blastseqs"]
         probe = self.config_dict[target]["probe"]
         blastdbv5 = self.config_dict[target]["blastdbv5"]
 
         return (
-            minsize, maxsize, mpprimer, exception, target, path,
+            minsize, maxsize, dimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
+            assemblylevel, skip_tree, nolist, offline, ignore_qc, mismatches,
             customdb, blastseqs, probe, blastdbv5)
 
 
 class CLIconf:
     def __init__(
-            self, minsize, maxsize, mpprimer, exception, target, path,
+            self, minsize, maxsize, dimer, exception, target, path,
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
-            nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
+            nontargetlist, skip_tree, nolist, offline, ignore_qc, mismatches,
             customdb, blastseqs, probe, blastdbv5):
         self.minsize = minsize
         self.maxsize = maxsize
-        self.mpprimer = mpprimer
+        self.dimer = dimer
         self.exception = exception
         self.target = target
         self.path = path
@@ -115,7 +115,7 @@ class CLIconf:
         self.nolist = nolist
         self.offline = offline
         self.ignore_qc = ignore_qc
-        self.mfethreshold = mfethreshold
+        self.mismatches = mismatches
         self.customdb = customdb
         self.blastseqs = blastseqs
         self.probe = probe
@@ -126,7 +126,7 @@ class CLIconf:
         config_dict = {}
         config_dict.update({"minsize": self.minsize})
         config_dict.update({"maxsize": self.maxsize})
-        config_dict.update({"mpprimer": self.mpprimer})
+        config_dict.update({"dimer": self.dimer})
         config_dict.update({"exception": self.exception})
         config_dict.update({"target": self.target})
         config_dict.update({"path": self.path})
@@ -139,7 +139,7 @@ class CLIconf:
         config_dict.update({"nolist": self.nolist})
         config_dict.update({"offline": self.offline})
         config_dict.update({"ignore_qc": self.ignore_qc})
-        config_dict.update({"mfethreshold": self.mfethreshold})
+        config_dict.update({"mismatches": self.mismatches})
         config_dict.update({"customdb": self.customdb})
         config_dict.update({"blastseqs": self.blastseqs})
         config_dict.update({"probe": self.probe})
@@ -2770,7 +2770,7 @@ class PrimerQualityControl:
         self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.primerlist = []
         self.start = time.time()
-        self.mfethreshold = self.config.mfethreshold
+        self.mismatches = self.config.mismatches
         self.referencegenomes = 10
         self.dbinputfiles = []
 
@@ -2859,9 +2859,10 @@ class PrimerQualityControl:
             dimers = G.run_parallel(
                 self.run_mfeprimerdimer,self.primerlist, hairpin)
             header = [
-                "Primer pair", "Dimer 1", "deltaG (kcal/mol)",
-                "Dimer 2", "deltaG (kcal/mol)",
-                "Dimer 3", "deltaG (kcal/mol)"]
+                "Primer pair",
+                "Dimer 1", "score", "Tm (°C)", "deltaG (kcal/mol)",
+                "Dimer 2", "score", "Tm (°C)", "deltaG (kcal/mol)",
+                "Dimer 3", "score", "Tm (°C)", "deltaG (kcal/mol)"]
             with open(summ_file, "w") as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
@@ -2881,56 +2882,34 @@ class PrimerQualityControl:
                     + nameR + "\n" + seqR + "\n")
             cmd = [
                 "mfeprimer3.1", "dimer", "-i", primefile.name,
-                "-m", "3", "-s", "4", "-d", config.mpprimer]
+                "-m", "4", "-s", "4", "-d", str(self.config.dimer + 1)]
             cmd = " ".join(cmd)
-            while result == []:
+            while len(result) <= 5:
                 result = G.read_shelloutput(
                     cmd, printcmd=False, logcmd=False, printoption=False)
             os.unlink(primefile.name)
-            
+
             dimerlist = result[5]
-#            print(dimerlist)
-#            for index, item in enumerate(result):
-#                try:
-#                    print(index,item)
-#                except UnicodeEncodeError:
-#                    if "," in item:
-#                        print(index, item.split(",")[2])
-#            
             if dimerlist == "Dimer List (0)":
                 return [pp_name, result[6]]
             else:
                 numdimers = int(dimerlist.split("(")[1].split(")")[0])
-                print(numdimers)
+                datalist = [pp_name]
                 for i in range(0, numdimers):
-                    primernames = result[i*5+6]
-                    print(primernames)
+                    primernames = result[i*5+6].split(": ")[1]
                     data = result[i*5+6+1]
                     g = data.split(" ")
-                    print(g[1], g[4], g[9])
-#                    firstresult = result[6+i]
-#                    
-#                    if "Dimer" in firstresult:
-#                        print(firstresult)
-#                        print(result[(6+i+5)*i])
-#                    try:
-#                        print()
-#                    except UnicodeEncodeError:
-#                        print("unicode error")
-#                        print(result[6+i+4])
-#            else:
-#                parts = len(result)//5
-#
-#                datalist = [pp_name]
-#                for i in range(0, parts):
-#                    data = result[i*5:i*5+2]
-#                    dimer = data[0].split(": ")[1]
-#                    dG = data[1].split(" ")[3]
-#                    datalist.append(dimer)
-#                    datalist.append(dG)
-#                return datalist
-#        else:
-#            return [pp_name, "hairpin"]
+                    score = g[1].split(",")[0]
+                    temp = g[4].strip()
+                    dG = g[9].strip()
+                    datalist.append(primernames)
+                    datalist.append(score)
+                    datalist.append(temp)
+                    datalist.append(dG)
+
+                return datalist
+        else:
+            return [pp_name, "hairpin"]
 
     def filter_primerdimer(self):
         summ_file = os.path.join(
@@ -2956,10 +2935,10 @@ class PrimerQualityControl:
                         excluded.append(p_name)
                 else:
                     p_name = row[0]
-                    dg_val = row[2::2]
+                    dg_val = row[4::4]
                     dg_list = [float(i) for i in dg_val]
                     dimer = min(dg_list)
-                    if dimer >= self.config.mpprimer:
+                    if dimer >= self.config.dimer:
                         pass
                     else:
                         excluded.append(p_name)
@@ -3126,7 +3105,7 @@ class PrimerQualityControl:
     def index_Database(self, db_name):
         start = time.time()
         os.chdir(self.primer_qc_dir)
-        cmd = ["mfeprimer3.1, index", "-i", db_name]
+        cmd = ["mfeprimer3.1", "index", "-i", db_name]
         G.run_subprocess(cmd)
         os.chdir(self.primer_dir)
         end = time.time() - start
@@ -3174,14 +3153,20 @@ class PrimerQualityControl:
         outputlist = []
         with open("MFEprimer_" + name + ".csv", "w") as f:
             writer = csv.writer(f)
-            writer.writerow(["PPC", "Pf", "Pr", "AmpSeq"])
+            writer.writerow([
+                "Primer pair", "Amplicon", "Pf", "Pr", "Target", "Amp Size", "AmpSeq"])
             for item in input_list:
                 # item[0] is the primerinfo
                 if len(item[0]) > 1:
                     outputlist.append(item[0])
+                    pp_name = "_".join(item[0][0].split("_")[0:-1])
+                else:
+                    pp_name = item[0][0]
                 # item[1] are the results of MFEprimer
                 for result in item[1]:
+                    result.insert(0, pp_name)
                     writer.writerow(result)
+
         return outputlist
 
     def MFEprimer_specificity_check(self, excluded):
@@ -3247,6 +3232,7 @@ class PrimerQualityControl:
         return specific_primers
 
     def MFEprimer_template(self, primerinfo):
+        num_amp = None
         result = []
         [nameF, seqF, nameR, seqR, temp_seq, amp_seq] = primerinfo
         pp_name = "_".join(nameF.split("_")[0:-1])
@@ -3258,43 +3244,50 @@ class PrimerQualityControl:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         db = "template.sequences"
         cmd = [
-            "mfeprimer3.1", "-i", primefile.name, "-db", db, "-mismatch", "-json"]
+            "mfeprimer3.1", "spec", "-i", primefile.name, "--misMatch",
+            str(self.mismatches), "-s", "50", "-d", db ]
         cmd = " ".join(cmd)
-        while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
+        result = G.read_shelloutput(
+            cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.MFEprimer_template(primerinfo)
 
-        line = result[0].split("Primer Quality Reports")[0]
-        pqcdict = json.loads(line)
-        ampinfo = pqcdict["AmpList"]
-        hairpinfo = pqcdict["HairpinList"]
-        dimerinfo = pqcdict["DimerList"]
-        if hairpinfo:
-            return [[pp_name], [["hairpin"]]]
-        elif dimerinfo:
-            return [[pp_name], [["primerdimer"]]]
-        num_amp = len(ampinfo)
-        amplist = []
-        for data in ampinfo:
-            fdesc = data["FastaDesc"]
-            targetseq = fdesc.split(">")[1].strip()
-            ppc = round(data["PPC"],2)
-            seq = data["Seq"]
-            fp = data["Fp"]["Seq"]["Id"]
-            rp = data["Rp"]["Seq"]["Id"]
-            ampsize = data["Size"]
-            amplist.append([ppc, fp, rp, targetseq, ampsize, seq])
-        if num_amp == 1:
-            if ppc > self.config.mfethreshold:
-                primerinfo.append(ppc)
-                return [primerinfo, amplist]
-
-        return [[pp_name], amplist]
+        if datalist == []:
+            if num_amp == 0:
+                return [[pp_name], [["no amplicon"]]]
+            else:
+                return self.MFEprimer_template(primerinfo)
+        elif num_amp == 1:
+            return [primerinfo, datalist]
+        else:
+            return [[pp_name], datalist]
 
     def MFEprimer_assembly(self, primerinfo):
         result = []
-        [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = primerinfo
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
         pp_name = "_".join(nameF.split("_")[0:-1])
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3304,62 +3297,64 @@ class PrimerQualityControl:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         db = H.abbrev(self.target, dict_path) + ".genomic"
         cmd = [
-            "mfeprimer3.1", "-i", primefile.name, "-db", db, "-mismatch", "-json"]
+            "mfeprimer3.1", "spec", "-i", primefile.name, "-d", db,
+            "--misMatch", str(self.mismatches), "-s", "50"]
         cmd = " ".join(cmd)
-        while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
-        os.unlink(primefile.name)
-        line = result[0].split("Primer Quality Reports")[0]
-        pqcdict = json.loads(line)
-        ampinfo = pqcdict["AmpList"]
-        hairpinfo = pqcdict["HairpinList"]
-        dimerinfo = pqcdict["DimerList"]
-        if hairpinfo:
-            return [[pp_name], [["hairpin"]]]
-        elif dimerinfo:
-            return [[pp_name], [["primerdimer"]]]
-        num_amp = len(ampinfo)
-        amplist = []
-        for data in ampinfo:
-            fdesc = data["FastaDesc"]
-            targetseq = fdesc.split(">")[1].strip()
-            ppc = round(data["PPC"],2)
-            seq = data["Seq"]
-            fp = data["Fp"]["Seq"]["Id"]
-            rp = data["Rp"]["Seq"]["Id"]
-            ampsize = data["Size"]
-            amplist.append([ppc, fp, rp, targetseq, ampsize, seq])
 
-        amplen = len(amp_seq)
-        for x in amplist:
-            if x[0] == ppc_val:
-                pass
+        result = G.read_shelloutput(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+        os.unlink(primefile.name)
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.MFEprimer_template(primerinfo)
+
+        if datalist == []:
+            if num_amp == 0:
+                return [primerinfo, [["no amplicon"]]]
             else:
-                return [[pp_name], amplist]
-            if x[4] == amplen:
-                pass
-            else:
-                return [[pp_name], amplist]
-        target_seqs = list((x[3] for x in amplist))
-        counts = Counter(target_seqs)
-        for values in counts.values():
-            if values == 1:
-                pass
-            else:
-                return [[pp_name], amplist]
-        return [primerinfo, amplist]
+                return self.MFEprimer_assembly(primerinfo)
+        else:
+            amplen = len(amp_seq)
+            for x in datalist:
+                if int(x[4]) == amplen:
+                    pass
+                else:
+                    return [[pp_name], datalist]
+            target_seqs = list((x[3] for x in datalist))
+            counts = Counter(target_seqs)
+            for values in counts.values():
+                if values == 1:
+                    pass
+                else:
+                    return [[pp_name], datalist]
+
+        return [primerinfo, datalist]
 
     def run_primerBLAST(self, nontarget_input):
         nontarget_blastseqs = []
         for primer in nontarget_input:
             nontarget_blastseqs.append(primer[0:4])
-            ppc = primer[6]
-            pp_name = "_".join(primer[0].split("_")[0:-1])
-            target_id = "_".join(pp_name.split("_")[-3:-1])
-            primerpair = "Primer_pair_" + pp_name.split("_P")[-1]
-            self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
-
         blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
 
         if not os.path.isfile(blastsum):
@@ -3406,8 +3401,9 @@ class PrimerQualityControl:
         output = [p.get() for p in results]
 
     def MFEprimer_nontarget(self, primerinfo):
+        num_amp = None
         result = []
-        [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = primerinfo
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
         pp_name = "_".join(nameF.split("_")[0:-1])
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3416,40 +3412,48 @@ class PrimerQualityControl:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         cmd = [
-            "mfeprimer3.1", "-i", primefile.name, "-mismatch", "-json"]
+            "mfeprimer3.1", "spec", "-i", primefile.name,
+            "--misMatch", str(self.mismatches), "-s", "50"]
         for db in self.dbinputfiles:
-            cmd.append("-db")
+            cmd.append("-d")
             cmd.append(db)
         cmd = " ".join(cmd)
         while result == []:
             result = G.read_shelloutput(
                 cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
-        line = result[0].split("Primer Quality Reports")[0]
-        pqcdict = json.loads(line)
-        ampinfo = pqcdict["AmpList"]
-        hairpinfo = pqcdict["HairpinList"]
-        dimerinfo = pqcdict["DimerList"]
-        if hairpinfo:
-            return [[pp_name], [["hairpin"]]]
-        elif dimerinfo:
-            return [[pp_name], [["primerdimer"]]]
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.MFEprimer_nontarget(primerinfo)
+
+        if datalist == []:
+            if num_amp == 0:
+                return [primerinfo, [["no amplicon"]]]
+            else:
+                return self.MFEprimer_nontarget(primerinfo)
         else:
-            if ampinfo:
-                amplist = []
-                for data in ampinfo:
-                    fdesc = data["FastaDesc"]
-                    targetseq = fdesc.split(">")[1].strip()
-                    ppc = round(data["PPC"],2)
-                    seq = data["Seq"]
-                    fp = data["Fp"]["Seq"]["Id"]
-                    rp = data["Rp"]["Seq"]["Id"]
-                    ampsize = data["Size"]
-                    amplist.append([ppc, fp, rp, targetseq, ampsize, seq])
-
-                return [[pp_name], amplist]
-
-        return [primerinfo, [["no amplicon"]]]
+            return [[pp_name], datalist]
 
     def mfold_analysis(self, mfoldinputlist):
         info = "Start mfold analysis of PCR products"
@@ -3472,7 +3476,7 @@ class PrimerQualityControl:
         # This removes the Genus species string to shorten the
         # name for mfold (especially for subspecies names). mfold has
         # problems with too long filenames / paths
-        [nameF, seqF, nameR, seqR, templ_seq, amp_seq, ppc_val] = mfoldinput
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = mfoldinput
         primer_name = "_".join(nameF.split("_")[0:-1])
         target_id = "_".join(primer_name.split("_")[-3:-1])
         primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
@@ -3676,7 +3680,6 @@ class PrimerQualityControl:
                 rpen = round(x["primer_R_penalty"], 2)
                 lTM = round(x["primer_L_TM"], 2)
                 rTM = round(x["primer_R_TM"], 2)
-                ppc = x['PPC']
                 if self.config.probe:
                     iseq = x["primer_I_sequence"]
                     ipen = round(x["primer_I_penalty"], 2)
@@ -3687,7 +3690,7 @@ class PrimerQualityControl:
                     iTM = "None"
 
                 info = [
-                    primer_name, ppc, pp_penalty, target_id,
+                    primer_name, pp_penalty, target_id,
                     lseq, lTM, lpen,
                     rseq, rTM, rpen,
                     iseq, iTM, ipen,
@@ -3706,7 +3709,7 @@ class PrimerQualityControl:
     def write_results(self, choice):
         G.logger("Run: write_results(" + self.target + ")")
         header = [
-            "Primer name", "PPC", "Primer penalty", "Gene",
+            "Primer name", "Primer penalty", "Gene",
             "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
             "Primer rev seq", "Primer rev TM", "Primer rev penalty",
             "Probe seq)", "Probe TM", "Probe penalty",
@@ -3931,7 +3934,7 @@ class Summary:
             G.logger("Run: write_results(" + self.target + ")")
             wrote = []
             header = [
-                "Primer name", "PPC", "Primer penalty", "Gene",
+                "Primer name", "Primer penalty", "Gene",
                 "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
                 "Primer rev seq", "Primer rev TM", "Primer rev penalty",
                 "Probe seq)", "Probe TM", "Probe penalty",
@@ -4122,13 +4125,13 @@ def commandline():
         "--mfold", type=float, default=-3.0, help="Delta G threshold for "
         " secondary structures in PCR products at 60 degree Celsius"
         "calculated by mfold (default = -3.0)")
-    # mpprimer-threshold
+    # dimer-threshold
     parser.add_argument(
-        "--mpprimer", type=float, default=-3.5, help="Delta G threshold for "
-        "3'-end primer-primer binding calculated by MPprimer (default = -3.5)")
+        "--dimer", type=float, default=-3.5, help="Delta G threshold for "
+        "primerdimer calculation by MFEprimer-3.1 (default = -3.5)")
     parser.add_argument(
-        "--mfethreshold", type=int, default=80, help="Threshold for "
-        " MFEprimer PPC for nontarget sequences (default = 90)")
+        "--mismatches", type=int, default=1, choices=[0, 1, 2],
+        help="MFEprimr-3.1 max allowed mismatches between kmer and its binding sites")
     parser.add_argument(
         "--assemblylevel", "-l", nargs="*", type=str, default=["all"],
         choices=[
@@ -4218,27 +4221,27 @@ def main(mode=None):
         target = target.capitalize()
         if use_configfile:
             (
-                minsize, maxsize, mpprimer, exception, target, path,
+                minsize, maxsize, dimer, exception, target, path,
                 intermediate, qc_gene, mfold, skip_download,
                 assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, customdb,
+                offline, ignore_qc, mismatches, customdb,
                 blastseqs, probe, blastdbv5
             ) = conf_from_file.get_config(target)
             if nolist:
                 nontargetlist = []
                 config = CLIconf(
-                    minsize, maxsize, mpprimer, exception, target, path,
+                    minsize, maxsize, dimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, customdb,
+                    nolist, offline, ignore_qc, mismatches, customdb,
                     blastseqs, probe, blastdbv5)
             else:
                 nontargetlist = H.create_non_target_list(target)
                 config = CLIconf(
-                    minsize, maxsize, mpprimer, exception, target, path,
+                    minsize, maxsize, dimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, customdb,
+                    nolist, offline, ignore_qc, mismatches, customdb,
                     blastseqs, probe, blastdbv5)
         else:
             if args.nolist:
@@ -4247,12 +4250,12 @@ def main(mode=None):
                 nontargetlist = H.create_non_target_list(target)
 
             config = CLIconf(
-                args.minsize, args.maxsize, args.mpprimer, args.exception,
+                args.minsize, args.maxsize, args.dimer, args.exception,
                 target, args.path, args.intermediate,
                 args.qc_gene, args.mfold, args.skip_download,
                 args.assemblylevel, nontargetlist,
                 args.skip_tree, args.nolist, args.offline,
-                args.ignore_qc, args.mfethreshold, args.customdb,
+                args.ignore_qc, args.mismatches, args.customdb,
                 args.blastseqs, args.probe, args.blastdbv5)
 
         today = time.strftime("%Y_%m_%d", time.localtime())

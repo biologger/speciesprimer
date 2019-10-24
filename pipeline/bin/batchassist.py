@@ -418,51 +418,51 @@ class Input:
                 self.config_dict[target].update({"mfold": float(mfold_th)})
             print("mfold", mfold_th)
 
-    def get_mpprimer(self, target, index, listlen):
-        if "mpprimer" not in self.config_dict[target].keys():
+    def get_dimer(self, target, index, listlen):
+        if "dimer" not in self.config_dict[target].keys():
             print("\n" + target + ":")
-            mpprimer_th = input(
-                "Mpprimer threshold for delta G values calculated by "
-                "MPprimer_dimer_check.pl\ndefault=-3.5\n> ")
-            if mpprimer_th:
-                if not type(eval(mpprimer_th)) == float:
+            dimer_th = input(
+                "Delta G threshold for primerdimer calculation by MFEprimer-3.1"
+                " (default = -3.5)\n> ")
+            if dimer_th:
+                if not type(eval(dimer_th)) == float:
                     print("No valid input (float)")
-                    return self.get_mpprimer(target, index, listlen)
+                    return self.get_dimer(target, index, listlen)
             else:
-                mpprimer_th = -3.5
+                dimer_th = -3.5
             if index == 0:
                 if not self.value_for_all(
-                    "mpprimer", float(mpprimer_th), listlen
+                    "dimer", float(dimer_th), listlen
                 ):
                     self.config_dict[target].update(
-                        {"mpprimer": float(mpprimer_th)})
+                        {"dimer": float(dimer_th)})
             else:
                 self.config_dict[target].update(
-                    {"mpprimer": float(mpprimer_th)})
-            print("mpprimer", mpprimer_th)
+                    {"dimer": float(dimer_th)})
+            print("dimer", dimer_th)
 
-    def get_mfeprimer_threshold(self, target, index, listlen):
-        if "mfethreshold" not in self.config_dict[target].keys():
+    def get_mismatches(self, target, index, listlen):
+        if "mismatches" not in self.config_dict[target].keys():
             print("\n" + target + ":")
-            mfeprimer_th = input(
-                "MFEprimer threshold for nontarget sequence PPC "
-                "higher values mean more stringent selection.\ndefault=80\n> ")
-            if mfeprimer_th:
-                if not type(eval(mfeprimer_th)) == int:
+            mismatches = input(
+                "MFEprimr-3.1 max allowed mismatches between kmer and its "
+                "binding sites\ndefault=1\n> ")
+            if mismatches:
+                if not type(eval(mismatches)) == int:
                     print("No valid input (float)")
-                    return self.mfeprimer_threshold(target, index, listlen)
+                    return self.mismatches(target, index, listlen)
             else:
-                mfeprimer_th = 80
+                mismatches = 1
             if index == 0:
                 if not self.value_for_all(
-                    "mfethreshold", int(mfeprimer_th), listlen
+                    "mismatches", int(mismatches), listlen
                 ):
                     self.config_dict[target].update(
-                        {"mfethreshold": int(mfeprimer_th)})
+                        {"mismatches": int(mismatches)})
             else:
                 self.config_dict[target].update(
-                    {"mfethreshold": int(mfeprimer_th)})
-            print("mfeprimer threshold", mfeprimer_th)
+                    {"mismatches": int(mismatches)})
+            print("mfeprimer mismatches", mismatches)
 
     def no_singleton(self, target, index, listlen):
         if "singleton" not in self.config_dict[target].keys():
@@ -598,8 +598,8 @@ class Input:
             self.get_maxsize(target, i, listlen)
             self.get_designprobe(target, i, listlen)
             self.get_mfold(target, i, listlen)
-            self.get_mpprimer(target, i, listlen)
-            self.get_mfeprimer_threshold(target, i, listlen)
+            self.get_dimer(target, i, listlen)
+            self.get_mismatches(target, i, listlen)
             self.no_singleton(target, i, listlen)
             self.get_intermediate(target, i, listlen)
             self.ignore_qc(target, i, listlen)
@@ -619,7 +619,7 @@ class Output:
         self.default_dict = {
             "minsize": 70,
             "maxsize": 200,
-            "mpprimer": -3.5,
+            "dimer": -3.5,
             "exception": None,
             "path": os.getcwd(),
             "intermediate": False,
@@ -631,7 +631,7 @@ class Output:
             "nolist": False,
             "offline": False,
             "ignore_qc": False,
-            "mfethreshold": 80,
+            "mismatches": 1,
             "customdb": None,
             "blastseqs": 1000,
             "probe": False,

@@ -103,22 +103,18 @@
         {{ form.mfold() }} 
       </p>        
       <p>
-        <strong>{{ form.mpprimer.label }}</strong> (--mpprimer)
+        <strong>{{ form.dimer.label }}</strong> (--dimer)
         <br>
         <br>
-        {{ form.mpprimer() }}
+        {{ form.dimer() }}
       </p>         
       <p>
-        <strong>{{ form.mfeprimer_threshold.label }}</strong> (--mfethreshold)
+        <strong>{{ form.mismatches.label }}</strong> (--mismatches)
+
         <br>
-        Higher threshold values mean more stringent selection. 
-        However, with MFEprimer-3.0 this is only used to assess the template PPC, 
-        which can also be seen and filtered in the primer results csv.
+        {{ form.mismatches() }}
         <br>
-        <br>
-        {{ form.mfeprimer_threshold() }}
-        <br>
-        {% for error in form.mfeprimer_threshold.errors %}
+        {% for error in form.mismatches.errors %}
         <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
       </p>

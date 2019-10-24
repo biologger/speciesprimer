@@ -32,9 +32,9 @@ testfiles_dir = os.path.join(BASE_PATH, "tests", "testfiles")
 ref_data = os.path.join(BASE_PATH, "tests", "testfiles", "ref")
 
 confargs = {
-    "ignore_qc": False, "mfethreshold": 80, "maxsize": 200,
+    "ignore_qc": False, "mismatches": 1, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
-    "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
+    "blastseqs": 1000, "mfold": -3.0, "dimer": -3.5,
     "offline": False,
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
@@ -52,12 +52,12 @@ def config():
     args = AttrDict(confargs)
     nontargetlist = H.create_non_target_list(args.target)
     config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.minsize, args.maxsize, args.dimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.ignore_qc, args.mismatches, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
     config.save_config()
     return config
@@ -116,13 +116,13 @@ def test_CLIconf(config):
     assert config.minsize == confargs['minsize']
     assert config.maxsize == confargs['maxsize']
     assert config.ignore_qc == confargs['ignore_qc']
-    assert config.mfethreshold == confargs['mfethreshold']
+    assert config.mismatches == confargs['mismatches']
     assert config.target == confargs['target']
     assert config.nolist == confargs['nolist']
     assert config.skip_tree == confargs['skip_tree']
     assert config.blastseqs == confargs['blastseqs']
     assert config.mfold == confargs['mfold']
-    assert config.mpprimer == confargs['mpprimer']
+    assert config.dimer == confargs['dimer']
     assert config.offline == confargs['offline']
     assert config.probe == confargs['probe']
     assert config.exception == confargs['exception']
@@ -148,23 +148,23 @@ def test_auto_run_config(config):
         target = target.capitalize()
         if use_configfile:
             (
-                minsize, maxsize, mpprimer, exception, target, path,
+                minsize, maxsize, dimer, exception, target, path,
                 intermediate, qc_gene, mfold, skip_download,
                 assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, customdb,
+                offline, ignore_qc, mismatches, customdb,
                 blastseqs, probe, blastdbv5
             ) = conf_from_file.get_config(target)
 
     assert minsize == confargs['minsize']
     assert maxsize == confargs['maxsize']
     assert ignore_qc == confargs['ignore_qc']
-    assert mfethreshold == confargs['mfethreshold']
+    assert mismatches == confargs['mismatches']
     assert target == confargs['target']
     assert nolist == confargs['nolist']
     assert skip_tree == confargs['skip_tree']
     assert blastseqs == confargs['blastseqs']
     assert mfold == confargs['mfold']
-    assert mpprimer == confargs['mpprimer']
+    assert dimer == confargs['dimer']
     assert offline == confargs['offline']
     assert probe == confargs['probe']
     assert exception == confargs['exception']
@@ -717,7 +717,7 @@ def test_BLASTsettings(config):
             else:
                 # there should not be any other modes
                 assert cmd[2] == "error"
-            assert cmd[-1] == db_outcome[i]        
+            assert cmd[-1] == db_outcome[i]
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 

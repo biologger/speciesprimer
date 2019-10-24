@@ -60,9 +60,10 @@ class SettingsForm(FlaskForm):
     mfold = FloatField(
             "ΔG threshold for secondary structures in PCR products"
             " at 60°C calculated by mfold", default = -3.0)
-    mpprimer = FloatField(
-            "ΔG  threshold for 3'-end primer dimer binding", default = -3.5)
-    mfeprimer_threshold = SelectField("MFEprimer threshold for template sequence PPC", coerce=int, choices=[(80, "80"), (85, "85"), (90, "90"), (95, "95"), (100, "100")], default=80)
+    dimer = FloatField(
+            "ΔG threshold for primer dimer calculations by MFEprimer-3.1", default = -3.5)
+    mismatches = SelectField(
+            "MFEprimer-3.1 max allowed mismatches between kmer and its binding sites", coerce=int, choices=[(0, "0"), (1, "1"), (2, "2")], default=1)
     ignore_qc = BooleanField(
             "Include genomes that did not pass quality control")
     blastdbv5 = BooleanField("BLAST DB Version 5")
