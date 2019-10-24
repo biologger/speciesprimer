@@ -1,4 +1,4 @@
-FROM biologger/speciesprimerdeps
+FROM biologger/speciesprimerdeps:V3
 
 MAINTAINER biologger
 
