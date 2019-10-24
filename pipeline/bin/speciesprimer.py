@@ -16,7 +16,6 @@ import wget
 import json
 import tempfile
 import urllib
-import itertools
 from itertools import islice
 from datetime import timedelta
 from collections import Counter
