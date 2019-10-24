@@ -2829,10 +2829,10 @@ class PrimerQualityControl:
             or os.stat("hairpin_results.txt").st_size == 0):
             cmd = [
                 "mfeprimer3.1", "hairpin", "-i", "primerlist.fa",
-                ">", "hairpin_results.txt"]
+                "-o", "hairpin_results.txt"]
             cmd = " ".join(cmd)
             G.run_shell(cmd)
-        with open("hairpin_results.txt") as f:
+        with open("hairpin_results.txt", "r", encoding="utf8") as f:
             for line in f:
                 line = line.strip()
                 if line == "No hairpins found.":
@@ -2862,7 +2862,7 @@ class PrimerQualityControl:
                 "Dimer 1", "score", "Tm (°C)", "deltaG (kcal/mol)",
                 "Dimer 2", "score", "Tm (°C)", "deltaG (kcal/mol)",
                 "Dimer 3", "score", "Tm (°C)", "deltaG (kcal/mol)"]
-            with open(summ_file, "w") as f:
+            with open(summ_file, "w", encoding="utf8") as f:
                 writer = csv.writer(f)
                 writer.writerow(header)
                 writer.writerows(dimers)
@@ -2915,7 +2915,7 @@ class PrimerQualityControl:
             self.primerdimer_dir, "primerdimer_summary.csv")
 
         excluded = []
-        with open(summ_file) as f:
+        with open(summ_file, "r", encoding="utf8") as f:
             r = csv.reader(f)
             next(r, None)
             for row in r:
