@@ -788,12 +788,10 @@ ref_hairpins = [
             'Lb_curva_mock_9_P3']
 
 ref_excluded = [
-            'Lb_curva_asnS_2_P1', 'Lb_curva_comFA_2_P3',
-            'Lb_curva_comFA_3_P0', 'Lb_curva_comFA_4_P0',
-            'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P1',
-            'Lb_curva_g1243_1_P5', 'Lb_curva_gshAB_2_P0',
-            'Lb_curva_gshAB_2_P3', 'Lb_curva_mock_1_P0',
-            'Lb_curva_mock_1_P1', 'Lb_curva_mock_9_P3']
+        'Lb_curva_comFA_2_P2', 'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P0',
+        'Lb_curva_g1243_1_P1', 'Lb_curva_g1243_1_P4', 'Lb_curva_gshAB_2_P0',
+        'Lb_curva_gshAB_3_P0', 'Lb_curva_gshAB_3_P1', 'Lb_curva_mock_1_P0',
+        'Lb_curva_mock_1_P1', 'Lb_curva_mock_9_P3']
 
 ref_results = [[
         'Lb_curva_asnS_1_P0_F', 'AAACCATGTCGATGAAGAAGTTAAA',
@@ -801,14 +799,14 @@ ref_results = [[
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
      + 'TCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
-     + 'TCATTCCTCCAATTACGTGATGGCA', 83.54],
+     + 'TCATTCCTCCAATTACGTGATGGCA'],
      [
          'Lb_curva_asnS_2_P0_F', 'ACAAGAATCAAGTATGTGGGTGAC',
       'Lb_curva_asnS_2_P0_R', 'TGCTGTCACCAATTAATTCGATGT',
       'AAGCCGTTTTCCAATTGGCAAAAGATGTNAAACAAGAATCAAGTATGTGGGTGACAGGGGTCATNC'
       + 'ATGAAGATACTCGTTCACACTTTGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGAC'
       + 'AGCAG', 'ACAAGAATCAAGTATGTGGGTGACAGGGGTCATNCATGAAGATACTCGTTCACACTT'
-      + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA', 84.49]]
+      + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA']]
 
 def test_PrimerQualityControl(config):
     def dbinputfiles():
@@ -869,7 +867,7 @@ def test_PrimerQualityControl(config):
             pp_name = "_".join(primer[0].split("_")[0:-1])
             if pp_name not in ref_excluded:
                 primerinfos.append(primer)
-        assert len(primerinfos) == 61
+        assert len(primerinfos) == 62
 
         qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences.csv")
         if os.path.isdir(pqc.summ_dir):
@@ -902,19 +900,18 @@ def test_PrimerQualityControl(config):
             pp_name = "_".join(primer[0].split("_")[0:-1])
             if pp_name not in ref_excluded:
                 primerinfos.append(primer)
-        assert len(primerinfos) == 61
+        assert len(primerinfos) == 62
 
         template_results = G.run_parallel(pqc.MFEprimer_template, primerinfos)
         assembly_input = pqc.write_MFEprimer_results(template_results, "template")
-        assert len(assembly_input) == 60
+        assert len(assembly_input) == 61
 
         assembly_results = G.run_parallel(pqc.MFEprimer_assembly, assembly_input)
         nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly")
-        assert len(nontarget_input) == 57
+        assert len(nontarget_input) == 20
 
         pqc.run_primerBLAST(nontarget_input)
         pqc.prepare_nontargetDB()
-
         os.chdir(pqc.primer_qc_dir)
 
         nontarget_results = G.run_parallel(
@@ -924,9 +921,8 @@ def test_PrimerQualityControl(config):
         specific_primers.sort()
         assert specific_primers[0] == ref_results[0]
         assert specific_primers[1] == ref_results[1]
-        assert len(specific_primers) == 55
+        assert len(specific_primers) == 20
 
-        return specific_primers
 
     from speciesprimer import PrimerQualityControl
     tmpdir = os.path.join(config.path, "tmp")
@@ -949,10 +945,10 @@ def test_PrimerQualityControl(config):
     test_hairpin_check(config)
     test_primerdimer_check(config)
     test_MFEprimer_DBs(config)
-    specific_primers = test_MFEprimer_specificity_check(config)
+    test_MFEprimer_specificity_check(config)
     test_mfold = [
-            specific_primers[0], specific_primers[1],
-            specific_primers[2], specific_primers[46]]
+            pqc.primerlist[60], pqc.primerlist[65],
+            pqc.primerlist[2], pqc.primerlist[37]]
     pqc.mfold_analysis(test_mfold)
     selected_primer, excluded_primer = pqc.mfold_parser()
     selected_primer.sort()
@@ -963,7 +959,7 @@ def test_PrimerQualityControl(config):
 def test_summary(config):
     total_results = [
         [
-            'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2',
+            'Lb_curva_comFA_2_P1', 1.64, 'comFA_2',
             'TACCAAGCAACAACGCCATG', 59.4, 0.63,
             'ACACACACGCTGCCCATTAG', 60.95, 0.99,
             'None', 'None', 'None', 106, 82.53,
@@ -1004,15 +1000,15 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
-#def test_end(config):
-#    def remove_test_files(config):
-#        test = config.path
-#        shutil.rmtree(test)
-#        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-#        if os.path.isfile(tmp_path):
-#            os.remove(tmp_path)
-#        os.chdir(BASE_PATH)
-#    remove_test_files(config)
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        os.chdir(BASE_PATH)
+    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
