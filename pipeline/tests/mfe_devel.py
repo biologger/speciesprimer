@@ -24,9 +24,9 @@ from basicfunctions import GeneralFunctions as G
 
 
 confargs = {
-    "ignore_qc": False, "mfethreshold": 80, "maxsize": 200,
+    "ignore_qc": False, "mismatches": 1, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
-    "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
+    "blastseqs": 1000, "mfold": -3.0, "dimer": -3.5,
     "offline": False,
     "path": os.path.join("/", "home", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
@@ -44,12 +44,12 @@ def config():
     args = AttrDict(confargs)
     nontargetlist = H.create_non_target_list(args.target)
     config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.minsize, args.maxsize, args.dimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.ignore_qc, args.mismatches, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
 
     config.save_config()
@@ -217,7 +217,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 #        outcome = [[None], [None], 'Lb_curva_asnS_1_P0_F', 'Lb_curva_asnS_1_P0_F']
 #        results = []
 #        for index, item in enumerate(ppcth):
-#            pqc.mfethreshold = item
+#            pqc.mismatches = item
 #            result = pqc.MFEprimer_template(primerinfo[0])
 #            results.append(result)
 #            if outcome[index] == [None]:
@@ -251,7 +251,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 #        results = []
 #        nontarget_lists = []
 #        for index, item in enumerate(ppcth):
-#            pqc.mfethreshold = item
+#            pqc.mismatches = item
 #            result = pqc.MFEprimer_nontarget(check_nontarget[1], pqc.dbinputfiles[0])
 #            assert result == ref
 #            results.append(result)
@@ -271,7 +271,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 #        results = []
 #        outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
 #        for index, item in enumerate(ppcth):
-#            pqc.mfethreshold = item
+#            pqc.mismatches = item
 #            result = pqc.MFEprimer_assembly(check_assembly[0])
 #            results.append(result)
 #            if outcome[index] == [None]:
@@ -290,7 +290,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         ppcth = [100, 90, 80, 70]
         primerinfos = pqc.get_primerinfo(inputseqs, "mfeprimer")
         for index, item in enumerate(ppcth):
-            pqc.mfethreshold = item
+            pqc.mismatches = item
             primer_name_list = pqc.MFEprimer_QC(primerinfos)
             assert len(primer_name_list) == outcome[index]
 
@@ -518,14 +518,14 @@ def dev_new_QC(config):
          'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
          + 'TCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG', 
          'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
-         + 'TCATTCCTCCAATTACGTGATGGCA', 83.54], 
+         + 'TCATTCCTCCAATTACGTGATGGCA'], 
          [
              'Lb_curva_asnS_2_P0_F', 'ACAAGAATCAAGTATGTGGGTGAC', 
           'Lb_curva_asnS_2_P0_R', 'TGCTGTCACCAATTAATTCGATGT', 
           'AAGCCGTTTTCCAATTGGCAAAAGATGTNAAACAAGAATCAAGTATGTGGGTGACAGGGGTCATNC'
           + 'ATGAAGATACTCGTTCACACTTTGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGAC'
           + 'AGCAG', 'ACAAGAATCAAGTATGTGGGTGACAGGGGTCATNCATGAAGATACTCGTTCACACTT'
-          + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA', 84.49]]
+          + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA']]
 
     def dbinputfiles():
         filenames = [
@@ -653,9 +653,10 @@ def dev_new_QC(config):
         specific_primers = pqc.write_MFEprimer_results(
                 nontarget_results, "nontarget")
         specific_primers.sort()
+ 
         assert specific_primers[0] == ref_results[0]
         assert specific_primers[1] == ref_results[1]
-        assert len(specific_primers) == 55
+        assert len(specific_primers) == 20
         
         return specific_primers
 
@@ -927,12 +928,10 @@ ref_hairpins = [
             'Lb_curva_mock_9_P3']  
 
 ref_excluded = [
-            'Lb_curva_asnS_2_P1', 'Lb_curva_comFA_2_P3', 
-            'Lb_curva_comFA_3_P0', 'Lb_curva_comFA_4_P0', 
-            'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P1', 
-            'Lb_curva_g1243_1_P5', 'Lb_curva_gshAB_2_P0', 
-            'Lb_curva_gshAB_2_P3', 'Lb_curva_mock_1_P0', 
-            'Lb_curva_mock_1_P1', 'Lb_curva_mock_9_P3']
+        'Lb_curva_comFA_2_P2', 'Lb_curva_dimer_1_P0', 'Lb_curva_g1243_1_P0',
+        'Lb_curva_g1243_1_P1', 'Lb_curva_g1243_1_P4', 'Lb_curva_gshAB_2_P0',
+        'Lb_curva_gshAB_3_P0', 'Lb_curva_gshAB_3_P1', 'Lb_curva_mock_1_P0',
+        'Lb_curva_mock_1_P1', 'Lb_curva_mock_9_P3']
 
 ref_results = [[
         'Lb_curva_asnS_1_P0_F', 'AAACCATGTCGATGAAGAAGTTAAA', 
@@ -940,14 +939,14 @@ ref_results = [[
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
      + 'TCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG', 
      'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGATT'
-     + 'TCATTCCTCCAATTACGTGATGGCA', 83.54], 
+     + 'TCATTCCTCCAATTACGTGATGGCA'], 
      [
          'Lb_curva_asnS_2_P0_F', 'ACAAGAATCAAGTATGTGGGTGAC', 
       'Lb_curva_asnS_2_P0_R', 'TGCTGTCACCAATTAATTCGATGT', 
       'AAGCCGTTTTCCAATTGGCAAAAGATGTNAAACAAGAATCAAGTATGTGGGTGACAGGGGTCATNC'
       + 'ATGAAGATACTCGTTCACACTTTGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGAC'
       + 'AGCAG', 'ACAAGAATCAAGTATGTGGGTGACAGGGGTCATNCATGAAGATACTCGTTCACACTT'
-      + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA', 84.49]]
+      + 'TGGTTATGAAATTGAAATTTCTGACATCGAATTAATTGGTGACAGCA']]
 
 def test_PrimerQualityControl(config):
 
@@ -1001,6 +1000,7 @@ def test_PrimerQualityControl(config):
         pqc.primerdimer_check(ref_hairpins) 
         excluded = pqc.filter_primerdimer()
         excluded.sort()
+        print(excluded)
         assert excluded == ref_excluded
 
     def test_MFEprimer_DBs(config):
@@ -1009,7 +1009,7 @@ def test_PrimerQualityControl(config):
             pp_name = "_".join(primer[0].split("_")[0:-1])
             if pp_name not in ref_excluded:
                 primerinfos.append(primer)
-        assert len(primerinfos) == 61
+        assert len(primerinfos) == 62
 
         qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences.csv")
         G.create_directory(pqc.summ_dir)
@@ -1040,22 +1040,19 @@ def test_PrimerQualityControl(config):
             pp_name = "_".join(primer[0].split("_")[0:-1])
             if pp_name not in ref_excluded:
                 primerinfos.append(primer)
-        assert len(primerinfos) == 61
+        assert len(primerinfos) == 62
+
 
         template_results = G.run_parallel(pqc.MFEprimer_template, primerinfos)
         assembly_input = pqc.write_MFEprimer_results(template_results, "template")
-#        assert len(assembly_input) == 60
-        raise Exception
+        assert len(assembly_input) == 61
 
         assembly_results = G.run_parallel(pqc.MFEprimer_assembly, assembly_input)
-        nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly")        
-        assert len(nontarget_input) == 57
-
-        pqc.run_primerBLAST(nontarget_input)
+        nontarget_input = pqc.write_MFEprimer_results(assembly_results, "assembly") 
+        assert len(nontarget_input) == 20
+        pqc.run_primerBLAST(assembly_input)
         pqc.prepare_nontargetDB()
-
         os.chdir(pqc.primer_qc_dir)
-                
         nontarget_results = G.run_parallel(
             pqc.MFEprimer_nontarget, nontarget_input)
         specific_primers = pqc.write_MFEprimer_results(
@@ -1063,7 +1060,7 @@ def test_PrimerQualityControl(config):
         specific_primers.sort()
         assert specific_primers[0] == ref_results[0]
         assert specific_primers[1] == ref_results[1]
-        assert len(specific_primers) == 55
+        assert len(specific_primers) == 20
         
         return specific_primers
 
@@ -1088,17 +1085,19 @@ def test_PrimerQualityControl(config):
     test_collect_primer(config)
     hairpin = test_hairpin_check(config)
     print(hairpin)
-#    test_primerdimer_check(config)
-    for primer in pqc.primerlist:
-        result = pqc.run_mfeprimerdimer(primer, hairpin)
+    test_primerdimer_check(config)
 
-#    test_MFEprimer_DBs(config)
-#    specific_primers = test_MFEprimer_specificity_check(config)
-#    test_mfold = [
-#            specific_primers[0], specific_primers[1],
-#            specific_primers[2], specific_primers[46]]
-#    pqc.mfold_analysis(test_mfold)
-#    selected_primer, excluded_primer = pqc.mfold_parser()
+    test_MFEprimer_DBs(config)
+    specific_primers = test_MFEprimer_specificity_check(config)
+    
+    for i, primer in enumerate(pqc.primerlist):
+        
+        pqc.mfold_analysis([primer])
+        selected_primer, excluded_primer = pqc.mfold_parser()
+        print(i)
+        print(selected_primer)
+        
+        print(excluded_primer)
 #
 #    assert selected_primer == ['Lb_curva_asnS_1_P0', 'Lb_curva_asnS_2_P0']
 #    assert excluded_primer == ['Lb_curva_gshAB_2_P2', 'Lb_curva_comFA_2_P0']
