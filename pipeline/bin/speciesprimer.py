@@ -3216,7 +3216,7 @@ class PrimerQualityControl:
 
         # if the MFEprimer_nontarget.csv has only the table header
         # and no results, then no primer binding was detected
-        #  and the primers passed the QC
+        # and the primers passed the QC
         check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
         msg = " primer pair(s) passed non-target PCR check"
         info2 = str(len(check_assembly)) + msg
