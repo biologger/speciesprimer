@@ -858,6 +858,7 @@ def test_PrimerQualityControl(config):
     def test_primerdimer_check(config):
         pqc.primerdimer_check(ref_hairpins)
         excluded = pqc.filter_primerdimer()
+        ref_excluded.sort()
         excluded.sort()
         assert excluded == ref_excluded
 
