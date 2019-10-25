@@ -730,12 +730,10 @@ def test_BLASTsettings(config):
         shutil.rmtree(tmpdir)
 
 def test_blastparser(config):
-    pass
     from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
-    # primer blastparser function
+#    primer blastparser function
 #    get_primerBLAST_DBIDS(self, nonred_dict)
-
 #    get_alignmentdata(self, alignment)
 
 def test_PrimerDesign(config):
@@ -760,6 +758,7 @@ def test_PrimerQualityControl_specificitycheck(config):
     tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
+    G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
     config.blastdbv5 = False
 
@@ -767,7 +766,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         filenames = [
             "GCF_004088235v1_20191001.fna",
             "GCF_002224565.1_ASM222456v1_genomic.fna"]
-        dbfile = os.path.join(testfiles_dir, "primer_customdb.fas")
+        dbfile = os.path.join(tmpdir, "primer_customdb.fas")
         with open(dbfile, "w") as f:
             for filename in filenames:
                 filepath = os.path.join(testfiles_dir, filename)
@@ -822,6 +821,7 @@ def test_PrimerQualityControl_specificitycheck(config):
 
 #        Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
 #            "primer", use_cores)
+
         G.create_directory(pqc.primer_qc_dir)
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
@@ -1000,28 +1000,22 @@ def test_PrimerQualityControl_structures(config):
 
     def test_mfold():
         spec_output = [
-            'Lb_curva_g1243_1_P2', 'Lb_curva_g4430_1_P0', 'Lb_curva_comFA_4_P2',
-            'Lb_curva_comFA_4_P5', 'Lb_curva_gshAB_2_P0', 'Lb_curva_comFA_2_P0',
-            'Lb_curva_g1243_2_P0', 'Lb_curva_g1243_1_P0', 'Lb_curva_comFA_5_P1',
-            'Lb_curva_g4295_1_P0', 'Lb_curva_gshAB_2_P4', 'Lb_curva_asnS_2_P0',
-            'Lb_curva_comFA_2_P1', 'Lb_curva_comFA_6_P1', 'Lb_curva_g4295_1_P4']
+            'Lb_curva_g1243_1_P2', 'Lb_curva_g4430_1_P0',
+            'Lb_curva_gshAB_2_P0', 'Lb_curva_comFA_2_P0']
         ref_output = [
-            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
-            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4',
-            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5', 'Lb_curva_g4430_1_P0',
-            'Lb_curva_g1243_1_P0', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
-            'Lb_curva_comFA_2_P1', 'Lb_curva_asnS_2_P0']
+             'Lb_curva_gshAB_2_P0', 'Lb_curva_g4430_1_P0',
+             'Lb_curva_g1243_1_P2']
         ref_output.sort()
         primerinfos = pqc.get_primerinfo(spec_output, "mfold")
         pqc.mfold_analysis(primerinfos)
         pqc.config.mfold = -1.0
         selected_primer, excluded_primer = pqc.mfold_parser()
-        assert len(selected_primer) == 12
-        assert len(excluded_primer) == 3
+        assert len(selected_primer) == 3
+        assert len(excluded_primer) == 1
 
         pqc.config.mfold = -12.0
         selected_primer, excluded_primer = pqc.mfold_parser()
-        assert len(selected_primer) == 15
+        assert len(selected_primer) == 4
         assert len(excluded_primer) == 0
         # default
         pqc.config.mfold = -3.0
@@ -1030,10 +1024,14 @@ def test_PrimerQualityControl_structures(config):
         assert selected_primer == ref_output
         assert excluded_primer == ['Lb_curva_comFA_2_P0']
 
-        return selected_primer, excluded_primer
-    #    print(excluded_primer)
-
-    def test_dimercheck(selected_primer, excluded_primer):
+    def test_dimercheck():
+        selected_primer = [
+            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
+            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4',
+            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5', 'Lb_curva_g4430_1_P0',
+            'Lb_curva_g1243_1_P0', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
+            'Lb_curva_comFA_2_P1', 'Lb_curva_asnS_2_P0']
+        excluded_primer = ['Lb_curva_comFA_2_P0']
         ref_choice = [
             'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
             'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2',
@@ -1046,8 +1044,8 @@ def test_PrimerQualityControl_structures(config):
         assert choice == ref_choice
         return choice
 
-    selected_primer, excluded_primer = test_mfold()
-    choice = test_dimercheck(selected_primer, excluded_primer)
+    test_mfold()
+    choice = test_dimercheck()
     total_results = pqc.write_results(choice)
     total_results.sort()
     print(total_results)
@@ -1107,7 +1105,6 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
-
 def test_end(config):
     def remove_test_files(config):
         test = config.path
@@ -1117,7 +1114,7 @@ def test_end(config):
             os.remove(tmp_path)
         os.chdir(BASE_PATH)
 
-#    remove_test_files(config)
+    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
