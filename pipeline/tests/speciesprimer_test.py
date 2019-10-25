@@ -511,10 +511,6 @@ def test_CoreGenes(config):
             shutil.rmtree(CG.ffn_dir)
         new_ffn_dir = os.path.join(testfiles_dir, "ffn_files")
         shutil.copytree(new_ffn_dir, CG.ffn_dir)
-        if os.path.isdir(CG.gff_dir):
-            shutil.rmtree(CG.gff_dir)
-        new_gff_dir = os.path.join(testfiles_dir, "gff_files")
-        shutil.copytree(new_gff_dir, CG.gff_dir)
 
     def test_coregene_extract(config):
         G.create_directory(CG.results_dir)
