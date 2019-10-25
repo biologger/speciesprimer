@@ -3060,6 +3060,7 @@ class PrimerQualityControl:
         output = [p.get() for p in results]
 
     def MFEprimer_template(self, primerinfo):
+        result = []
         [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3072,9 +3073,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         if len(result) == 2:
             val = result[1].split("\t")
@@ -3095,6 +3096,7 @@ class PrimerQualityControl:
             return [[None], result]
 
     def MFEprimer_nontarget(self, primerinfo, inputfiles):
+        result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3106,8 +3108,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         if not len(result) == 1:
             for index, item in enumerate(result):
@@ -3120,6 +3123,7 @@ class PrimerQualityControl:
         return [primerinfo, result]
 
     def MFEprimer_assembly(self, primerinfo):
+        result = []
         target_product = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         with tempfile.NamedTemporaryFile(
@@ -3132,8 +3136,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         for index, item in enumerate(result):
             if index > 0:
