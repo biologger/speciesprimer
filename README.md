@@ -2,11 +2,8 @@
 # SpeciesPrimer
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
 [![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=mfeprimer3.0)](https://travis-ci.com/biologger/speciesprimer)
-
 [![docker build](https://img.shields.io/docker/build/biologger/speciesprimer)](https://img.shields.io/docker/build/biologger/speciesprimer)
-
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 
 ## Contents
