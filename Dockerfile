@@ -3,7 +3,7 @@ FROM biologger/speciesprimerdeps:V3
 MAINTAINER biologger
 
 # Copy the directory contents into the docker directory
-COPY pipeline /home/pipeline
+COPY . /home/
 COPY boot.sh /
 # Set env variables and change mod
 ENV FLASK_APP="/home/pipeline/bin/speciesprimergui.py"
