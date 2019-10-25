@@ -424,6 +424,39 @@ def updatedb():
             stop_updatedb()
     return render_template('dbdownload.html', title='Control BLAST db download', form=form)
 
+def start_updatedb_ref():
+    subprocess.Popen(["updateblastdbdaemon_ref.py", "start", "200"])
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    log_file = os.path.join("/", "home", "primerdesign", "speciesprimer_" + today + ".log")
+    if os.path.isfile("/tmp/frontail.pid"):
+        with open("/tmp/frontail.pid") as f:
+            for line in f:
+                pid = line.strip()
+        pidint = int(pid)
+        if isinstance(pidint, int):
+            try:
+                os.kill(pidint, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        os.remove("/tmp/frontail.pid")
+    frontail_cmd = [
+            "frontail-linux", "-d", "-n", "20", "--pid-path", "/tmp/frontail.pid", log_file]
+    subprocess.Popen(frontail_cmd)
+
+def stop_updatedb_ref():
+    subprocess.Popen(["updateblastdbdaemon_ref.py", "stop", "200"])
+
+@app.route('/updatedb', methods=['GET', 'POST'])
+def updatedb_ref():
+    form = DBForm()
+    if form.validate_on_submit():
+        if form.submit.data:
+            start_updatedb_ref()
+            time.sleep(1)
+        elif form.stop.data:
+            stop_updatedb_ref()
+    return render_template('dbdownload.html', title='Control BLAST db download', form=form)
+
 @app.route('/controlrun', methods=['GET', 'POST'])
 def controlrun():
     form = ControlRunForm()
@@ -468,11 +501,14 @@ def blastdb():
     if form.validate_on_submit():
         if form.update_blastdb.data is True:
             return redirect(url_for('updatedb'))
+        elif form.update_refprok.data is True:
+            return redirect(url_for('updatedb_ref'))
         elif form.update_txids.data is True:
             get_bacteria_taxids()
         elif form.get_blastdb.data is True:
             delete = form.delete.data
-            update_dict = {'BLAST_DB':{'delete': delete}}
+            db = form.whichdb.data
+            update_dict = {'BLAST_DB':{'delete': delete, 'db': db}}
             update_tmp_db(update_dict)
             return redirect(url_for('dbdownload'))
 

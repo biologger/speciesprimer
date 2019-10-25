@@ -53,7 +53,7 @@ class Pipeline(Daemon):
         os.chdir(blastdb_dir)
         command = [
             "update_blastdb.pl", "--passive", "--decompress",
-            "--blastdb_version", "5", "nt_v5"]
+            "ref_prok_rep_genomes"]
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
