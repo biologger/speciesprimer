@@ -10,8 +10,6 @@ from basicfunctions import HelperFunctions as H
 # paths
 pipe_bin = os.path.abspath(__file__)
 pipe_dir = pipe_bin.split("bin")[0]
-dict_path = os.path.join(pipe_dir, "dictionaries")
-
 
 class Input:
     def __init__(self):
@@ -332,7 +330,6 @@ class Input:
                 else:
                     if " " in exception:
                         exception = "_".join(exception.split(" "))
-                        print("Exception: " + exception)
             else:
                 exception = None
 
@@ -656,7 +653,7 @@ class Output:
                     print("found:", file_path)
                     G.logger("> Found config file: " + file_path)
                     target = "/".join(root.split("/")[-2:-1])
-                    abbr = H.abbrev(target, dict_path)
+                    abbr = H.abbrev(target)
                     primer_csv = os.path.join(
                         path, "Summary", target, abbr + "_primer.csv")
                     if not os.path.isfile(primer_csv):

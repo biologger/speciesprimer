@@ -11,7 +11,7 @@ from Bio import Entrez
 
 pipe_bin = os.path.abspath(__file__)
 pipe_dir = pipe_bin.split("bin")[0]
-
+dict_path = os.path.join(pipe_dir, "dictionaries")
 
 class GeneralFunctions:
     @staticmethod
@@ -191,7 +191,7 @@ class HelperFunctions:
             return nontarget_list
 
     @staticmethod
-    def abbrev(target, dict_path):
+    def abbrev(target):
         abbrev = {}
         with open(os.path.join(dict_path, "genus_abbrev.csv")) as f:
             reader = csv.reader(f, delimiter=",", quotechar='"')
@@ -221,6 +221,7 @@ class HelperFunctions:
                 geni = genus[0:5]
             name = geni+"_"+spec
         return name
+
 
     @staticmethod
     def check_input(target, email):

@@ -155,10 +155,10 @@ class CLIconf:
 
 
 class DataCollection():
-
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
+        self.exception = self.config.exception
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
         self.genomic_dir = os.path.join(self.target_dir, "genomic_fna")
@@ -214,10 +214,47 @@ class DataCollection():
 
         return email
 
+    def check_synomyms(self, taxid, email, target):
+        Entrez.email = email
+        searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
+        synresult = Entrez.read(searchsyn)
+        scienctificname = synresult[0]['ScientificName']
+        synonyms = synresult[0]['OtherNames']['Synonym']
+        if synonyms == []:
+            return None
+        else:
+            synwarn = []
+            target_plain = " ".join(target.split("_"))
+            if not target_plain == scienctificname:
+                synwarn.append(scienctificname)
+            for item in synonyms:
+                if not item == target_plain:
+                    exception = '_'.join(item.split(" "))
+                    synwarn.append(exception)
+            abbrevname = H.abbrev(target)
+            if synwarn == []:
+                return None
+            else:
+                info = (
+                    "Warning synonyms for this species were found...")
+                info2 = (
+                    "If Quality Control fails "
+                    "please check if you use the same species name as in your BLAST database"
+                    " by looking at the "  + abbrevname + "_qc_sequences.csv"
+                    " in the primerdesign/Summary directory")
+                print("\n" + info)
+                print(synwarn)
+                print(info2 + "\n")
+                G.logger("> " + info)
+                G.logger(synwarn)
+                G.logger(">" + info2)
+                return synwarn
+
     def get_taxid(self, target):
         Entrez.email = self.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
-        return taxid, Entrez.email
+        syn = self.check_synomyms(taxid, Entrez.email, target)
+        return syn, taxid, Entrez.email
 
     def prepare_dirs(self):
         G.create_directory(self.target_dir)
@@ -590,7 +627,7 @@ class DataCollection():
             return 0
 
         if not self.config.offline:
-            taxid, email = self.get_taxid(self.target)
+            syn, taxid, email = self.get_taxid(self.target)
             self.create_taxidlist(taxid)
             self.get_ncbi_links(taxid, email)
             if not self.config.skip_download:
@@ -606,6 +643,7 @@ class DataCollection():
                             ["gunzip", filepath], False, True, False, False)
                 os.chdir(self.target_dir)
         else:
+            syn = []
             G.create_directory(self.gff_dir)
             G.create_directory(self.ffn_dir)
             G.create_directory(self.fna_dir)
@@ -626,6 +664,38 @@ class DataCollection():
                 if os.path.isdir(dirpath):
                     shutil.rmtree(dirpath)
 
+        if syn:
+            if self.exception == None:
+                exceptions = []
+                for item in syn:
+                    exceptions.append(item)
+                config = CLIconf(
+                    self.config.minsize, self.config.maxsize,
+                    self.config.mpprimer, exceptions, self.config.target,
+                    self.config.path, self.config.intermediate, self.config.qc_gene,
+                    self.config.mfold, self.config.skip_download, self.config.assemblylevel,
+                    self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
+                    self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
+                    self.config.customdb, self.config.blastseqs, self.config.probe,
+                    self.config.blastdbv5)
+
+            else:
+                exceptions = [self.exception]
+                for item in syn:
+                    exceptions.append(item)
+                    config = CLIconf(
+                        self.config.minsize, self.config.maxsize,
+                        self.config.mpprimer, exceptions, self.config.target,
+                        self.config.path, self.config.intermediate, self.config.qc_gene,
+                        self.config.mfold, self.config.skip_download, self.config.assemblylevel,
+                        self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
+                        self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
+                        self.config.customdb, self.config.blastseqs, self.config.probe,
+                        self.config.blastdbv5)
+
+        else:
+            config = self.config
+        return config
 
 class QualityControl:
     # dictionary containing the search word for annotated genes in gff files
@@ -674,6 +744,37 @@ class QualityControl:
                     gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
                     if gene not in self.qc_gene_search:
                         self.qc_gene_search.append(gene)
+
+    def new_count_contigs(self, gff_list, contiglimit):
+        exclude = []
+        for dirs in os.listdir(self.target_dir):
+            if dirs not in systemdirs:
+                path = os.path.join(self.target_dir, dirs)
+                if os.path.isdir(path):
+                    for files in os.listdir(path):
+                        if files.endswith(".fna"):
+                            filepath = os.path.join(path, files)
+                            file = files.split(".fna")[0]
+                            with open(filepath, "r") as f:
+                                records = list(SeqIO.parse(f, "fasta"))
+                                if len(records) > contiglimit:
+                                    exclude.append(file)
+
+        if len(exclude) > 0:
+            for item in exclude:
+                if item + ".gff" in gff_list:
+                    gff_list.remove(item + ".gff")
+                data = [item, "", "", "", "", "Max contigs"]
+                if data not in self.contig_ex:
+                    self.contig_ex.append(data)
+            info = (
+                "skip " + str(len(self.contig_ex))
+                + " Genome(s) with more than " + str(self.contiglimit)
+                + " contigs")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
 
     def count_contigs(self, gff_list, contiglimit):
         exclude = []
@@ -936,6 +1037,11 @@ class QualityControl:
             return spec, gi, db_id
 
         def parse_blastresults():
+            exceptions = []
+            if not self.exception == None:
+                for item in self.exception:
+                    exception = ' '.join(item.split("_"))
+                    exceptions.append(exception)
             gi_list = []
             excluded_gis = self.get_excluded_gis()
             expected = " ".join(self.target.split("_"))
@@ -971,14 +1077,13 @@ class QualityControl:
                                 expected, "passed QC"]
                             passed.append(success)
 
-                    elif self.exception is not None:
-                        if self.exception in spec:
-                            if query not in wrote:
-                                wrote.append(query)
-                                success = [
-                                    query, gi, db_id, spec,
-                                    expected, "passed QC"]
-                                passed.append(success)
+                    elif spec in exceptions:
+                        if query not in wrote:
+                            wrote.append(query)
+                            success = [
+                                query, gi, db_id, spec,
+                                expected, "passed QC"]
+                            passed.append(success)
                     # allows passing qc if the species is correct but the
                     # blast hit sequence name does not include the subspecies
 #                    elif "subsp" in expected:
@@ -1266,7 +1371,7 @@ class PangenomeAnalysis:
         os.chdir(self.pangenome_dir)
         coregenealn = "core_gene_alignment.aln"
         if os.path.isfile(coregenealn):
-            tree = H.abbrev(self.target, dict_path) + "_tree.nwk"
+            tree = H.abbrev(self.target) + "_tree.nwk"
             treecmd = "fasttree -nt -gtr -nopr " + coregenealn + " > " + tree
             G.run_shell(
                 treecmd, printcmd=True, logcmd=True,
@@ -1654,7 +1759,7 @@ class CoreGeneSequences:
             self.consensus_dir, "consensus_summary.txt")
         result_path = os.path.join(
             self.blast_dir,
-            H.abbrev(self.target, dict_path) + "_conserved")
+            H.abbrev(self.target) + "_conserved")
 
         if os.path.isfile(cons_summary):
             filepaths.append(cons_summary)
@@ -2104,10 +2209,13 @@ class BlastParser:
     def parse_blastrecords(self, blast_record):
         align_dict = {}
         hits = []
-        if self.exception:
-            exception = ' '.join(self.exception.split("_"))
+        if not self.exception == None:
+            exceptions = []
+            for item in self.exception:
+                exception = ' '.join(item.split("_"))
+                exceptions.append(exception)
         else:
-            exception = None
+            exceptions = []
         query_start = []
         query_end = []
         query_length = blast_record.query_length
@@ -2133,7 +2241,7 @@ class BlastParser:
 
                 if not (
                     str(identity) == str(targetspecies) or
-                    str(identity) == str(exception)
+                    str(identity) in exceptions
                 ):
                     ids = {identity: {
                         "gi": gi, "db_id": db_id, "score": score,
@@ -2150,7 +2258,7 @@ class BlastParser:
                             blast_record, alignment,
                             query_start, query_end)
             else:
-                if not str(identity) == str(exception):
+                if not str(identity) in exceptions:
                     for species in self.nontargetlist:
                         if str(identity) == str(species):
                             ids = {identity: {
@@ -2515,7 +2623,7 @@ class BlastParser:
                         "json")
             else:
                 nonred_dict = align_dict
-                
+
             self.get_primerBLAST_DBIDS(nonred_dict)
 
             duration = time.time() - self.start
@@ -2794,11 +2902,10 @@ class PrimerQualityControl:
         # start 15.12.2017
         # get primername without direction split("_")
         p_fwd_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
+            H.abbrev(self.target) + "_" + item[0]
             + "_P" + item[1].split("_")[-1]) + "_F"
         p_rev_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
-            + "_P" + item[1].split("_")[-1]) + "_R"
+            "_".join(p_fwd_name.split("_")[0:-1]) + "_R")
         p_fwd_seq = self.primer3_dict[item[0]][item[1]]['primer_L_sequence']
         p_rev_seq = self.primer3_dict[item[0]][item[1]]['primer_R_sequence']
         self.primerlist.append([">"+p_fwd_name + "\n", p_fwd_seq + "\n"])
@@ -3027,7 +3134,7 @@ class PrimerQualityControl:
                 print("\n" + msg)
 
         def make_assemblyDB():
-            db_name = H.abbrev(self.target, dict_path) + ".genomic"
+            db_name = H.abbrev(self.target) + ".genomic"
             db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
             if not os.path.isfile(db_path):
                 G.logger("> create target genome assembly DB")
@@ -3132,7 +3239,7 @@ class PrimerQualityControl:
         ) as primefile:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = H.abbrev(self.target, dict_path) + ".genomic"
+        db = H.abbrev(self.target) + ".genomic"
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
@@ -3270,7 +3377,7 @@ class PrimerQualityControl:
         os.chdir(self.mfold_dir)
 
         for mfoldinput in mfoldinputlist:
-            abbr = H.abbrev(self.target, dict_path)
+            abbr = H.abbrev(self.target)
             self.prep_mfold(mfoldinput, abbr)
         os.chdir(self.target_dir)
 
@@ -3434,7 +3541,7 @@ class PrimerQualityControl:
         # adds the genus species info again to the
         # primername after mfold
         primer_name = (
-            H.abbrev(self.target, dict_path) + "_"
+            H.abbrev(self.target) + "_"
             + "_".join(name.split("_")[0:-1]))
         return primer_name
 
@@ -3472,7 +3579,7 @@ class PrimerQualityControl:
 
         def get_primer_name(item, primer_direction):
             name = (
-                H.abbrev(self.target, dict_path) + "_" + primer_direction + "_"
+                H.abbrev(self.target) + "_" + primer_direction + "_"
                 + "_".join(item[0].split("_")[-4:]))
             return name
 
@@ -3597,7 +3704,7 @@ class PrimerQualityControl:
             results.sort(key=lambda x: float(x[1]), reverse=True)
             file_path = os.path.join(
                     self.results_dir,
-                    H.abbrev(self.target, dict_path) + "_primer.csv")
+                    H.abbrev(self.target) + "_primer.csv")
 
             with open(file_path, "w") as f:
                 writer = csv.writer(f)
@@ -3707,7 +3814,7 @@ class Summary:
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
-        self.aka = H.abbrev(self.target, dict_path)
+        self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
         if total_results is None:
             self.total_results = []
@@ -3891,7 +3998,7 @@ class Summary:
             if files.startswith("pipeline_stats_") and files.endswith(".txt"):
                 filename = files
                 filepath = os.path.join(self.target_dir, filename)
-                abbr = H.abbrev(self.target, dict_path)
+                abbr = H.abbrev(self.target)
                 targetpath = os.path.join(
                     self.summ_dir, abbr + "_" + filename)
                 shutil.copy(filepath, targetpath)
@@ -4181,7 +4288,7 @@ def main(mode=None):
                 target + " pipeline statistics:")
             PipelineStatsCollector(target_dir).write_stat(
                 "Start: " + str(time.ctime()))
-            DataCollection(config).collect()
+            config = DataCollection(config).collect()
             qc_count = []
             for qc_gene in config.qc_gene:
                 qc = QualityControl(config).quality_control(qc_gene)
