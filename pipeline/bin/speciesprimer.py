@@ -1075,9 +1075,9 @@ class QualityControl:
                         os.remove(file_name)
                         print("removed " + file_name)
                     except FileNotFoundError:
-                        raise
+                        pass
 
-                raise
+                    raise
 
                 for index, blast_record in enumerate(blast_record_list):
                     i = 0
@@ -2284,7 +2284,7 @@ class BlastParser:
                 os.remove(filename)
                 print("removed " + filename)
             except FileNotFoundError:
-                raise
+                pass
 
             raise
 
