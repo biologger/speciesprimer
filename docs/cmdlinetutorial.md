@@ -11,4 +11,4 @@ Therefore there is a way to run a container without the local server and the GUI
 
             $ sudo docker run -v $HOME/blastdb:/home/blastdb \
             -v $HOME/primerdesign:/home/primerdesign \
-            --name cmdline -it biologger/speciesprimer bin/bash
+            --name cmdline -it biologger/speciesprimer /bin/bash
