@@ -231,17 +231,14 @@ class DataCollection():
                 if not item == target_plain:
                     exception = '_'.join(item.split(" "))
                     synwarn.append(exception)
-            abbrevname = H.abbrev(target)
+
             if synwarn == []:
                 return None
             else:
                 info = (
                     "Warning synonyms for this species were found...")
                 info2 = (
-                    "If Quality Control fails "
-                    "please check if you use the same species name as in your BLAST database"
-                    " by looking at the "  + abbrevname + "_qc_sequences.csv"
-                    " in the primerdesign/Summary directory")
+                    "Adding synonyms to exception in config.json.")
                 print("\n" + info)
                 print(synwarn)
                 print(info2 + "\n")
@@ -576,10 +573,11 @@ class DataCollection():
             elif file_name in qc_fail_dir:
                 excluded.append(file_name)
             else:
+                outdir = file_name + "_" + date
                 prokka_cmd = [
                     "prokka",
                     "--kingdom", "Bacteria",
-                    "--outdir", file_name + "_" + date,
+                    "--outdir", outdir,
                     "--genus", genus,
                     "--locustag", file_name,
                     "--prefix", file_name + "_" + date,
@@ -589,7 +587,15 @@ class DataCollection():
                 info = file_name + " annotation required"
                 G.logger(info)
                 print("\n" + info)
-                G.run_subprocess(prokka_cmd, True, True, False, False)
+                try:
+                    G.run_subprocess(prokka_cmd, True, True, False, False)
+                except KeyboardInterrupt:
+                    logging.error(
+                        "KeyboardInterrupt during annotation", exc_info=True)
+                    if os.path.isdir(outdir):
+                        shutil.rmtree(outdir)
+                    raise
+
                 annotation_dirs.append(file_name + "_" + date)
 
         if len(annotated) > 0:
@@ -668,7 +674,8 @@ class DataCollection():
             if self.exception == None:
                 exceptions = []
                 for item in syn:
-                    exceptions.append(item)
+                    if not item in exceptions:
+                        exceptions.append(item)
                 config = CLIconf(
                     self.config.minsize, self.config.maxsize,
                     self.config.mpprimer, exceptions, self.config.target,
@@ -682,7 +689,8 @@ class DataCollection():
             else:
                 exceptions = [self.exception]
                 for item in syn:
-                    exceptions.append(item)
+                    if not item in exceptions:
+                        exceptions.append(item)
                     config = CLIconf(
                         self.config.minsize, self.config.maxsize,
                         self.config.mpprimer, exceptions, self.config.target,
@@ -1014,13 +1022,15 @@ class QualityControl:
                 elif len(alninfo.split("|")) > 3:
                     di = [1, 3, -1]
                 else:
-                    warn = (
+                    error_msg = (
                         "Data is missing in the custom BLAST DB. At least "
                         "a unique sequence identifier and the species name "
                         "is required for each entry")
 
-                    print("\n" + warn + "\n")
-                    G.logger(warn)
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
+
             else:
                 di = [1, 3, -1]
 
@@ -1049,9 +1059,27 @@ class QualityControl:
             os.chdir(qc_dir)
             for file_name in xmlblastresults:
                 result_handle = open(file_name)
-                blast_records = NCBIXML.parse(result_handle)
-                blast_records = list(blast_records)
-                for index, blast_record in enumerate(blast_records):
+                try:
+                    blast_records = NCBIXML.parse(result_handle)
+                    blast_record_list = list(blast_records)
+                except Exception:
+                    error_msg = (
+                        "A problem with the BLAST results file " + file_name
+                        + " was detected. Trying to remove the file. "
+                        + "Please check if the file was removed and start the run again" )
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
+                    try:
+                        result_handle.close()
+                        os.remove(file_name)
+                        print("removed " + file_name)
+                    except FileNotFoundError:
+                        raise
+
+                raise
+
+                for index, blast_record in enumerate(blast_record_list):
                     i = 0
                     spec, gi, db_id = get_blastresults_info(blast_record, i)
                     query = blast_record.query
@@ -1084,16 +1112,6 @@ class QualityControl:
                                 query, gi, db_id, spec,
                                 expected, "passed QC"]
                             passed.append(success)
-                    # allows passing qc if the species is correct but the
-                    # blast hit sequence name does not include the subspecies
-#                    elif "subsp" in expected:
-#                        if " ".join(expected.split(" ")[0:2]) == spec:
-#                            if query not in wrote:
-#                                wrote.append(query)
-#                                success = [
-#                                    query, gi, db_id, spec,
-#                                    expected, "passed QC"]
-#                                passed.append(success)
                     else:
                         if query not in wrote:
                             wrote.append(query)
@@ -1109,28 +1127,37 @@ class QualityControl:
             os.chdir(self.target_dir)
 
         def write_blastresults():
+            results = []
+            for item in passed:
+                results.append(item)
+            if len(problems) > 0:
+                for item in problems:
+                    results.append(item)
+            if len(self.no_seq) > 0:
+                for item in self.no_seq:
+                    results.append(item)
+            if len(self.contig_ex) > 0:
+                for item in self.contig_ex:
+                    results.append(item)
+            if len(self.double) > 0:
+                for item in self.double:
+                    results.append(item)
             # write files
             report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
-            with open(report, "w") as f:
-                writer = csv.writer(f)
-                header = [
-                    "Query", "GI", "DB ID", "Species",
-                    "Target species", "QC status"]
-                writer.writerow(header)
-                for item in passed:
-                    writer.writerow(item)
-                if len(problems) > 0:
-                    for item in problems:
-                        writer.writerow(item)
-                if len(self.no_seq) > 0:
-                    for item in self.no_seq:
-                        writer.writerow(item)
-                if len(self.contig_ex) > 0:
-                    for item in self.contig_ex:
-                        writer.writerow(item)
-                if len(self.double) > 0:
-                    for item in self.double:
-                        writer.writerow(item)
+            if len(results) > 0:
+                with open(report, "w") as f:
+                    writer = csv.writer(f)
+                    header = [
+                        "Query", "GI", "DB ID", "Species",
+                        "Target species", "QC status"]
+                    writer.writerow(header)
+                    writer.writerows(results)
+            else:
+                error_msg = "No Quality Control results found."
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+
 
         def delete_blastreport():
             os.chdir(qc_dir)
@@ -1283,6 +1310,34 @@ class QualityControl:
         remove_directories()
         remove_files()
 
+    def check_passed_list(self, passed_list, qc_gene):
+        if self.config.ignore_qc:
+            info = (
+                "--ignore_qc option: Check quality control"
+                " files in the Summary directory")
+            G.logger("> " + info)
+            print("\n" + info)
+            return 0
+
+        elif passed_list:
+            if len(passed_list) < 2:
+                error_msg = "Error: Less than two genomes survived QC"
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                self.remove_qc_failures(qc_gene)
+                return 1
+            else:
+                self.remove_qc_failures(qc_gene)
+                return 0
+        else:
+            error_msg = "Error: No genomes survived QC"
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            self.remove_qc_failures(qc_gene)
+            return 1
+
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
@@ -1296,7 +1351,17 @@ class QualityControl:
             info = "Found " + qc_gene + "_QC_report.csv, skip QC " + qc_gene
             G.logger("> " + info)
             print(info)
-            return 0
+            passed_list = []
+            with open(qc_report) as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if "passed QC" == row[5]:
+                        passed_list.append(row)
+
+            exitcode = self.check_passed_list(passed_list, qc_gene)
+            return exitcode
+
         else:
             print("\nRun: quality_control(" + qc_gene + ")")
             G.logger("Run: quality_control(" + qc_gene + ")")
@@ -1310,33 +1375,9 @@ class QualityControl:
                     self.config, qc_dir, "quality_control"
                 ).run_blast(qc_gene, use_cores)
                 passed_list = self.qc_blast_parser(qc_gene)
+                exitcode = self.check_passed_list(passed_list, qc_gene)
+                return exitcode
 
-                if self.config.ignore_qc:
-                    info = (
-                        "--ignore_qc option: Check quality control"
-                        " files in the Summary directory")
-                    G.logger("> " + info)
-                    print("\n" + info)
-                    return 0
-
-                elif passed_list:
-                    if len(passed_list) < 2:
-                        error_msg = "Error: Less than two genomes survived QC"
-                        print(error_msg)
-                        G.logger("> " + error_msg)
-                        errors.append([self.target, error_msg])
-                        self.remove_qc_failures(qc_gene)
-                        return 1
-                    else:
-                        self.remove_qc_failures(qc_gene)
-                        return 0
-                else:
-                    error_msg = "Error: No genomes survived QC"
-                    print(error_msg)
-                    G.logger("> " + error_msg)
-                    errors.append([self.target, error_msg])
-                    self.remove_qc_failures(qc_gene)
-                    return 1
             else:
                 return 1
 
@@ -1363,8 +1404,14 @@ class PangenomeAnalysis:
                 + str(multiprocessing.cpu_count())
                 + " -cd 100 ./gff_files/*.gff")
 
-        G.run_shell(
-            roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
+        try:
+            G.run_shell(
+                roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
+        except KeyboardInterrupt:
+            logging.error(
+                "KeyboardInterrupt during pan-genome analysis", exc_info=True)
+            shutil.rmtree(self.pangenome_dir)
+            raise
 
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
@@ -1373,9 +1420,17 @@ class PangenomeAnalysis:
         if os.path.isfile(coregenealn):
             tree = H.abbrev(self.target) + "_tree.nwk"
             treecmd = "fasttree -nt -gtr -nopr " + coregenealn + " > " + tree
-            G.run_shell(
-                treecmd, printcmd=True, logcmd=True,
-                log=True, printoption=False)
+            try:
+                G.run_shell(
+                    treecmd, printcmd=True, logcmd=True,
+                    log=True, printoption=False)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during fasttree run", exc_info=True)
+                if os.path.isfile(tree):
+                    os.remove(tree)
+                raise
+
         os.chdir(self.target_dir)
 
     def run_pangenome_analysis(self):
@@ -1647,8 +1702,16 @@ class CoreGeneSequences:
                         w.write(cmd + "\n")
 
             if os.path.isfile(run_file):
-                G.run_subprocess(
-                    ["parallel", "-a", run_file], True, True, False, False)
+                try:
+                    G.run_subprocess(
+                        ["parallel", "-a", run_file], True, True, False, False)
+                except KeyboardInterrupt:
+                    error_msg = "Error: KeyboardInterrupt during Prank MSA run"
+                    print(error_msg)
+                    G.logger("> " + error_msg)
+                    shutil.rmtree(self.alignment_dir)
+                    raise
+
 
             with open(coregenes, "w") as f:
                 for fastafile in fasta_files:
@@ -1719,9 +1782,15 @@ class CoreGeneSequences:
                         "consambig -sequence " + aligned_path
                         + " -outseq " + result_path
                         + " -name " + seqname + " -auto\n")
+            try:
+                G.run_subprocess(
+                    ["parallel", "-a", run_file], True, True, True, False)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during consensus run", exc_info=True)
+                shutil.rmtree(self.consensus_dir)
+                raise
 
-            G.run_subprocess(
-                ["parallel", "-a", run_file], True, True, True, False)
             records = []
             for files in os.listdir(self.consensus_dir):
                 if files.endswith("_consens.fasta"):
@@ -1989,7 +2058,14 @@ class Blast:
                         G.logger("> " + info)
 
                 if blast_cmd:
-                    G.run_subprocess(blast_cmd)
+                    try:
+                        G.run_subprocess(blast_cmd)
+                    except KeyboardInterrupt:
+                        logging.error(
+                            "KeyboardInterrupt during BLAST search", exc_info=True)
+                        if os.path.isfile(filename):
+                            os.remove(filename)
+                        raise
 
             duration = time.time() - start
             G.logger(
@@ -2046,13 +2122,14 @@ class BlastParser:
                 elif len(alignment.title.split("|")) > 3:
                     di = [1, 3, -1]
                 else:
-                    warn = (
+                    error_msg = (
                         "Data is missing in the custom BLAST DB. At least "
                         "a unique sequence identifier and the species name "
                         "is required for each entry")
 
-                    print("\n" + warn + "\n")
-                    G.logger(warn)
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
             else:
                 di = [1, 3, -1]
 
@@ -2191,8 +2268,26 @@ class BlastParser:
     def parse_BLASTfile(self, filename):
         record_list = []
         result_handle = open(filename)
-        blast_records = NCBIXML.parse(result_handle)
-        record_list = list(blast_records)
+        try:
+            blast_records = NCBIXML.parse(result_handle)
+            record_list = list(blast_records)
+        except Exception:
+            error_msg = (
+                "A problem with the BLAST results file " + filename
+                + " was detected. Try to remove the file. "
+                + "Please check if the file was removed and start the run again" )
+            print("\n" + error_msg + "\n")
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            try:
+                result_handle.close()
+                os.remove(filename)
+                print("removed " + filename)
+            except FileNotFoundError:
+                raise
+
+            raise
+
         return record_list
 
     def get_excluded_gis(self):
@@ -2396,13 +2491,11 @@ class BlastParser:
                 info = "Start writing " + filename
                 print(info)
                 G.logger(info)
+                print("Start DB extraction")
+                data = nonreddata[part*maxsize:end]
+                fasta_seqs = G.run_parallel(
+                        self.get_seq_fromDB, data, db)
                 with open(filepath, "w") as r:
-                    data = nonreddata[part*maxsize:end]
-
-                    print("Start DB extraction")
-
-                    fasta_seqs = G.run_parallel(
-                            self.get_seq_fromDB, data, db)
                     for fastainfo in fasta_seqs:
                         name = fastainfo[0].split(":")
                         fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
@@ -2686,7 +2779,14 @@ class PrimerDesign():
             primer3cmd = [
                 "primer3_core", "-p3_settings_file=" + settings_file,
                 "-echo_settings_file", "-output=" + output_file, input_file]
-            G.run_subprocess(primer3cmd, True, True, False, True)
+            try:
+                G.run_subprocess(primer3cmd, True, True, False, True)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during primer3 run", exc_info=True)
+                if os.path.isfile(output_file):
+                    os.remove(output_file)
+                raise
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -3000,7 +3100,15 @@ class PrimerQualityControl:
         start = time.time()
         os.chdir(self.primer_qc_dir)
         cmd = "IndexDb.sh " + db_name + " 9"
-        G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+        try:
+            G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+        except KeyboardInterrupt:
+            logging.error(
+                "KeyboardInterrupt during DB indexing", exc_info=True)
+            for files in os.listdir(self.primer_qc_dir):
+                if files.startswith(db_name):
+                    os.remove(files)
+            raise
         os.chdir(self.primer_dir)
         end = time.time() - start
         G.logger(
@@ -4288,7 +4396,11 @@ def main(mode=None):
                 target + " pipeline statistics:")
             PipelineStatsCollector(target_dir).write_stat(
                 "Start: " + str(time.ctime()))
-            config = DataCollection(config).collect()
+            newconfig = DataCollection(config).collect()
+            if newconfig == 0:
+                pass
+            else:
+                config = newconfig
             qc_count = []
             for qc_gene in config.qc_gene:
                 qc = QualityControl(config).quality_control(qc_gene)
@@ -4336,6 +4448,10 @@ def main(mode=None):
         except KeyboardInterrupt:
             logging.error(
                 "KeyboardInterrupt while working on " + target, exc_info=True)
+            logging.error(
+                "KeyboardInterrupt during long running processes can have "
+                "severe side effects. Consider deleting the run directory and "
+                " starting a new run")
             raise
 
     if len(errors) > 0:
