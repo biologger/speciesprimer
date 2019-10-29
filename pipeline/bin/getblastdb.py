@@ -215,7 +215,7 @@ def get_md5files(blastdb_dir, db, BASEURL):
     command = [
         "wget", "-nv", "-nc", "-r", "--no-parent", "--no-directories",
         "--tries", "4", "-A", db + ".*.tar.gz.md5", 
-        "-X", "FASTA,cloud", BASEURL]
+        "-X", "FASTA,cloud,v5", BASEURL]
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
