@@ -1108,8 +1108,10 @@ def test_end(config):
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
         os.chdir(BASE_PATH)
+        assert os.path.isdir(test) == False
 
     remove_test_files(config)
+
 
 if __name__ == "__main__":
     print(msg)
