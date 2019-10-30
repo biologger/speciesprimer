@@ -44,8 +44,8 @@ Now you can try again to create a container with the sudo docker run command
 * __HOST:__
 
 		$ sudo docker run \
-		-v /home/{linux_username}/blastdb:/home/blastdb \
-		-v /home/{linux_username}/primerdesign:/home/primerdesign \
+		-v /home/{linux_username}/blastdb:/blastdb \
+		-v /home/{linux_username}/primerdesign:/primerdesign \
 		-p {hostport1}:5000 -p {hostport2}:9001 \
 		--name speciesprimer_pipeline -it biologger/speciesprimer
 
@@ -54,8 +54,8 @@ __Example:__
 * __HOST:__
 
 		$ sudo docker run \
-		-v /home/biologger/blastdb:/home/blastdb \
-		-v /home/biologger/primerdesign:/home/primerdesign \
+		-v /home/biologger/blastdb:/blastdb \
+		-v /home/biologger/primerdesign:/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
 		--name speciesprimer_pipeline -it biologger/speciesprimer
 		
@@ -75,11 +75,13 @@ see the docs for installation instructions <https://docs.docker.com/>
 			$ sudo docker pull biologger/speciesprimer
 
 2. Now you have the image, you can display the image with
+
 	* __HOST:__
   
 			$ sudo docker images
 
 3. If there is more than one image from the repository __biologger/speciesprimer__, you can remove the image with the <none\> Tag
+
  	* __HOST:__
  
 			$ sudo docker rmi {image_id}
@@ -88,7 +90,7 @@ see the docs for installation instructions <https://docs.docker.com/>
 
 1. Decide which directories (on the host) should be used by the container
 
-* If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path\_to\_host\_blastdb_dir:/home/blastdb) 
+* If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path\_to\_host\_blastdb_dir:/blastdb) 
 
 * Create a directory for primerdesign and one for the BLAST database
 
@@ -104,7 +106,7 @@ see the docs for installation instructions <https://docs.docker.com/>
  			$ mkdir /home/biologger/blastdb
 
 ### Run a container instance
-Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /home/blastdb and /home/primerdesign. The name of the container can be changed (--name).
+Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /blastdb and /primerdesign. The name of the container can be changed (--name).
 The -p option defines the ports which are open for the container so you can access the container app http://127.0.0.1:{hostport1/2} / http://localhost:{hostport1/2}}.
 On the left side the host port is given and on the right side the container port. The container port is fixed and cannot be changed, if the host port is already used another port can be selected.
 The link on the page where you can control the runs is however fixed to port 9001, but you can open the log file stream by opening http://localhost:{hostport2} in your browser.
@@ -114,8 +116,8 @@ The link on the page where you can control the runs is however fixed to port 900
 1. __HOST:__
 
 		$ sudo docker run \
-		-v path_to_host_blastdb_dir:/home/blastdb \
-		-v path_to_host_primerdesign_dir:/home/primerdesign \
+		-v path_to_host_blastdb_dir:/blastdb \
+		-v path_to_host_primerdesign_dir:/primerdesign \
 		-p {hostport1}:5000 -p {hostport2}:9001 \
 		--name speciesprimer_pipeline -it biologger/speciesprimer
 
@@ -124,8 +126,8 @@ __Example:__
 * __HOST:__
 
 		$ sudo docker run \
-		-v /home/biologger/blastdb:/home/blastdb \
-		-v /home/biologger/primerdesign:/home/primerdesign \
+		-v /home/biologger/blastdb:/blastdb \
+		-v /home/biologger/primerdesign:/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
 		--name speciesprimer_pipeline -it biologger/speciesprimer
 
@@ -197,7 +199,7 @@ $ sudo docker start {containername/id}
 
 $ sudo docker exec -it {containername/id} bash
 
-If you see __root@{containerID}:/home/primerdesign#__ in the terminal, you have now access to the terminal of the container.
+If you see __root@{containerID}:/primerdesign#__ in the terminal, you have now access to the terminal of the container.
 
 Test if you have mounted the volumes correctly 
 
@@ -241,7 +243,7 @@ If you want to delete this test.txt file there are two options
 Run a container with your local time settings
 
 		$ sudo docker run -e TZ=Europe/Zurich \
-		-v $HOME/blastdb:/home/blastdb -v $HOME/primerdesign:/home/primerdesign \
+		-v $HOME/blastdb:/blastdb -v $HOME/primerdesign:/primerdesign \
 		--name speciesprimertime -p 5000:5000 -p 9001:9001 -it biologger/speciesprimer
 
 Or in an existing container 
