@@ -15,7 +15,6 @@ ENV PATH="/pipeline/ext-scripts/:${PATH}"
 RUN chmod +x /pipeline/*.py
 RUN chmod +x /pipeline/daemon/*.py
 RUN chmod +x /boot.sh
-RUN chmod +x /pipeline/ext-scripts/*.py
 
 CMD ["/boot.sh"]
 WORKDIR /home/primerdesign
