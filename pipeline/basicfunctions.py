@@ -9,8 +9,7 @@ import csv
 import concurrent.futures
 from Bio import Entrez
 
-pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("pipeline")[0]
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 
 class GeneralFunctions:
@@ -157,7 +156,10 @@ class GeneralFunctions:
         with open(filepath, "w") as f:
             writer = csv.writer(f)
             if header:
-                writer.writerow(header)
+                if any(isinstance(item, list) for item in header):
+                    writer.writerows(header)
+                else:
+                    writer.writerow(header)
             writer.writerows(inputlist)
 
 

@@ -29,7 +29,7 @@ from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
 # paths
-pipe_dir = os.path.abspath(__file__)
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 errors = []
@@ -1517,10 +1517,11 @@ class CoreGenes:
                                     all_core.append(gene_name)
 
         if mode == "normal":
-            with open(self.singlecopy, "w") as f:
-                w = csv.writer(f)
-                for item in newtabledata:
-                    w.writerow(item)
+            G.csv_writer(self.singlecopy, newtabledata)
+#            with open(self.singlecopy, "w") as f:
+#                w = csv.writer(f)
+#                for item in newtabledata:
+#                    w.writerow(item)
 
         self.print_gene_stats(all_core, total_count)
 
@@ -2457,11 +2458,14 @@ class BlastParser:
                             stop = item + overhang
                             inrange.append([key, start, stop])
 
-            with open(filepath, "w") as f:
-                writer = csv.writer(f)
-                header = ["Accession", "Start pos", "Stop pos"]
-                writer.writerow(header)
-                writer.writerows(nonreddata)
+            header = ["Accession", "Start pos", "Stop pos"]
+            G.csv_writer(filepath, nonreddata, header)
+
+#            with open(filepath, "w") as f:
+#                writer = csv.writer(f)
+#                header = ["Accession", "Start pos", "Stop pos"]
+#                writer.writerow(header)
+#                writer.writerows(nonreddata)
 
         return nonreddata
 
@@ -2694,14 +2698,19 @@ class BlastParser:
                 spec = " ".join(uniq[0].split(" ")[1::])
                 results.append([gi, spec, perc, uniq[1]])
 
-        header = ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]
-        with open(output, "w") as w:
-            writer = csv.writer(w)
-            writer.writerow(["Total BLAST hits", "Number of queries"])
-            writer.writerow([total_hits, keycount])
-            writer.writerow(header)
-            for data in results:
-                writer.writerow(data)
+        header = [
+            ["Total BLAST hits", "Number of queries"], [total_hits, keycount],
+            ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]]
+        G.csv_writer(output, results, header)
+        
+#        with open(output, "w") as w:
+#            header = ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]
+#            writer = csv.writer(w)
+#            writer.writerow(["Total BLAST hits", "Number of queries"])
+#            writer.writerow([total_hits, keycount])
+#            writer.writerow(header)
+#            for data in results:
+#                writer.writerow(data)
 
     def run_blastparser(self, conserved_seq_dict):
         if self.mode == "primer":
@@ -3373,18 +3382,32 @@ class PrimerQualityControl:
 
     def write_MFEprimer_results(self, input_list, name):
         outputlist = []
-        with open("MFEprimer_" + name + ".csv", "w") as f:
-            writer = csv.writer(f)
-            for item in input_list:
-                # item[0] is the primerinfo
-                if len(item[0]) > 1:
-                    if not item[0] in outputlist:
-                        outputlist.append(item[0])
-                # item[1] are the results of MFEprimer
-                if len(item[1]) > 1:
-                    for values in item[1]:
-                        val = values.split("\t")
-                        writer.writerow(val)
+        val_list = []
+        for item in input_list:
+            # item[0] is the primerinfo
+            if len(item[0]) > 1:
+                if not item[0] in outputlist:
+                    outputlist.append(item[0])
+            # item[1] are the results of MFEprimer
+            if len(item[1]) > 1:
+                for values in item[1]:
+                    val = values.split("\t")
+                    val_list.append(val)    
+                    
+        G.csv_writer("MFEprimer_" + name + ".csv", val_list)
+        
+#        with open("MFEprimer_" + name + ".csv", "w") as f:
+#            writer = csv.writer(f)
+#            for item in input_list:
+#                # item[0] is the primerinfo
+#                if len(item[0]) > 1:
+#                    if not item[0] in outputlist:
+#                        outputlist.append(item[0])
+#                # item[1] are the results of MFEprimer
+#                if len(item[1]) > 1:
+#                    for values in item[1]:
+#                        val = values.split("\t")
+#                        writer.writerow(val)
 
         return outputlist
 
@@ -3516,16 +3539,12 @@ class PrimerQualityControl:
     def mfold_parser(self):
         selected_primer = []
         excluded_primer = []
+        pos_results = []
+        neg_results = []
         info = "Run: mfold_parser(" + self.target + ")\n"
         print(info)
         G.logger(info)
         file_list = self.find_mfold_results()
-        pas = open(os.path.join(self.mfold_dir, "mfold_passed.csv"), "w")
-        pos_results = csv.writer(pas)
-        pos_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
-        fail = open(os.path.join(self.mfold_dir, "mfold_failed.csv"), "w")
-        neg_results = csv.writer(fail)
-        neg_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
         for mfoldfiles in file_list:
             mfold = self.read_files(mfoldfiles)
 
@@ -3534,11 +3553,11 @@ class PrimerQualityControl:
                 if not (selected is None or passed is None):
                     selected_primer.append(selected)
                     filename, structure, dG, dH, dS, Tm = passed
-                    pos_results.writerow([selected, structure, dG, dH, dS, Tm])
+                    pos_results.append([selected, structure, dG, dH, dS, Tm])
                 else:
                     excluded_primer.append(excluded)
                     filename, structure, dG, dH, dS, Tm = failed
-                    neg_results.writerow([excluded, structure, dG, dH, dS, Tm])
+                    neg_results.append([excluded, structure, dG, dH, dS, Tm])
 
             elif len(mfold) > 1:
                 test = []
@@ -3555,10 +3574,10 @@ class PrimerQualityControl:
                         selected_name, passed, excluded, failed = structure_nr
                         filename, structure, dG, dH, dS, Tm = passed
                         if index == 0:
-                            pos_results.writerow(
+                            pos_results.append(
                                 [selected, structure, dG, dH, dS, Tm])
                         else:
-                            pos_results.writerow(
+                            pos_results.append(
                                 ["", structure, dG, dH, dS, Tm])
                 else:
                     if mfold[0][2] is None:
@@ -3571,25 +3590,29 @@ class PrimerQualityControl:
                         if passed is None:
                             filename, structure, dG, dH, dS, Tm = failed
                             if index == 0:
-                                neg_results.writerow(
+                                neg_results.append(
                                     [excluded, structure, dG, dH, dS, Tm])
                             else:
-                                neg_results.writerow(
+                                neg_results.append(
                                     ["", structure, dG, dH, dS, Tm])
                         if failed is None:
                             filename, structure, dG, dH, dS, Tm = passed
                             if index == 0:
-                                neg_results.writerow(
+                                neg_results.append(
                                     [excluded, structure, dG, dH, dS, Tm])
                             else:
-                                neg_results.writerow(
+                                neg_results.append(
                                     ["", structure, dG, dH, dS, Tm])
 
             else:
                 pass
-
-        pas.close()
-        fail.close()
+        
+        passfile = os.path.join(self.mfold_dir, "mfold_passed.csv")
+        failfile = os.path.join(self.mfold_dir, "mfold_failed.csv")
+        header = ["primer", "structure", "dG", "dH", "dS", "Tm"]
+        G.csv_writer(passfile, pos_results, header)
+        G.csv_writer(failfile, neg_results, header)
+        
         ex = str(len(excluded_primer))
         pas = str(len(selected_primer))
         ex_info = ex + " primer pair(s) excluded by mfold"

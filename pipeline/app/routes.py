@@ -14,7 +14,7 @@ import signal
 from werkzeug.utils import secure_filename
 
 
-app_dir = os.path.abspath(__file__)
+app_dir = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = app_dir.split('app')[0]
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
