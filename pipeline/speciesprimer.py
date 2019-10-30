@@ -29,8 +29,7 @@ from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
 # paths
-pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("bin")[0]
+pipe_dir = os.path.abspath(__file__)
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 errors = []
@@ -2774,7 +2773,7 @@ class PrimerDesign():
         G.logger("Run: run_primer3(" + self.target + ")")
         input_file = os.path.join(self.results_dir, "primer3_input")
         output_file = os.path.join(self.primer_dir, "primer3_output")
-        settings_file = os.path.join(pipe_dir, "p3parameters")
+        settings_file = os.path.join(dict_path, "p3parameters")
         if not os.path.isfile(output_file):
             primer3cmd = [
                 "primer3_core", "-p3_settings_file=" + settings_file,
@@ -3814,11 +3813,14 @@ class PrimerQualityControl:
                     self.results_dir,
                     H.abbrev(self.target) + "_primer.csv")
 
-            with open(file_path, "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(header)
-                for result in results:
-                    writer.writerow(result)
+#            with open(file_path, "w") as f:
+#                writer = csv.writer(f)
+#                writer.writerow(header)
+#                for result in results:
+#                    writer.writerow(result)
+
+            G.csv_writer(file_path, results, header)
+
             return results
         else:
             results = []
@@ -4325,7 +4327,7 @@ def main(mode=None):
     use_configfile = False
 
     if mode == "auto":
-        os.chdir(os.path.join("/", "home", "primerdesign"))
+        os.chdir(os.path.join("/", "primerdesign"))
         logfile = os.path.join(os.getcwd(), "speciesprimer_" + today + ".log")
         logging.basicConfig(
             filename=logfile, level=logging.DEBUG, format="%(message)s")

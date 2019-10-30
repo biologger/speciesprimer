@@ -1,11 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 
-import os
 import sys
-import time
-import atexit
-from mydaemon import Daemon
 import argparse
 
 DEBUG = 1
@@ -24,61 +20,41 @@ def get_args():
         parser.add_argument('action', help='action',
                             choices=['start', 'stop', 'restart'])
         parser.add_argument('uniqid', help='Unique ID')
-
+        parser.add_argument('dclass', help='daemonclass.py class',
+                            choices=[
+                                'SpeciesPrimer', 'Update_prokDB',
+                                'Update_ntDB', 'GetBlastDB'])
         args = parser.parse_args()
 
-        result = (args.action, args.uniqid)
+        result = (args.action, args.uniqid, args.dclass)
     except Exception as err:
         if DEBUG:
             raise
         else:
             sys.stderr.write('%s\n' % (err))
 
-        result = (None, None)
+        result = (None, None, None)
 
     return result
 
 
-class Pipeline(Daemon):
-
-    def start_download(self):
-        import getblastdb
-        getblastdb.get_DB(mode="auto")
-
-    def run(self):
-        RUNFILE = self.runfile
-        '''
-        Process start to run here.
-        '''
-        self.start_download()
-        # Delete the run file at exit. Maybe there will be no stop request.
-        atexit.register(self.delrun)
-
-        # Run while there is no stop request.
-        n = 0
-        while os.path.exists(RUNFILE):
-            print('.', end='')
-            n += 1
-
-            if (n > 5):
-                break
-
-            time.sleep(1)
-
-
 def main_daemon():
-    DAEMON_NAME = 'BLAST DB background (id: #ID#)'
+    DAEMON_NAME = 'SpeciesPrimer background (id: #ID#)'
     DAEMON_STOP_TIMEOUT = 10
-    PIDFILE = '/tmp/blastdb_#ID#.pid'
-    RUNFILE = '/tmp/blastdb__#ID#.run'
+    PIDFILE = '/tmp/pipeline_#ID#.pid'
+    RUNFILE = '/tmp/pipeline_#ID#.run'
     DEBUG = 1
     try:
-        (action, uniqid) = get_args()
+        (action, uniqid, dclass) = get_args()
         # Create daemon object.
+        import importlib        
+        daemonclass = importlib.import_module('daemonclass')
+        Runner = getattr(daemonclass, dclass)
+
         DAEMON_NAME = DAEMON_NAME.replace('#ID#', uniqid)
         PIDFILE = PIDFILE.replace('#ID#', uniqid)
         RUNFILE = RUNFILE.replace('#ID#', uniqid)
-        d = Pipeline(name=DAEMON_NAME, pidfile=PIDFILE, runfile=RUNFILE,
+        d = Runner(name=DAEMON_NAME, pidfile=PIDFILE, runfile=RUNFILE,
                      stoptimeout=DAEMON_STOP_TIMEOUT, debug=DEBUG)
 
         # Action requested.

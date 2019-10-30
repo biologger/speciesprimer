@@ -10,7 +10,7 @@ import concurrent.futures
 from Bio import Entrez
 
 pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("bin")[0]
+pipe_dir = pipe_bin.split("pipeline")[0]
 dict_path = os.path.join(pipe_dir, "dictionaries")
 
 class GeneralFunctions:
@@ -152,6 +152,14 @@ class GeneralFunctions:
                 if not os.path.isdir(path_to_dir):
                     raise
 
+    @staticmethod
+    def csv_writer(filepath, inputlist, header=None):
+        with open(filepath, "w") as f:
+            writer = csv.writer(f)
+            if header:
+                writer.writerow(header)
+            writer.writerows(inputlist)
+
 
 class HelperFunctions:
 
@@ -177,7 +185,7 @@ class HelperFunctions:
         nontarget_list = []
         genus = target.split("_")[0]
         species = HelperFunctions().subspecies_handler(target, "space")
-        spec_list = os.path.join(pipe_dir, "dictionaries", "species_list.txt")
+        spec_list = os.path.join(dict_path, "species_list.txt")
         with open(spec_list, "r") as species_list:
             for line in species_list.readlines():
                 line = line.strip()
