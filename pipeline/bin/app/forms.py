@@ -43,8 +43,11 @@ class SettingsForm(FlaskForm):
         "Assembly level", choices=[
             ('all', "All"), ('complete', 'Complete'), ('chromosome', 'Chromosome'),
             ('scaffold', 'Scaffold'), ('contig', 'Contig')], validators=[DataRequired()])
-    remoteblast = BooleanField(
-            "Use remote option of BLAST+?", default = False)
+    customdb = StringField(
+            "Specify the path to a custom BLAST database", default = None)
+    
+    nolist = BooleanField(label="Species list is not used and only sequences without blast hits are used for primer design ", default = False)
+    
     blastseqs = SelectField("Maximal number of sequences per BLAST search", coerce=int, choices=[(100, "100"), (500, "500"), (1000, "1000"), (2000, "2000"), (5000, "5000")], default=1000)
     qc_genes = SelectMultipleField(
             "Gene(s) for BLAST search in the initial quality control step",
@@ -88,9 +91,14 @@ class PipeConfig(FlaskForm):
     submit = SubmitField("Upload")
 
 class DownloadDB(FlaskForm):
-    update_blastdb = SubmitField("Start download")
+    update_refprok = SubmitField("Start download ref_prok_rep_genomes")
+    update_blastdb = SubmitField("Start download nt_v5")
     delete = BooleanField("Delete archive files after extraction", default=False)
     update_txids = SubmitField("Update")
+    whichdb = SelectField(
+            "Select BLAST DB", 
+            choices=[("nt_v5", "nt_v5"), ("ref_prok_rep_genomes", "ref_prok_rep_genomes")], 
+            default="nt_v5")
     get_blastdb = SubmitField("Start download")
 
 class DBForm(FlaskForm):

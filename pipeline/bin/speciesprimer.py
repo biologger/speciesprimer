@@ -15,7 +15,6 @@ from multiprocessing import Process
 import wget
 import json
 import tempfile
-import sqlite3
 import urllib
 import itertools
 from itertools import islice
@@ -23,6 +22,7 @@ from datetime import timedelta
 from collections import Counter
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from Bio.Blast import NCBIXML
 from Bio import Entrez
 from basicfunctions import GeneralFunctions as G
@@ -80,7 +80,7 @@ class Config:
         offline = self.config_dict[target]["offline"]
         ignore_qc = self.config_dict[target]["ignore_qc"]
         mfethreshold = self.config_dict[target]["mfethreshold"]
-        remoteblast = self.config_dict[target]["remoteblast"]
+        customdb = self.config_dict[target]["customdb"]
         blastseqs = self.config_dict[target]["blastseqs"]
         probe = self.config_dict[target]["probe"]
         blastdbv5 = self.config_dict[target]["blastdbv5"]
@@ -89,7 +89,7 @@ class Config:
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            remoteblast, blastseqs, probe, blastdbv5)
+            customdb, blastseqs, probe, blastdbv5)
 
 
 class CLIconf:
@@ -98,7 +98,7 @@ class CLIconf:
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            remoteblast, blastseqs, probe, blastdbv5):
+            customdb, blastseqs, probe, blastdbv5):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -116,7 +116,7 @@ class CLIconf:
         self.offline = offline
         self.ignore_qc = ignore_qc
         self.mfethreshold = mfethreshold
-        self.remoteblast = remoteblast
+        self.customdb = customdb
         self.blastseqs = blastseqs
         self.probe = probe
         self.blastdbv5 = blastdbv5
@@ -140,7 +140,7 @@ class CLIconf:
         config_dict.update({"offline": self.offline})
         config_dict.update({"ignore_qc": self.ignore_qc})
         config_dict.update({"mfethreshold": self.mfethreshold})
-        config_dict.update({"remoteblast": self.remoteblast})
+        config_dict.update({"customdb": self.customdb})
         config_dict.update({"blastseqs": self.blastseqs})
         config_dict.update({"probe": self.probe})
         config_dict.update({"blastdbv5": self.blastdbv5})
@@ -155,10 +155,10 @@ class CLIconf:
 
 
 class DataCollection():
-
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
+        self.exception = self.config.exception
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
         self.genomic_dir = os.path.join(self.target_dir, "genomic_fna")
@@ -214,10 +214,44 @@ class DataCollection():
 
         return email
 
+    def check_synomyms(self, taxid, email, target):
+        Entrez.email = email
+        searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
+        synresult = Entrez.read(searchsyn)
+        scienctificname = synresult[0]['ScientificName']
+        synonyms = synresult[0]['OtherNames']['Synonym']
+        if synonyms == []:
+            return None
+        else:
+            synwarn = []
+            target_plain = " ".join(target.split("_"))
+            if not target_plain == scienctificname:
+                synwarn.append(scienctificname)
+            for item in synonyms:
+                if not item == target_plain:
+                    exception = '_'.join(item.split(" "))
+                    synwarn.append(exception)
+
+            if synwarn == []:
+                return None
+            else:
+                info = (
+                    "Warning synonyms for this species were found...")
+                info2 = (
+                    "Adding synonyms to exception in config.json.")
+                print("\n" + info)
+                print(synwarn)
+                print(info2 + "\n")
+                G.logger("> " + info)
+                G.logger(synwarn)
+                G.logger(">" + info2)
+                return synwarn
+
     def get_taxid(self, target):
         Entrez.email = self.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
-        return taxid, Entrez.email
+        syn = self.check_synomyms(taxid, Entrez.email, target)
+        return syn, taxid, Entrez.email
 
     def prepare_dirs(self):
         G.create_directory(self.target_dir)
@@ -247,7 +281,7 @@ class DataCollection():
                     for gi in removed_gis:
                         f.write(gi + "\n")
 
-    def get_ncbi_links(self, taxid, email):
+    def get_ncbi_links(self, taxid, email, maxrecords=2000 ):
 
         def collect_genomedata(taxid, email):
             genomedata = []
@@ -256,7 +290,8 @@ class DataCollection():
             assembly_search = Entrez.esearch(
                 db="assembly",
                 term="txid" + str(taxid) + "[Orgn]",
-                retmax=2000)
+                retmax=maxrecords)
+
             assembly_record = Entrez.read(assembly_search)
             uidlist = assembly_record["IdList"]
             assembly_efetch = Entrez.efetch(
@@ -264,6 +299,7 @@ class DataCollection():
                 id=uidlist,
                 rettype="docsum",
                 retmode="xml")
+
             assembly_records = Entrez.read(assembly_efetch)
 
             with open("genomicdata.json", "w") as f:
@@ -537,10 +573,11 @@ class DataCollection():
             elif file_name in qc_fail_dir:
                 excluded.append(file_name)
             else:
+                outdir = file_name + "_" + date
                 prokka_cmd = [
                     "prokka",
                     "--kingdom", "Bacteria",
-                    "--outdir", file_name + "_" + date,
+                    "--outdir", outdir,
                     "--genus", genus,
                     "--locustag", file_name,
                     "--prefix", file_name + "_" + date,
@@ -550,7 +587,15 @@ class DataCollection():
                 info = file_name + " annotation required"
                 G.logger(info)
                 print("\n" + info)
-                G.run_subprocess(prokka_cmd, True, True, False, False)
+                try:
+                    G.run_subprocess(prokka_cmd, True, True, False, False)
+                except KeyboardInterrupt:
+                    logging.error(
+                        "KeyboardInterrupt during annotation", exc_info=True)
+                    if os.path.isdir(outdir):
+                        shutil.rmtree(outdir)
+                    raise
+
                 annotation_dirs.append(file_name + "_" + date)
 
         if len(annotated) > 0:
@@ -567,7 +612,7 @@ class DataCollection():
             print("\n" + info)
             print(excluded)
 
-        return annotation_dirs
+        return annotation_dirs, annotated
 
     def create_taxidlist(self, taxid):
         # removes the target species taxid from the taxidlist
@@ -588,7 +633,7 @@ class DataCollection():
             return 0
 
         if not self.config.offline:
-            taxid, email = self.get_taxid(self.target)
+            syn, taxid, email = self.get_taxid(self.target)
             self.create_taxidlist(taxid)
             self.get_ncbi_links(taxid, email)
             if not self.config.skip_download:
@@ -604,6 +649,7 @@ class DataCollection():
                             ["gunzip", filepath], False, True, False, False)
                 os.chdir(self.target_dir)
         else:
+            syn = []
             G.create_directory(self.gff_dir)
             G.create_directory(self.ffn_dir)
             G.create_directory(self.fna_dir)
@@ -615,7 +661,7 @@ class DataCollection():
             os.chdir(self.target_dir)
 
         self.create_GI_list()
-        annotation_dirs = self.run_prokka()
+        annotation_dirs, annotated = self.run_prokka()
         self.copy_genome_files()
 
         if self.config.intermediate is False:
@@ -624,6 +670,40 @@ class DataCollection():
                 if os.path.isdir(dirpath):
                     shutil.rmtree(dirpath)
 
+        if syn:
+            if self.exception == None:
+                exceptions = []
+                for item in syn:
+                    if not item in exceptions:
+                        exceptions.append(item)
+                config = CLIconf(
+                    self.config.minsize, self.config.maxsize,
+                    self.config.mpprimer, exceptions, self.config.target,
+                    self.config.path, self.config.intermediate, self.config.qc_gene,
+                    self.config.mfold, self.config.skip_download, self.config.assemblylevel,
+                    self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
+                    self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
+                    self.config.customdb, self.config.blastseqs, self.config.probe,
+                    self.config.blastdbv5)
+
+            else:
+                exceptions = [self.exception]
+                for item in syn:
+                    if not item in exceptions:
+                        exceptions.append(item)
+                    config = CLIconf(
+                        self.config.minsize, self.config.maxsize,
+                        self.config.mpprimer, exceptions, self.config.target,
+                        self.config.path, self.config.intermediate, self.config.qc_gene,
+                        self.config.mfold, self.config.skip_download, self.config.assemblylevel,
+                        self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
+                        self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
+                        self.config.customdb, self.config.blastseqs, self.config.probe,
+                        self.config.blastdbv5)
+
+        else:
+            config = self.config
+        return config
 
 class QualityControl:
     # dictionary containing the search word for annotated genes in gff files
@@ -665,197 +745,223 @@ class QualityControl:
                         excluded_gis.append(str(gi))
         return excluded_gis
 
+    def search_qc_gene(self, file_name, qc_gene):
+        with open(os.path.join(self.gff_dir, file_name), "r") as f:
+            for line in f:
+                if self.searchdict[qc_gene] in line:
+                    gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
+                    if gene not in self.qc_gene_search:
+                        self.qc_gene_search.append(gene)
+
+    def new_count_contigs(self, gff_list, contiglimit):
+        exclude = []
+        for dirs in os.listdir(self.target_dir):
+            if dirs not in systemdirs:
+                path = os.path.join(self.target_dir, dirs)
+                if os.path.isdir(path):
+                    for files in os.listdir(path):
+                        if files.endswith(".fna"):
+                            filepath = os.path.join(path, files)
+                            file = files.split(".fna")[0]
+                            with open(filepath, "r") as f:
+                                records = list(SeqIO.parse(f, "fasta"))
+                                if len(records) > contiglimit:
+                                    exclude.append(file)
+
+        if len(exclude) > 0:
+            for item in exclude:
+                if item + ".gff" in gff_list:
+                    gff_list.remove(item + ".gff")
+                data = [item, "", "", "", "", "Max contigs"]
+                if data not in self.contig_ex:
+                    self.contig_ex.append(data)
+            info = (
+                "skip " + str(len(self.contig_ex))
+                + " Genome(s) with more than " + str(self.contiglimit)
+                + " contigs")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
+
+    def count_contigs(self, gff_list, contiglimit):
+        exclude = []
+        for dirs in os.listdir(self.target_dir):
+            if dirs not in systemdirs:
+                path = os.path.join(self.target_dir, dirs)
+                if os.path.isdir(path):
+                    for files in os.listdir(path):
+                        if files.endswith(".fna"):
+                            contigcount = 0
+                            filepath = os.path.join(path, files)
+                            file = files.split(".fna")[0]
+                            for line in open(filepath).readlines():
+                                if ">" in line:
+                                    contigcount += 1
+                            if contigcount >= contiglimit:
+                                exclude.append(file)
+
+        if len(exclude) > 0:
+            for item in exclude:
+                if item + ".gff" in gff_list:
+                    gff_list.remove(item + ".gff")
+                data = [item, "", "", "", "", "Max contigs"]
+                if data not in self.contig_ex:
+                    self.contig_ex.append(data)
+            info = (
+                "skip " + str(len(self.contig_ex))
+                + " Genome(s) with more than " + str(self.contiglimit)
+                + " contigs")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
+
+    def identify_duplicates(self, gff_list):
+        duplicate = []
+        duplicate_test = []
+        keep = []
+        remove_older_version = []
+
+        def find_potential_duplicates():
+            for item in gff_list:
+                name = '_'.join(item.split(".gff")[0].split("_")[0:-1])
+                if (("GCA" or "GCF") and "v") in name:
+                    version = name.split("_")[-1].split("v")[1]
+                    common = name.split("v")[0]
+                    if int(version) > 1:
+                        if common not in duplicate:
+                            duplicate.append(common)
+
+        def test_if_duplicate(duplicate):
+            for y in duplicate:
+                del duplicate_test[:]
+                for x in gff_list:
+                    x = "_".join(x.split(".")[0].split("_")[0:-1])
+                    if str(y) in str(x):
+                        if x not in duplicate_test:
+                            duplicate_test.append(x)
+
+                if len(duplicate_test) > 0:
+                    maxi = max(
+                        duplicate_test,
+                        key=lambda item: int(item.split("v")[1])
+                    )
+                    if maxi not in keep:
+                        keep.append(maxi)
+                    duplicate_test.remove(maxi)
+                    for item in duplicate_test:
+                        if item not in remove_older_version:
+                            remove_older_version.append(item)
+
+        find_potential_duplicates()
+        test_if_duplicate(duplicate)
+
+        if len(remove_older_version) > 0:
+            for item in remove_older_version:
+                for gff_file in gff_list:
+                    if item in gff_file:
+                        if gff_file in gff_list:
+                            gff_list.remove(gff_file)
+                        data = [
+                            gff_file.split(".gff")[0],
+                            "", "", "", "", "Duplicate"]
+                        if data not in self.double:
+                            self.double.append(data)
+
+            info = (
+                "skip " + str(len(self.double)) + " duplicate Genome(s) ")
+            print(info)
+            G.logger("> " + info)
+
+        return gff_list
+
+    # 12.02.2018 change to generate one QC file
+    def check_no_sequence(self, qc_gene, gff):
+        ffn_list = []
+        sub_gff = []
+        sub_gene_search = []
+        for file_name in gff:
+            name = "_".join(file_name.split("_")[:-1])
+            sub_gff.append(name)
+        for seq_id in self.qc_gene_search:
+            seq_name = "_".join(seq_id.split("_")[:-1])
+            sub_gene_search.append(seq_name)
+        no_seq_found = set(sub_gff) - set(sub_gene_search)
+
+        if len(no_seq_found) > 0:
+            for item in no_seq_found:
+                for file_name in gff:
+                    if item in file_name:
+                        gff.remove(file_name)
+                        self.no_seq.append([
+                            file_name.split(".gff")[0],
+                            "", "", "", "", "QC gene missing"])
+
+            info = (
+                "skip " + str(len(self.no_seq)) + " Genome(s) without "
+                + qc_gene + " sequence")
+            print(info)
+            G.logger("> " + info)
+
+        for item in gff:
+            ffn = item.split(".gff")[0] + ".ffn"
+            ffn_list.append(ffn)
+
+        return ffn_list
+
     def get_qc_seqs(self, qc_gene):
         G.logger("Run: get_qc_seqs(" + qc_gene + ")")
         G.logger("> Starting QC with " + qc_gene)
         print("Starting QC with " + qc_gene)
         gff = []
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+        G.create_directory(qc_dir)
+        # find annotation of gene in gff files and store file name
+        for files in os.listdir(self.gff_dir):
+            if files not in gff:
+                gff.append(files)
+        info = "found " + str(len(gff)) + " gff files"
+        G.logger(info)
+        print(info)
 
-        def search_qc_gene(file_name):
-            with open(os.path.join(self.gff_dir, file_name), "r") as f:
-                for line in f:
-                    if self.searchdict[qc_gene] in line:
-                        gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
-                        if gene not in self.qc_gene_search:
-                            self.qc_gene_search.append(gene)
+        if len(gff) > 0:
+            # look for annotations
+            if self.contiglimit > 0:
+                contig_gff_list = self.count_contigs(gff, self.contiglimit)
+                gff_list = self.identify_duplicates(contig_gff_list)
+            else:
+                gff_list = self.identify_duplicates(gff)
 
-        def count_contigs(gff_list, contiglimit):
-            exclude = []
-            for dirs in os.listdir(self.target_dir):
-                if dirs not in systemdirs:
-                    path = os.path.join(self.target_dir, dirs)
-                    if os.path.isdir(path):
-                        for files in os.listdir(path):
-                            if files.endswith(".fna"):
-                                contigcount = 0
-                                filepath = os.path.join(path, files)
-                                file = files.split(".fna")[0]
-                                for line in open(filepath).readlines():
-                                    if ">" in line:
-                                        contigcount += 1
-                                if contigcount >= contiglimit:
-                                    exclude.append(file)
+            for item in gff_list:
+                self.search_qc_gene(item, qc_gene)
 
-            if len(exclude) > 0:
-                for item in exclude:
-                    if item + ".gff" in gff_list:
-                        gff_list.remove(item + ".gff")
-                    data = [item, "", "", "", "", "Max contigs"]
-                    if data not in self.contig_ex:
-                        self.contig_ex.append(data)
-                info = (
-                    "skip " + str(len(self.contig_ex))
-                    + " Genome(s) with more than " + str(self.contiglimit)
-                    + " contigs")
-                print(info)
-                G.logger("> " + info)
-
-            return gff_list
-
-        def identify_duplicates(gff_list):
-            duplicate = []
-            duplicate_test = []
-            keep = []
-            remove_older_version = []
-
-            def find_potential_duplicates():
-                for item in gff_list:
-                    name = '_'.join(item.split(".gff")[0].split("_")[0:-1])
-                    if (("GCA" or "GCF") and "v") in name:
-                        version = name.split("_")[-1].split("v")[1]
-                        common = name.split("v")[0]
-                        if int(version) > 1:
-                            if common not in duplicate:
-                                duplicate.append(common)
-
-            def test_if_duplicate(duplicate):
-                for y in duplicate:
-                    del duplicate_test[:]
-                    for x in gff_list:
-                        x = "_".join(x.split(".")[0].split("_")[0:-1])
-                        if str(y) in str(x):
-                            if x not in duplicate_test:
-                                duplicate_test.append(x)
-
-                    if len(duplicate_test) > 0:
-                        maxi = max(
-                            duplicate_test,
-                            key=lambda item: int(item.split("v")[1])
-                        )
-                        if maxi not in keep:
-                            keep.append(maxi)
-                        duplicate_test.remove(maxi)
-                        for item in duplicate_test:
-                            if item not in remove_older_version:
-                                remove_older_version.append(item)
-
-            find_potential_duplicates()
-            test_if_duplicate(duplicate)
-
-            if len(remove_older_version) > 0:
-                for item in remove_older_version:
-                    for gff_file in gff_list:
-                        if item in gff_file:
-                            if gff_file in gff_list:
-                                gff_list.remove(gff_file)
-                            data = [
-                                gff_file.split(".gff")[0],
-                                "", "", "", "", "Duplicate"]
-                            if data not in self.double:
-                                self.double.append(data)
-
-                info = (
-                    "skip " + str(len(self.double)) + " duplicate Genome(s) ")
-                print(info)
-                G.logger("> " + info)
-
-            return gff_list
-
-        # 12.02.2018 change to generate one QC file
-        def check_no_sequence(qc_gene, gff):
-            ffn_list = []
-            sub_gff = []
-            sub_gene_search = []
-            for file_name in gff:
-                name = "_".join(file_name.split("_")[:-1])
-                sub_gff.append(name)
-            for seq_id in self.qc_gene_search:
-                seq_name = "_".join(seq_id.split("_")[:-1])
-                sub_gene_search.append(seq_name)
-            no_seq_found = set(sub_gff) - set(sub_gene_search)
-
-            if len(no_seq_found) > 0:
-                for item in no_seq_found:
-                    for file_name in gff:
-                        if item in file_name:
-                            gff.remove(file_name)
-                            self.no_seq.append([
-                                file_name.split(".gff")[0],
-                                "", "", "", "", "QC gene missing"])
-
-                info = (
-                    "skip " + str(len(self.no_seq)) + " Genome(s) without "
-                    + qc_gene + " sequence")
-                print(info)
-                G.logger("> " + info)
-
-            for item in gff:
-                ffn = item.split(".gff")[0] + ".ffn"
-                ffn_list.append(ffn)
-
-            return ffn_list
-
-        def run_get_qc_seqs():
-            G.create_directory(qc_dir)
-            # find annotation of gene in gff files and store file name
-            for files in os.listdir(self.gff_dir):
-                if files not in gff:
-                    gff.append(files)
-            info = "found " + str(len(gff)) + " gff files"
+            info = (
+                "found " + str(len(self.qc_gene_search)) + " "
+                + qc_gene + " annotations in gff files")
             G.logger(info)
             print(info)
 
-            if len(gff) > 0:
-                # look for annotations
-                if self.contiglimit > 0:
-                    contig_gff_list = count_contigs(gff, self.contiglimit)
-                    gff_list = identify_duplicates(contig_gff_list)
-                else:
-                    gff_list = identify_duplicates(gff)
+            ffn_check = self.check_no_sequence(qc_gene, gff_list)
 
-                for item in gff_list:
-                    search_qc_gene(item)
+            # search sequences in ffn files
+            for files in os.listdir(self.ffn_dir):
+                if files in ffn_check:
+                    if files not in self.ffn_list:
+                        self.ffn_list.append(files)
+            info = (
+                    "selected " + str(len(self.ffn_list)) + " "
+                    + qc_gene + " sequences from ffn files")
+            G.logger(info)
+            print(info)
 
-                info = (
-                    "found " + str(len(self.qc_gene_search)) + " "
-                    + qc_gene + " annotations in gff files")
-                G.logger(info)
-                print(info)
-
-                ffn_check = check_no_sequence(qc_gene, gff_list)
-
-                # search sequences in ffn files
-                for files in os.listdir(self.ffn_dir):
-                    if files in ffn_check:
-                        if files not in self.ffn_list:
-                            self.ffn_list.append(files)
-                info = (
-                        "selected " + str(len(self.ffn_list)) + " "
-                        + qc_gene + " sequences from ffn files")
-                G.logger(info)
-                print(info)
-
-            else:
-                error_msg = "Error: No .gff files found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                return 1
-            return 0
-
-        status = run_get_qc_seqs()
-        return status
+        else:
+            error_msg = "Error: No .gff files found"
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            return 1
+        return 0
 
     def choose_sequence(self, qc_gene):
         """ find files and choose the longest sequence
@@ -910,9 +1016,27 @@ class QualityControl:
 
         def get_blastresults_info(blast_record, index):
             alninfo = str(blast_record.alignments[index])
-            short = alninfo.split("|")[4].strip(" ").split(" ")
-            gi = alninfo.split("|")[1].strip(" ")
-            db_id = alninfo.split("|")[3].strip(" ")
+            if self.config.customdb is not None:
+                if len(alninfo.split("|")) == 3:
+                    di = [1, 1, -1]
+                elif len(alninfo.split("|")) > 3:
+                    di = [1, 3, -1]
+                else:
+                    error_msg = (
+                        "Data is missing in the custom BLAST DB. At least "
+                        "a unique sequence identifier and the species name "
+                        "is required for each entry")
+
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
+
+            else:
+                di = [1, 3, -1]
+
+            gi = alninfo.split("|")[di[0]].strip(" ")
+            db_id = alninfo.split("|")[di[1]].strip(" ")
+            short = alninfo.split("|")[di[2]].strip(" ").split(" ")
             if "subsp." in short:
                 spec = str(
                     " ".join(short[0:2]) + " " + short[2].split(".")[0]
@@ -923,6 +1047,11 @@ class QualityControl:
             return spec, gi, db_id
 
         def parse_blastresults():
+            exceptions = []
+            if not self.exception == None:
+                for item in self.exception:
+                    exception = ' '.join(item.split("_"))
+                    exceptions.append(exception)
             gi_list = []
             excluded_gis = self.get_excluded_gis()
             expected = " ".join(self.target.split("_"))
@@ -930,9 +1059,27 @@ class QualityControl:
             os.chdir(qc_dir)
             for file_name in xmlblastresults:
                 result_handle = open(file_name)
-                blast_records = NCBIXML.parse(result_handle)
-                blast_records = list(blast_records)
-                for index, blast_record in enumerate(blast_records):
+                try:
+                    blast_records = NCBIXML.parse(result_handle)
+                    blast_record_list = list(blast_records)
+                except Exception:
+                    error_msg = (
+                        "A problem with the BLAST results file " + file_name
+                        + " was detected. Trying to remove the file. "
+                        + "Please check if the file was removed and start the run again" )
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
+                    try:
+                        result_handle.close()
+                        os.remove(file_name)
+                        print("removed " + file_name)
+                    except FileNotFoundError:
+                        pass
+
+                    raise
+
+                for index, blast_record in enumerate(blast_record_list):
                     i = 0
                     spec, gi, db_id = get_blastresults_info(blast_record, i)
                     query = blast_record.query
@@ -958,24 +1105,13 @@ class QualityControl:
                                 expected, "passed QC"]
                             passed.append(success)
 
-                    elif self.exception is not None:
-                        if self.exception in spec:
-                            if query not in wrote:
-                                wrote.append(query)
-                                success = [
-                                    query, gi, db_id, spec,
-                                    expected, "passed QC"]
-                                passed.append(success)
-                    # allows passing qc if the species is correct but the
-                    # blast hit sequence name does not include the subspecies
-#                    elif "subsp" in expected:
-#                        if " ".join(expected.split(" ")[0:2]) == spec:
-#                            if query not in wrote:
-#                                wrote.append(query)
-#                                success = [
-#                                    query, gi, db_id, spec,
-#                                    expected, "passed QC"]
-#                                passed.append(success)
+                    elif spec in exceptions:
+                        if query not in wrote:
+                            wrote.append(query)
+                            success = [
+                                query, gi, db_id, spec,
+                                expected, "passed QC"]
+                            passed.append(success)
                     else:
                         if query not in wrote:
                             wrote.append(query)
@@ -991,28 +1127,37 @@ class QualityControl:
             os.chdir(self.target_dir)
 
         def write_blastresults():
+            results = []
+            for item in passed:
+                results.append(item)
+            if len(problems) > 0:
+                for item in problems:
+                    results.append(item)
+            if len(self.no_seq) > 0:
+                for item in self.no_seq:
+                    results.append(item)
+            if len(self.contig_ex) > 0:
+                for item in self.contig_ex:
+                    results.append(item)
+            if len(self.double) > 0:
+                for item in self.double:
+                    results.append(item)
             # write files
             report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
-            with open(report, "w") as f:
-                writer = csv.writer(f)
-                header = [
-                    "Query", "GI", "DB ID", "Species",
-                    "Target species", "QC status"]
-                writer.writerow(header)
-                for item in passed:
-                    writer.writerow(item)
-                if len(problems) > 0:
-                    for item in problems:
-                        writer.writerow(item)
-                if len(self.no_seq) > 0:
-                    for item in self.no_seq:
-                        writer.writerow(item)
-                if len(self.contig_ex) > 0:
-                    for item in self.contig_ex:
-                        writer.writerow(item)
-                if len(self.double) > 0:
-                    for item in self.double:
-                        writer.writerow(item)
+            if len(results) > 0:
+                with open(report, "w") as f:
+                    writer = csv.writer(f)
+                    header = [
+                        "Query", "GI", "DB ID", "Species",
+                        "Target species", "QC status"]
+                    writer.writerow(header)
+                    writer.writerows(results)
+            else:
+                error_msg = "No Quality Control results found."
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+
 
         def delete_blastreport():
             os.chdir(qc_dir)
@@ -1165,6 +1310,34 @@ class QualityControl:
         remove_directories()
         remove_files()
 
+    def check_passed_list(self, passed_list, qc_gene):
+        if self.config.ignore_qc:
+            info = (
+                "--ignore_qc option: Check quality control"
+                " files in the Summary directory")
+            G.logger("> " + info)
+            print("\n" + info)
+            return 0
+
+        elif passed_list:
+            if len(passed_list) < 2:
+                error_msg = "Error: Less than two genomes survived QC"
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                self.remove_qc_failures(qc_gene)
+                return 1
+            else:
+                self.remove_qc_failures(qc_gene)
+                return 0
+        else:
+            error_msg = "Error: No genomes survived QC"
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            self.remove_qc_failures(qc_gene)
+            return 1
+
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
@@ -1178,7 +1351,17 @@ class QualityControl:
             info = "Found " + qc_gene + "_QC_report.csv, skip QC " + qc_gene
             G.logger("> " + info)
             print(info)
-            return 0
+            passed_list = []
+            with open(qc_report) as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if "passed QC" == row[5]:
+                        passed_list.append(row)
+
+            exitcode = self.check_passed_list(passed_list, qc_gene)
+            return exitcode
+
         else:
             print("\nRun: quality_control(" + qc_gene + ")")
             G.logger("Run: quality_control(" + qc_gene + ")")
@@ -1192,33 +1375,9 @@ class QualityControl:
                     self.config, qc_dir, "quality_control"
                 ).run_blast(qc_gene, use_cores)
                 passed_list = self.qc_blast_parser(qc_gene)
+                exitcode = self.check_passed_list(passed_list, qc_gene)
+                return exitcode
 
-                if self.config.ignore_qc:
-                    info = (
-                        "--ignore_qc option: Check quality control"
-                        " files in the Summary directory")
-                    G.logger("> " + info)
-                    print("\n" + info)
-                    return 0
-
-                elif passed_list:
-                    if len(passed_list) < 2:
-                        error_msg = "Error: Less than two genomes survived QC"
-                        print(error_msg)
-                        G.logger("> " + error_msg)
-                        errors.append([self.target, error_msg])
-                        self.remove_qc_failures(qc_gene)
-                        return 1
-                    else:
-                        self.remove_qc_failures(qc_gene)
-                        return 0
-                else:
-                    error_msg = "Error: No genomes survived QC"
-                    print(error_msg)
-                    G.logger("> " + error_msg)
-                    errors.append([self.target, error_msg])
-                    self.remove_qc_failures(qc_gene)
-                    return 1
             else:
                 return 1
 
@@ -1245,19 +1404,33 @@ class PangenomeAnalysis:
                 + str(multiprocessing.cpu_count())
                 + " -cd 100 ./gff_files/*.gff")
 
-        G.run_shell(
-            roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
+        try:
+            G.run_shell(
+                roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
+        except KeyboardInterrupt:
+            logging.error(
+                "KeyboardInterrupt during pan-genome analysis", exc_info=True)
+            shutil.rmtree(self.pangenome_dir)
+            raise
 
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
         os.chdir(self.pangenome_dir)
         coregenealn = "core_gene_alignment.aln"
         if os.path.isfile(coregenealn):
-            tree = H.abbrev(self.target, dict_path) + "_tree.nwk"
+            tree = H.abbrev(self.target) + "_tree.nwk"
             treecmd = "fasttree -nt -gtr -nopr " + coregenealn + " > " + tree
-            G.run_shell(
-                treecmd, printcmd=True, logcmd=True,
-                log=True, printoption=False)
+            try:
+                G.run_shell(
+                    treecmd, printcmd=True, logcmd=True,
+                    log=True, printoption=False)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during fasttree run", exc_info=True)
+                if os.path.isfile(tree):
+                    os.remove(tree)
+                raise
+
         os.chdir(self.target_dir)
 
     def run_pangenome_analysis(self):
@@ -1267,9 +1440,11 @@ class PangenomeAnalysis:
         if not os.path.isdir(self.pangenome_dir):
             if self.config.skip_tree:
                 self.run_roary()
+                return 1
             else:
                 self.run_roary()
                 self.run_fasttree()
+                return 0
         else:
             filepath = os.path.join(
                 self.pangenome_dir, "gene_presence_absence.csv")
@@ -1279,13 +1454,16 @@ class PangenomeAnalysis:
                     "Continue with existing Pangenome data")
                 print(info)
                 G.logger("> " + info)
+                return 2
             else:
                 shutil.rmtree(self.pangenome_dir)
                 if self.config.skip_tree:
                     self.run_roary()
+                    return 1
                 else:
                     self.run_roary()
                     self.run_fasttree()
+                    return 0
 
 
 class CoreGenes:
@@ -1294,266 +1472,142 @@ class CoreGenes:
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.results_dir = os.path.join(self.pangenome_dir, "results")
+        self.fasta_dir = os.path.join(self.results_dir, "fasta")
         self.all_core_path = os.path.join(self.pangenome_dir, "allcoregenes")
         self.multi_path = os.path.join(self.pangenome_dir, "multiannotated")
+        self.singlecopy = os.path.join(self.pangenome_dir, "singlecopy_genes.csv")
+        self.ffn_seqs = os.path.join(self.pangenome_dir, "ffn_sequences.csv")
 
-    def copy_DBGenerator(self):
-        src = os.path.join(pipe_dir, "ext-scripts", "DBGenerator.py")
-        dst = os.path.join(self.pangenome_dir, "DBGenerator.py")
-        shutil.copy(src, dst)
+    def get_singlecopy_genes(self, mode):
+        total_count = []
+        single_count = []
+        all_core = []
+        multi_annotated = []
+        filepath = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
+        newtabledata = []
+        with open(filepath, "r") as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            accessions = header[14:]
+            genomes = len(accessions)
+            for row in reader:
+                data_row = []
+                gene_name = row[0]
+                number_isolates = int(row[3])
+                number_sequences = int(row[4])
+                average_seq_per_isolate = float(row[5])
+                loci = row[14:]
+                if number_isolates == genomes:
+                    total_count.append(gene_name)
+                    if number_sequences == genomes:
+                        if average_seq_per_isolate == 1:
+                            single_count.append(gene_name)
+                            data_row.append(gene_name)
+                            for locus in loci:
+                                data_row.append(locus)
+                            newtabledata.append(data_row)
+                            if "group" in gene_name:
+                                    all_core.append(gene_name)
+                            if "group" not in gene_name:
+                                if len(gene_name.split("_")) > 1:
+                                    multi_annotated.append(gene_name)
+                                else:
+                                    all_core.append(gene_name)
 
-    def run_DBGenerator(self):
-        G.logger("Run: run_DBGenerator(" + self.target + ")")
-        genome_locus = os.path.join(self.pangenome_dir, "genomas_locus.csv")
-        locus_seq = os.path.join(self.pangenome_dir, "locus_sequence.csv")
-        pangen_locus = os.path.join(self.pangenome_dir, "pangenoma_locus.csv")
-        pangen = os.path.join(self.pangenome_dir, "pangenoma.csv")
-        if not os.path.isfile(self.target + ".db"):
-            file_paths = [genome_locus, locus_seq, pangen_locus, pangen]
-            for path in file_paths:
-                if os.path.isfile(path):
-                    os.remove(path)
-            DBcmd = self.pangenome_dir + "/DBGenerator.py ../ffn_files"
-            G.run_shell(
-                DBcmd, printcmd=True, logcmd=True, log=True, printoption=True)
+        if mode == "normal":
+            with open(self.singlecopy, "w") as f:
+                w = csv.writer(f)
+                for item in newtabledata:
+                    w.writerow(item)
 
-    def create_sqldb(self):
-        G.logger("Run: create_sqldb(" + self.target + ")")
-        if not os.path.isfile(self.target + ".db"):
-            connection = sqlite3.connect(self.target + ".db")
-            cursor = connection.cursor()
-            sql_tables = [
-                """create table genomas_locus (cod text, locus text);""",
-                """create table pangenoma (
-                gene text, non_unique_gene_name text,
-                annotation text, no_isolates integer, no_sequences integer,
-                avg_sequences_per_isolate integer, genome_fragment integer,
-                order_within_fragment integer, accessory_fragment integer,
-                accessory_order_with_fragment integer,
-                qc text, min_group_size_nuc integer,
-                max_group_size_nuc integer, avg_group_size_nuc integer);""",
-                """create table pangenoma_locus (gene text, locus text);""",
-                """create table locus_sequence (locus text, sequence text);""",
-            ]
-            for cmd in sql_tables:
-                cursor.execute(cmd)
-            db_data = []
-            with open("genomas_locus.csv", "r") as f:
-                fieldnames = ["cod text", "locus text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(i["cod text"], i["locus text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO genomas_locus VALUES (?, ?);", db_data)
+        self.print_gene_stats(all_core, total_count)
 
-            db_data = []
-            with open("pangenoma_locus.csv", "r") as f:
-                fieldnames = ["gene text", "locus text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(i["gene text"], i["locus text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO pangenoma_locus VALUES (?, ?);", db_data)
+    def print_gene_stats(self, all_core, total_count):
+        all_genes = (
+            "Continue with " + str(len(all_core))
+            + " single copy core genes")
+        print("\n# of core genes: " + str(len(total_count)))
+        G.logger("> " + all_genes)
+        print("\n" + all_genes)
+        stats = PipelineStatsCollector(self.target_dir)
+        stats.write_stat("core genes: " + str(len(total_count)))
+        stats.write_stat("single copy core genes: " + str(len(all_core)))
 
-            db_data = []
-            with open("locus_sequence.csv", "r") as f:
-                fieldnames = ["locus text", "sequence text"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [
-                    (i["locus text"], i["sequence text"]) for i in csv_file]
-            cursor.executemany(
-                "INSERT INTO locus_sequence VALUES (?, ?);", db_data)
-
-            db_data = []
-            with open("pangenoma.csv", "r") as f:
-                fieldnames = [
-                    "gene text", "non_unique_gene_name text",
-                    "annotation text", "no_isolates integer",
-                    "no_sequences integer",
-                    "avg_sequences_per_isolate integer",
-                    "genome_fragment integer",
-                    "order_within_fragment integer",
-                    "accessory_fragment integer",
-                    "accessory_order_with_fragment integer", "qc text",
-                    "min_group_size_nuc integer", "max_group_size_nuc integer",
-                    "avg_group_size_nuc integer"]
-                csv_file = csv.DictReader(
-                    f, delimiter="|", fieldnames=fieldnames)
-                db_data = [(
-                    i["gene text"], i["non_unique_gene_name text"],
-                    i["annotation text"], i["no_isolates integer"],
-                    i["no_sequences integer"],
-                    i["avg_sequences_per_isolate integer"],
-                    i["genome_fragment integer"],
-                    i["order_within_fragment integer"],
-                    i["accessory_fragment integer"],
-                    i["accessory_order_with_fragment integer"], i["qc text"],
-                    i["min_group_size_nuc integer"],
-                    i["max_group_size_nuc integer"],
-                    i["avg_group_size_nuc integer"]
-                    ) for i in csv_file
-                ]
-            cursor.executemany(
-                "INSERT INTO pangenoma VALUES (?, ?, ?, ?, ?, ?, ?,"
-                "?, ?, ?, ?, ?, ?, ?);", db_data
-            )
-
-            sql_index = [
-                """create index genomas_locus_index on genomas_locus
-                (cod, locus);""",
-                """create index pangenoma_index on pangenoma(gene,
-                non_unique_gene_name, annotation, no_isolates, no_sequences,
-                avg_sequences_per_isolate, genome_fragment,
-                order_within_fragment, accessory_fragment,
-                accessory_order_with_fragment, qc, min_group_size_nuc,
-                max_group_size_nuc, avg_group_size_nuc);""",
-                """create index pangenoma_locus_index on
-                pangenoma_locus(gene, locus);""",
-                """create index locus_sequence_index on
-                locus_sequence(locus, sequence);"""
-            ]
-
-            for cmd in sql_index:
-                cursor.execute(cmd)
-            connection.commit()
-            connection.close()
+    def get_sequences_from_ffn(self):
+        locustags = {}
+        if os.path.isfile(self.ffn_seqs):
+            msg = "Found ffn_sequences.csv file, read from file"
+            print("\n" + msg + "\n")
+            G.logger(msg)
+            with open(self.ffn_seqs, "r") as f:
+                r = csv.reader(f)
+                for row in r:
+                    locustags.update(
+                            {row[1]:{"name": row[0], "seq": row[2]}})
         else:
-            info = "Sequence DB exists"
-            print(info)
-            G.logger(info)
+            with open(self.ffn_seqs, "w") as out:
+                w = csv.writer(out)
+                for files in os.listdir(self.ffn_dir):
+                    if files.endswith(".ffn"):
+                        filepath = os.path.join(self.ffn_dir, files)
+                        with open(filepath) as f:
+                            records = SeqIO.parse(f, "fasta")
+                            for record in records:
+                                name = files.split(".ffn")[0]
+                                recid = record.id
+                                locus = recid.split(" ")[0]
+                                seq = str(record.seq)
+                                locustags.update(
+                                        {locus: {"name": name, "seq": seq}})
+                                w.writerow([name, locus, seq])
 
-    def extract_sql_data(self, gene, cursor):
-        if "/" in gene:
-            gene_name = "-".join(gene.split("/"))
-        elif " " in gene:
-            gene_name = "-".join(gene.split(" "))
-        elif "'" in gene:
-            gene_name = str(gene)[0:-1]
-            gene = gene + "'"
-        else:
-            gene_name = gene
-        outfile = os.path.join(self.results_dir, "fasta", gene_name + ".fasta")
-        with open(outfile, "w") as f:
-            cursor.execute(
-                "select '>' || cod ||"
-                " '|' || locus_sequence.locus || '|' || pangenoma.gene || "
-                "x'0a' || sequence from locus_sequence\n"
-                "inner join pangenoma_locus on locus_sequence.locus = "
-                "pangenoma_locus.locus inner join pangenoma on "
-                "pangenoma_locus.gene = pangenoma.gene inner join "
-                "genomas_locus on locus_sequence.locus = "
-                "genomas_locus.locus  where pangenoma.gene = '" + gene + "';")
+        return locustags
 
-            for x in cursor.fetchall():
-                f.write(x[0] + "\n")
+    def get_fasta(self, locustags):
+
+        def check_genename(gene):
+            if "/" in gene:
+                gene_name = "-".join(gene.split("/"))
+            elif " " in gene:
+                gene_name = "-".join(gene.split(" "))
+            elif "'" in gene:
+                gene_name = str(gene)[0:-1]
+                gene = gene + "'"
+            else:
+                gene_name = gene
+
+            return gene_name
+
+        with open(self.singlecopy, "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                gene = check_genename(row[0])
+                outfile = os.path.join(self.fasta_dir, gene + ".fasta")
+                with open(outfile, "w") as r:
+                    for item in row[1:]:
+                        name = locustags[item]["name"]
+                        seq = locustags[item]["seq"]
+                        record = SeqRecord(
+                            Seq(seq),
+                            name=item,
+                            id='{}|{}|{}'.format(name,item, gene),
+                            description="")
+                        SeqIO.write(record, r, "fasta")
 
     def coregene_extract(self, mode="normal"):
         info = "Run: core_gene_extract(" + self.target + ")"
         print(info)
         G.logger(info)
-        total_count = []
-        single_count = []
-        all_core = []
-        multi_annotated = []
-        gff = []
-
-        def nr_genomes():
-            # count number of genomes used for pangenome analysis
-            for files in [
-                f for f in os.listdir(self.gff_dir) if f.endswith(".gff")
-            ]:
-                if files not in gff:
-                    gff.append(files)
-            genomes = int(len(gff))
-            return genomes
-
-        def find_genes():
-            # search single copy genes with gene names
-            genomes = nr_genomes()
-            PipelineStatsCollector(self.target_dir).write_stat(
-                "genome assemblies for pan-genome analysis: " + str(genomes))
-            filepath = os.path.join(
-                self.pangenome_dir, "gene_presence_absence.csv")
-            with open(filepath, "r") as csvfile:
-                reader = csv.reader(csvfile, delimiter=",", quotechar='"')
-                next(reader, None)
-                for row in reader:
-                    gene_name = row[0]
-                    number_isolates = int(row[3])
-                    number_sequences = int(row[4])
-                    average_seq_per_isolate = float(row[5])
-
-                    if number_isolates == genomes:
-                        total_count.append(gene_name)
-                        if number_sequences == genomes:
-                            if average_seq_per_isolate == 1:
-                                single_count.append(gene_name)
-                                if "group" in gene_name:
-                                    all_core.append(gene_name)
-                                if "group" not in gene_name:
-                                    if len(gene_name.split("_")) > 1:
-                                        multi_annotated.append(gene_name)
-                                    else:
-                                        all_core.append(gene_name)
-
-        def print_gene_stats():
-            all_genes = (
-                "Continue with " + str(len(all_core))
-                + " single copy core genes")
-            print("\n# of core genes: " + str(len(total_count)))
-            G.logger("> " + all_genes)
-            print("\n" + all_genes)
-            stats = PipelineStatsCollector(self.target_dir)
-            stats.write_stat("core genes: " + str(len(total_count)))
-            stats.write_stat("single copy core genes: " + str(len(all_core)))
-
-        def write_files():
-            all_core_path = os.path.join(self.results_dir, "allcoregenes")
-            multi_path = os.path.join(self.results_dir, "multiannotated")
-            if not len(all_core) == 0:
-                with open(all_core_path, "w") as f:
-                    for gene in all_core:
-                        f.write(gene+"\n")
-            if not len(multi_annotated) == 0:
-                multi_annotated.sort()
-                with open(multi_path, "w") as f:
-                    for gene in multi_annotated:
-                        f.write(gene+"\n")
-
-        def get_fasta_fromDB():
-            if not len(all_core) == 0:
-                db_path = os.path.join(self.pangenome_dir, self.target + ".db")
-                if os.path.isfile(db_path):
-                    connection = sqlite3.connect(db_path)
-                    cursor = connection.cursor()
-                    for gene in all_core:
-                        self.extract_sql_data(gene, cursor)
-            else:
-                error_msg = "Error: No core genes found"
-                print(error_msg)
-                errors.append([self.target, error_msg])
-                G.logger("> " + error_msg)
-
-        def run_coregene_extract(mode):
-            if mode == "normal":
-                find_genes()
-                print_gene_stats()
-                write_files()
-                get_fasta_fromDB()
-            else:
-                find_genes()
-                print_gene_stats()
-
-        run_coregene_extract(mode)
+        self.get_singlecopy_genes(mode)
+        if mode == "normal":
+            locustags = self.get_sequences_from_ffn()
+            self.get_fasta(locustags)
 
     def remove_intermediatefiles(self):
-        filelist = [
-           "genomas_locus.csv",  "locus_sequence.csv",
-           "pangenoma_locus.csv", "pangenoma.csv",
-           self.target + ".db", "DBGenerator.py"]
+        filelist = [self.singlecopy, self.ffn_seqs]
         for item in filelist:
             filepath = os.path.join(self.pangenome_dir, item)
             os.remove(filepath)
@@ -1566,9 +1620,6 @@ class CoreGenes:
         os.chdir(self.pangenome_dir)
         coregenes = os.path.join(self.results_dir, "fasta", "coregenes.txt")
         if not os.path.isdir(os.path.join(self.results_dir, "fasta")):
-            self.copy_DBGenerator()
-            self.run_DBGenerator()
-            self.create_sqldb()
             G.create_directory(self.results_dir)
             G.create_directory(os.path.join(self.results_dir, "fasta"))
             self.coregene_extract()
@@ -1581,9 +1632,6 @@ class CoreGenes:
                     count = count + 1
             if count <= 1:
                 shutil.rmtree(os.path.join(self.results_dir, "fasta"))
-                self.copy_DBGenerator()
-                self.run_DBGenerator()
-                self.create_sqldb()
                 G.create_directory(self.results_dir)
                 G.create_directory(os.path.join(self.results_dir, "fasta"))
                 self.coregene_extract()
@@ -1595,20 +1643,16 @@ class CoreGenes:
         else:
             if len(os.listdir(os.path.join(self.results_dir, "fasta"))) <= 1:
                 shutil.rmtree(os.path.join(self.results_dir, "fasta"))
-                self.copy_DBGenerator()
-                self.run_DBGenerator()
-                self.create_sqldb()
                 G.create_directory(self.results_dir)
                 G.create_directory(os.path.join(self.results_dir, "fasta"))
                 self.coregene_extract()
                 if self.config.intermediate is False:
                     self.remove_intermediatefiles()
             else:
-                self.coregene_extract("statistics")
+                self.coregene_extract(mode="statistics")
 
 
 class CoreGeneSequences:
-
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
@@ -1658,8 +1702,16 @@ class CoreGeneSequences:
                         w.write(cmd + "\n")
 
             if os.path.isfile(run_file):
-                G.run_subprocess(
-                    ["parallel", "-a", run_file], True, True, False, False)
+                try:
+                    G.run_subprocess(
+                        ["parallel", "-a", run_file], True, True, False, False)
+                except KeyboardInterrupt:
+                    error_msg = "Error: KeyboardInterrupt during Prank MSA run"
+                    print(error_msg)
+                    G.logger("> " + error_msg)
+                    shutil.rmtree(self.alignment_dir)
+                    raise
+
 
             with open(coregenes, "w") as f:
                 for fastafile in fasta_files:
@@ -1730,9 +1782,15 @@ class CoreGeneSequences:
                         "consambig -sequence " + aligned_path
                         + " -outseq " + result_path
                         + " -name " + seqname + " -auto\n")
+            try:
+                G.run_subprocess(
+                    ["parallel", "-a", run_file], True, True, True, False)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during consensus run", exc_info=True)
+                shutil.rmtree(self.consensus_dir)
+                raise
 
-            G.run_subprocess(
-                ["parallel", "-a", run_file], True, True, True, False)
             records = []
             for files in os.listdir(self.consensus_dir):
                 if files.endswith("_consens.fasta"):
@@ -1770,7 +1828,7 @@ class CoreGeneSequences:
             self.consensus_dir, "consensus_summary.txt")
         result_path = os.path.join(
             self.blast_dir,
-            H.abbrev(self.target, dict_path) + "_conserved")
+            H.abbrev(self.target) + "_conserved")
 
         if os.path.isfile(cons_summary):
             filepaths.append(cons_summary)
@@ -1941,8 +1999,7 @@ class Blast:
                 str(cores), "-query", blastfile,
                 "-evalue", "500", "-out", filename, "-outfmt", "5"]
 
-        if self.config.remoteblast:
-            blast_cmd.append("-remote")
+
 
         if self.config.blastdbv5:
             if self.mode == "quality_control":
@@ -1956,10 +2013,16 @@ class Blast:
                 blast_cmd.append(taxidlist)
 
             blast_cmd.append("-db")
-            blast_cmd.append("nt_v5")
+            if self.config.customdb:
+                blast_cmd.append(self.config.customdb)
+            else:
+                blast_cmd.append("nt_v5")
         else:
             blast_cmd.append("-db")
-            blast_cmd.append("nt")
+            if self.config.customdb:
+                blast_cmd.append(self.config.customdb)
+            else:
+                blast_cmd.append("nt")
 
         return blast_cmd
 
@@ -1995,7 +2058,14 @@ class Blast:
                         G.logger("> " + info)
 
                 if blast_cmd:
-                    G.run_subprocess(blast_cmd)
+                    try:
+                        G.run_subprocess(blast_cmd)
+                    except KeyboardInterrupt:
+                        logging.error(
+                            "KeyboardInterrupt during BLAST search", exc_info=True)
+                        if os.path.isfile(filename):
+                            os.remove(filename)
+                        raise
 
             duration = time.time() - start
             G.logger(
@@ -2046,9 +2116,27 @@ class BlastParser:
             nuc_ident = hsp.identities
 
             identity = False
-            gi = alignment.title.split("|")[1].strip()
-            db_id = alignment.title.split("|")[3].strip()
-            name_long = alignment.title.split("|")[4].split(",")[0].strip(" ")
+            if self.config.customdb is not None:
+                if len(alignment.title.split("|")) == 3:
+                    di = [1, 1, -1]
+                elif len(alignment.title.split("|")) > 3:
+                    di = [1, 3, -1]
+                else:
+                    error_msg = (
+                        "Data is missing in the custom BLAST DB. At least "
+                        "a unique sequence identifier and the species name "
+                        "is required for each entry")
+
+                    print("\n" + error_msg + "\n")
+                    G.logger("> " + error_msg)
+                    errors.append([self.target, error_msg])
+            else:
+                di = [1, 3, -1]
+
+            gi = alignment.title.split("|")[di[0]].strip()
+            db_id = alignment.title.split("|")[di[1]].strip()
+            name_long = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
+
             if re.search("PREDICTED", name_long):
                 pass
             else:
@@ -2180,8 +2268,26 @@ class BlastParser:
     def parse_BLASTfile(self, filename):
         record_list = []
         result_handle = open(filename)
-        blast_records = NCBIXML.parse(result_handle)
-        record_list = list(blast_records)
+        try:
+            blast_records = NCBIXML.parse(result_handle)
+            record_list = list(blast_records)
+        except Exception:
+            error_msg = (
+                "A problem with the BLAST results file " + filename
+                + " was detected. Try to remove the file. "
+                + "Please check if the file was removed and start the run again" )
+            print("\n" + error_msg + "\n")
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            try:
+                result_handle.close()
+                os.remove(filename)
+                print("removed " + filename)
+            except FileNotFoundError:
+                pass
+
+            raise
+
         return record_list
 
     def get_excluded_gis(self):
@@ -2198,10 +2304,13 @@ class BlastParser:
     def parse_blastrecords(self, blast_record):
         align_dict = {}
         hits = []
-        if self.exception:
-            exception = ' '.join(self.exception.split("_"))
+        if not self.exception == None:
+            exceptions = []
+            for item in self.exception:
+                exception = ' '.join(item.split("_"))
+                exceptions.append(exception)
         else:
-            exception = None
+            exceptions = []
         query_start = []
         query_end = []
         query_length = blast_record.query_length
@@ -2227,7 +2336,7 @@ class BlastParser:
 
                 if not (
                     str(identity) == str(targetspecies) or
-                    str(identity) == str(exception)
+                    str(identity) in exceptions
                 ):
                     ids = {identity: {
                         "gi": gi, "db_id": db_id, "score": score,
@@ -2244,7 +2353,7 @@ class BlastParser:
                             blast_record, alignment,
                             query_start, query_end)
             else:
-                if not str(identity) == str(exception):
+                if not str(identity) in exceptions:
                     for species in self.nontargetlist:
                         if str(identity) == str(species):
                             ids = {identity: {
@@ -2300,118 +2409,128 @@ class BlastParser:
         print("\n" + info2)
         return selected_seqs
 
-    def get_seq_range(self, db_id, overhang=2000):
-        if self.config.blastdbv5:
-            db = "nt_v5"
+    def sort_nontarget_sequences(self, nonred_dict):
+        nonreddata = []
+        filepath = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
+        overhang = 2000
+        if os.path.isfile(filepath):
+            with open(filepath, "r") as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    nonreddata.append(row)
         else:
-            db = "nt"
-        accession = db_id[0]
-        seq_start = int(db_id[1])
-        if seq_start > overhang:
-            start = seq_start - overhang
+            from collections import defaultdict
+            posdict = defaultdict(list)
+            for key in nonred_dict.keys():
+                if not len(nonred_dict[key]) == 0:
+                    for species in nonred_dict[key]:
+                        poskey = nonred_dict[key][species]['main_id']
+                        pos = int(
+                            nonred_dict[key][species]["subject_start"])
+                        if not pos in posdict[poskey]:
+                            posdict[poskey].append(pos)
+
+            for key in posdict.keys():
+                posdict[key].sort()
+                inrange = []
+                for index, item in enumerate(posdict[key]):
+                    if index == 0:
+                        stop = item + overhang
+                        if item > overhang:
+                            start = item - overhang
+                        else:
+                            start = 1
+                        inrange.append([key, start, stop])
+                    else:
+                        if item < stop:
+                            stop = item + overhang
+                            inrange.append([key, start, stop])
+                            if index == len(posdict[key]) - 1:
+                                nonreddata.append(inrange[-1])
+                        else:
+                            nonreddata.append(inrange[-1])
+                            inrange = []
+                            if item > overhang:
+                                start = item - overhang
+                            else:
+                                start = 1
+                            stop = item + overhang
+                            inrange.append([key, start, stop])
+
+            with open(filepath, "w") as f:
+                writer = csv.writer(f)
+                header = ["Accession", "Start pos", "Stop pos"]
+                writer.writerow(header)
+                writer.writerows(nonreddata)
+
+        return nonreddata
+
+    def write_nontarget_sequences(self, nonreddata):
+        maxsize = 25000
+        if self.config.customdb is not None:
+            db = self.config.customdb
         else:
-            start = 1
+            if self.config.blastdbv5:
+                db = "nt_v5"
+            else:
+                db = "nt"
+        info = "Found " + str(len(nonreddata)) + " sequences for the non-target DB"
+        G.logger(info)
+        print("\n" + info + "\n")
+        parts = len(nonreddata)//maxsize + 1
 
-        stop = seq_start + overhang
-
-        seq_cmd = " ".join([
-            "blastdbcmd", "-db", db, "-entry", accession,
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
-        fasta = G.read_shelloutput(
-            seq_cmd, printcmd=False, logcmd=False, printoption=False)
-
-        return fasta
-
-    def write_nontarget_sequences(self, files):
-        statuscount = 0
-        part = files.split(".txt")[0][-1:]
-        with open(os.path.join(self.primer_qc_dir, files), "r") as f:
+        for part in range(0, parts):
+            print("Working on part " + str(part + 1) + "/" + str(parts))
+            end = (part+1)*maxsize
+            if end > len(nonreddata):
+                end = len(nonreddata)
             filename = "BLASTnontarget" + str(part) + ".sequences"
             filepath = os.path.join(self.primer_qc_dir, filename)
             if not os.path.isfile(filepath):
                 info = "Start writing " + filename
                 print(info)
                 G.logger(info)
+                print("Start DB extraction")
+                data = nonreddata[part*maxsize:end]
+                fasta_seqs = G.run_parallel(
+                        self.get_seq_fromDB, data, db)
                 with open(filepath, "w") as r:
-                    for line in f:
-                        statuscount = statuscount + 1
-                        line = line.strip("\n")
-                        db_id = line.split(" ")[0]
-                        sbjct_start = line.split(" ")[1]
-                        fasta_seq = self.get_seq_range(
-                                [db_id, sbjct_start], 2000)
-                        fasta_info = "\n".join(fasta_seq) + "\n"
-                        r.write(fasta_info)
+                    for fastainfo in fasta_seqs:
+                        name = fastainfo[0].split(":")
+                        fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
+                        fastadata = "\n".join(fastainfo) + "\n"
+                        r.write(fastadata)
             else:
                 info2 = "Skip writing " + filename
                 print(info2)
                 G.logger(info2)
                 return
-        info3 = "Finished writing" + filename
-        print(info3)
-        G.logger(info3)
-        return
+            info3 = "Finished writing" + filename
+            print(info3)
+            G.logger(info3)
 
-    def write_DBIDS(self, prefix, part, suffix, info):
-        filename = prefix + str(part) + suffix
-        filepath = os.path.join(self.primer_qc_dir, filename)
-        with open(filepath, "a+") as f:
-            f.write(info)
+    def get_seq_fromDB(self, extractdata, db):
+        [accession, start, stop] = extractdata
+        fasta = []
+        seq_cmd = " ".join([
+            "blastdbcmd", "-db", db, "-entry", str(accession),
+            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
+        while fasta == []:
+            fasta = G.read_shelloutput(
+                seq_cmd, printcmd=False, logcmd=False, printoption=False)
+        return fasta
 
-    def create_primerBLAST_DBIDS(self, nonred_dict):
+    def get_primerBLAST_DBIDS(self, nonred_dict):
         print("\nGet sequence accessions of BLAST hits\n")
         G.logger("> Get sequence accessions of BLAST hits")
         G.create_directory(self.primer_qc_dir)
-        DBID_files = []
-        idcount = 0
-        part = 0
-        for files in os.listdir(self.primer_qc_dir):
-            if files.startswith("primerBLAST_DBIDS"):
-                DBID_files.append(files)
-                with open(os.path.join(self.primer_qc_dir, files), "r") as f:
-                    for line in f:
-                        idcount = idcount + 1
-                part = part + 1
-
-        if len(DBID_files) == 0:
-            written = []
-            prefix = "primerBLAST_DBIDS"
-            suffix = ".txt"
-
-            for key in nonred_dict.keys():
-                if not len(nonred_dict[key]) == 0:
-                    for species in nonred_dict[key]:
-                        db_id = nonred_dict[key][species]['main_id']
-                        sbjct_start = (
-                            nonred_dict[key][species]["subject_start"])
-                        if not [db_id, sbjct_start] in written:
-                            written.append([db_id, sbjct_start])
-                            idcount = idcount + 1
-                            part = idcount//self.maxgroupsize
-                            info = str(db_id) + " " + str(sbjct_start) + "\n"
-                            self.write_DBIDS(prefix, part, suffix, info)
-                            filename = prefix + str(part) + suffix
-                            if filename not in DBID_files:
-                                DBID_files.append(filename)
-
-        if idcount == 0:
+        nonreddata = self.sort_nontarget_sequences(nonred_dict)
+        if len(nonreddata) == 0:
             print("Error did not find any sequences for the non-target DB")
             G.logger("> Error did not find any sequences for non-target DB")
             return
-        else:
-            ntseq = str(idcount)
-            info1 = ntseq + " sequences for non-target DB"
-            info2 = "Start extraction of sequences from BLAST DB"
-            print("\n" + info1)
-            print(info2)
-            G.logger("> " + info1)
-            G.logger("> " + info2)
-            pool = multiprocessing.Pool(processes=4)
-            results = [
-                pool.apply_async(
-                    self.write_nontarget_sequences, args=(files,))
-                for files in DBID_files]
-            output = [p.get() for p in results]
+        self.write_nontarget_sequences(nonreddata)
 
     def remove_redundanthits(self, align_dict):
         nonred_dict = {}
@@ -2597,7 +2716,8 @@ class BlastParser:
                         "json")
             else:
                 nonred_dict = align_dict
-            self.create_primerBLAST_DBIDS(nonred_dict)
+
+            self.get_primerBLAST_DBIDS(nonred_dict)
 
             duration = time.time() - self.start
             G.logger(
@@ -2659,7 +2779,14 @@ class PrimerDesign():
             primer3cmd = [
                 "primer3_core", "-p3_settings_file=" + settings_file,
                 "-echo_settings_file", "-output=" + output_file, input_file]
-            G.run_subprocess(primer3cmd, True, True, False, True)
+            try:
+                G.run_subprocess(primer3cmd, True, True, False, True)
+            except KeyboardInterrupt:
+                logging.error(
+                    "KeyboardInterrupt during primer3 run", exc_info=True)
+                if os.path.isfile(output_file):
+                    os.remove(output_file)
+                raise
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -2678,7 +2805,8 @@ class PrimerDesign():
         def parseTemplate(key, value):
             if key.startswith("SEQUENCE_TEMPLATE"):
                 self.p3dict[p3list[-1]].update(
-                    {"Template_seq": value})
+                    {"template_seq": value})
+
 
         def countPrimer(key, value):
             if key.startswith("PRIMER_PAIR_NUM_RETURNED"):
@@ -2772,6 +2900,24 @@ class PrimerDesign():
                     parseInternalProbe(key, value)
                     parsePrimerPair(key, value)
 
+    def get_amplicon_seq(self):
+        def PCR(left, rc_right, temp):
+            pcr_product = (
+                temp[temp.index(left):template.index(rc_right)] + rc_right)
+            return pcr_product
+
+        for key in self.p3dict.keys():
+            if self.p3dict[key]["Primer_pairs"] > 0:
+               template = self.p3dict[key]["template_seq"]
+               for pp in self.p3dict[key].keys():
+                   if "Primer_pair_" in pp:
+                       lprimer = self.p3dict[key][pp]["primer_L_sequence"]
+                       rprimer = self.p3dict[key][pp]["primer_R_sequence"]
+                       rev_compl = str(Seq(rprimer).reverse_complement())
+                       pcr_product = PCR(lprimer, rev_compl, template)
+                       self.p3dict[key][pp].update(
+                           {"amplicon_seq": pcr_product})
+
     def write_primer3_data(self):
         file_path = os.path.join(self.primer_dir, "primer3_summary.json")
         with open(file_path, "w") as f:
@@ -2786,6 +2932,7 @@ class PrimerDesign():
         self.run_primer3()
         p3_output = os.path.join(self.primer_dir, "primer3_output")
         self.parse_Primer3_output(p3_output)
+        self.get_amplicon_seq()
         self.write_primer3_data()
         return self.p3dict
 
@@ -2855,11 +3002,10 @@ class PrimerQualityControl:
         # start 15.12.2017
         # get primername without direction split("_")
         p_fwd_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
+            H.abbrev(self.target) + "_" + item[0]
             + "_P" + item[1].split("_")[-1]) + "_F"
         p_rev_name = (
-            H.abbrev(self.target, dict_path) + "_" + item[0]
-            + "_P" + item[1].split("_")[-1]) + "_R"
+            "_".join(p_fwd_name.split("_")[0:-1]) + "_R")
         p_fwd_seq = self.primer3_dict[item[0]][item[1]]['primer_L_sequence']
         p_rev_seq = self.primer3_dict[item[0]][item[1]]['primer_R_sequence']
         self.primerlist.append([">"+p_fwd_name + "\n", p_fwd_seq + "\n"])
@@ -2878,12 +3024,12 @@ class PrimerQualityControl:
                     primer_name = item
                 target_id = "_".join(primer_name.split("_")[-3:-1])
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
-                template_seq = self.primer3_dict[target_id]["Template_seq"]
+                template_seq = self.primer3_dict[target_id]["template_seq"]
                 x = self.primer3_dict[target_id][primerpair]
                 pp_penalty = round(x["primer_P_penalty"], 2)
                 pp_prodsize = x["product_size"]
                 pp_prodTM = round(x["product_TM"], 2)
-
+                amp_seq = x["amplicon_seq"]
                 lseq = x["primer_L_sequence"]
                 rseq = x["primer_R_sequence"]
                 lpen = round(x["primer_L_penalty"], 2)
@@ -2897,9 +3043,7 @@ class PrimerQualityControl:
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "mfold":
-                    info = [
-                        target_id, primerpair, lseq, rseq, template_seq,
-                        primer_name]
+                    info = [target_id, primerpair, amp_seq, primer_name]
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "dimercheck":
@@ -2908,7 +3052,6 @@ class PrimerQualityControl:
                     if info not in val_list:
                         val_list.append(info)
                 if mode == "results":
-                    amp_seq = x["amplicon_seq"]
                     ppc = x['PPC']
                     if self.config.probe:
                         iseq = x["primer_I_sequence"]
@@ -2946,11 +3089,26 @@ class PrimerQualityControl:
             print("Done indexing non-target DB " + inputfiles)
             G.logger("> Done indexing non-target DB " + inputfiles)
 
+        infile = os.path.join(self.primer_qc_dir, inputfiles)
+        if os.stat(infile).st_size == 0:
+            msg = "Problem with non-target DB " + inputfiles
+            + " input file is empty"
+            G.logger("> " + msg)
+            print("\n" + msg)
+
     def index_Database(self, db_name):
         start = time.time()
         os.chdir(self.primer_qc_dir)
         cmd = "IndexDb.sh " + db_name + " 9"
-        G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+        try:
+            G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+        except KeyboardInterrupt:
+            logging.error(
+                "KeyboardInterrupt during DB indexing", exc_info=True)
+            for files in os.listdir(self.primer_qc_dir):
+                if files.startswith(db_name):
+                    os.remove(files)
+            raise
         os.chdir(self.primer_dir)
         end = time.time() - start
         G.logger(
@@ -3020,6 +3178,8 @@ class PrimerQualityControl:
                                 remove.append(accession)
 
             check = set(qc_acc) - set(remove)
+            check = list(check)
+            check.sort()
             for item in check:
                 if len(ref_assembly) < self.referencegenomes:
                     if assembly_dict[item] == "Complete Genome":
@@ -3046,6 +3206,7 @@ class PrimerQualityControl:
                         if item not in ref_assembly:
                             ref_assembly.append(item)
 
+            ref_assembly.sort()
             target_fasta = []
             for files in os.listdir(self.fna_dir):
                 for item in ref_assembly:
@@ -3053,13 +3214,13 @@ class PrimerQualityControl:
                     if acc in files:
                         if files.endswith(".fna"):
                             with open(os.path.join(self.fna_dir, files)) as f:
-                                for line in f:
-                                    target_fasta.append(line)
+                                records = SeqIO.parse(f, "fasta")
+                                target_fasta.append(list(records))
 
             file_path = os.path.join(self.primer_qc_dir, db_name)
             with open(file_path, "w") as fas:
                 for item in target_fasta:
-                    fas.write(item)
+                    SeqIO.write(item, fas, "fasta")
 
         def make_templateDB():
             db_name = "template.sequences"
@@ -3073,9 +3234,15 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing template DB")
                 print("Done indexing template DB")
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name
+                + " input file is empty"
+                G.logger("> " + msg)
+                print("\n" + msg)
 
         def make_assemblyDB():
-            db_name = H.abbrev(self.target, dict_path) + ".genomic"
+            db_name = H.abbrev(self.target) + ".genomic"
             db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
             if not os.path.isfile(db_path):
                 G.logger("> create target genome assembly DB")
@@ -3086,6 +3253,12 @@ class PrimerQualityControl:
                 self.index_Database(db_name)
                 G.logger("> Done indexing genome assembly DB")
                 print("Done indexing genome assembly DB")
+
+            infile = os.path.join(self.primer_qc_dir, db_name)
+            if os.stat(infile).st_size == 0:
+                msg = "Problem with " + db_name + " input file is empty"
+                G.logger("> " + msg)
+                print("\n!!!" + msg + "!!!\n")
 
         process_make_templateDB = Process(target=make_templateDB)
         process_make_assemblyDB = Process(target=make_assemblyDB)
@@ -3102,6 +3275,7 @@ class PrimerQualityControl:
         output = [p.get() for p in results]
 
     def MFEprimer_template(self, primerinfo):
+        result = []
         [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3114,9 +3288,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         if len(result) == 2:
             val = result[1].split("\t")
@@ -3137,6 +3311,7 @@ class PrimerQualityControl:
             return [[None], result]
 
     def MFEprimer_nontarget(self, primerinfo, inputfiles):
+        result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=self.primer_qc_dir, prefix="primer",
@@ -3148,8 +3323,9 @@ class PrimerQualityControl:
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         if not len(result) == 1:
             for index, item in enumerate(result):
@@ -3162,6 +3338,7 @@ class PrimerQualityControl:
         return [primerinfo, result]
 
     def MFEprimer_assembly(self, primerinfo):
+        result = []
         target_product = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         with tempfile.NamedTemporaryFile(
@@ -3170,12 +3347,13 @@ class PrimerQualityControl:
         ) as primefile:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = H.abbrev(self.target, dict_path) + ".genomic"
+        db = H.abbrev(self.target) + ".genomic"
         cmd = (
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+        while result == []:
+            result = G.read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
         os.unlink(primefile.name)
         for index, item in enumerate(result):
             if index > 0:
@@ -3194,25 +3372,26 @@ class PrimerQualityControl:
             else:
                 return [[None], result]
 
-    def MFEprimer_QC(self, primerinfos):
-        # option: also allow user provided non-target database created with
-        # MFEprimer for primer QC
-        def write_MFEprimer_results(input_list, name):
-            outputlist = []
-            with open("MFEprimer_" + name + ".csv", "w") as f:
-                writer = csv.writer(f)
-                for item in input_list:
-                    # item[0] is the primerinfo
-                    if len(item[0]) > 1:
-                        if not item[0] in outputlist:
-                            outputlist.append(item[0])
-                    # item[1] are the results of MFEprimer
+    def write_MFEprimer_results(self, input_list, name):
+        outputlist = []
+        with open("MFEprimer_" + name + ".csv", "w") as f:
+            writer = csv.writer(f)
+            for item in input_list:
+                # item[0] is the primerinfo
+                if len(item[0]) > 1:
+                    if not item[0] in outputlist:
+                        outputlist.append(item[0])
+                # item[1] are the results of MFEprimer
+                if len(item[1]) > 1:
                     for values in item[1]:
                         val = values.split("\t")
                         writer.writerow(val)
 
-            return outputlist
+        return outputlist
 
+    def MFEprimer_QC(self, primerinfos):
+        # option: also allow user provided non-target database created with
+        # MFEprimer for primer QC
         G.logger("Run: MFEprimer_QC(" + self.target + ")")
         info_msg = "Start primer quality control(" + self.target + ")"
         print(info_msg)
@@ -3226,7 +3405,7 @@ class PrimerQualityControl:
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
         template_list = G.run_parallel(self.MFEprimer_template, primerinfos)
-        check_nontarget = write_MFEprimer_results(
+        check_nontarget = self.write_MFEprimer_results(
                 template_list, "template")
         msg = " primer pair(s) with good target binding"
         info1 = str(len(check_nontarget)) + msg
@@ -3252,8 +3431,8 @@ class PrimerQualityControl:
 
         # if the MFEprimer_nontarget.csv has only the table header
         # and no results, then no primer binding was detected
-        #  and the primers passed the QC
-        check_assembly = write_MFEprimer_results(nontarget_lists, "nontarget")
+        # and the primers passed the QC
+        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
         msg = " primer pair(s) passed non-target PCR check"
         info2 = str(len(check_assembly)) + msg
         print("\n\n" + info2 + "\n")
@@ -3266,7 +3445,7 @@ class PrimerQualityControl:
         G.logger("> Start MFEprimer with assembly DB")
 
         assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
-        check_final = write_MFEprimer_results(assembly_list, "assembly")
+        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
         msg = " primer pair(s) passed secondary PCR amplicon check\n"
         info3 = str(len(check_final)) + msg
         print("\n\n" + info3 + "\n")
@@ -3306,39 +3485,23 @@ class PrimerQualityControl:
         os.chdir(self.mfold_dir)
 
         for mfoldinput in mfoldinputlist:
-            abbr = H.abbrev(self.target, dict_path)
-            target_id, primerpair, pcr_product = self.prep_mfold(
-                mfoldinput, abbr)
-            self.primer3_dict[target_id][primerpair].update(
-                {"amplicon_seq": pcr_product})
+            abbr = H.abbrev(self.target)
+            self.prep_mfold(mfoldinput, abbr)
         os.chdir(self.target_dir)
 
     def prep_mfold(self, mfoldinput, abbr):
-        (
-            target_id, primerpair, lseq, rseq, template_seq, primer_name
-        ) = mfoldinput
+        target_id, primerpair, amplicon_seq, primer_name = mfoldinput
         # This removes the Genus species string to shorten the
         # name for mfold (especially for subspecies names). mfold has
         # problems with too long filenames / paths
         short_name = primer_name.split(abbr + "_")[1]
-        dir_name = target_id
-        subdir = primerpair
-        primer_fwd = lseq
-        primer_rev_convert = Seq(rseq)
-        rev_compl = str(primer_rev_convert.reverse_complement())
-        dir_path = os.path.join(self.mfold_dir, dir_name)
-        subdir_path = os.path.join(dir_path, subdir)
+        dir_path = os.path.join(self.mfold_dir, target_id)
+        subdir_path = os.path.join(dir_path, primerpair)
         pcr_name = short_name + "_PCR"
-        pcr_prod = (
-            template_seq[
-                template_seq.index(primer_fwd):template_seq.index(rev_compl)])
-        pcr_product = pcr_prod+rev_compl
-        if len(pcr_product) >= self.config.minsize:
+        if len(amplicon_seq) >= self.config.minsize:
             G.create_directory(dir_path)
             G.create_directory(subdir_path)
-            self.run_mfold(subdir_path, pcr_name, pcr_product)
-
-        return target_id, primerpair, pcr_product
+            self.run_mfold(subdir_path, pcr_name, amplicon_seq)
 
     def run_mfold(self, subdir_path, seq_name, description):
         file_path = os.path.join(subdir_path, seq_name)
@@ -3486,7 +3649,7 @@ class PrimerQualityControl:
         # adds the genus species info again to the
         # primername after mfold
         primer_name = (
-            H.abbrev(self.target, dict_path) + "_"
+            H.abbrev(self.target) + "_"
             + "_".join(name.split("_")[0:-1]))
         return primer_name
 
@@ -3524,7 +3687,7 @@ class PrimerQualityControl:
 
         def get_primer_name(item, primer_direction):
             name = (
-                H.abbrev(self.target, dict_path) + "_" + primer_direction + "_"
+                H.abbrev(self.target) + "_" + primer_direction + "_"
                 + "_".join(item[0].split("_")[-4:]))
             return name
 
@@ -3649,7 +3812,7 @@ class PrimerQualityControl:
             results.sort(key=lambda x: float(x[1]), reverse=True)
             file_path = os.path.join(
                     self.results_dir,
-                    H.abbrev(self.target, dict_path) + "_primer.csv")
+                    H.abbrev(self.target) + "_primer.csv")
 
             with open(file_path, "w") as f:
                 writer = csv.writer(f)
@@ -3759,7 +3922,7 @@ class Summary:
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
-        self.aka = H.abbrev(self.target, dict_path)
+        self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
         if total_results is None:
             self.total_results = []
@@ -3943,7 +4106,7 @@ class Summary:
             if files.startswith("pipeline_stats_") and files.endswith(".txt"):
                 filename = files
                 filepath = os.path.join(self.target_dir, filename)
-                abbr = H.abbrev(self.target, dict_path)
+                abbr = H.abbrev(self.target)
                 targetpath = os.path.join(
                     self.summ_dir, abbr + "_" + filename)
                 shutil.copy(filepath, targetpath)
@@ -3977,8 +4140,7 @@ class Summary:
                             blast_dict = json.loads(line)
 
                     for key in blast_dict.keys():
-                        for species in blast_dict[key]:
-                            for speciesname in species.keys():
+                        for speciesname in blast_dict[key]:
                                 if speciesname not in specieslist:
                                     specieslist.append(speciesname)
                 except FileNotFoundError:
@@ -3992,8 +4154,7 @@ class Summary:
                             primerblast_dict = json.loads(line)
 
                     for key in primerblast_dict.keys():
-                        for species in primerblast_dict[key]:
-                            for speciesname in species.keys():
+                        for speciesname in primerblast_dict[key]:
                                 if speciesname not in specieslist:
                                     specieslist.append(speciesname)
                 except FileNotFoundError:
@@ -4110,15 +4271,14 @@ def commandline():
         "--blastseqs", type=int, choices=[100, 500, 1000, 2000, 5000],
         help="Set the number of sequences per BLAST search. "
         "Decrease the number of sequences if BLAST slows down due to low "
-        "memory or if you use the BLAST remote option, default=1000",
-        default=1000)
+        "memory, default=1000", default=1000)
     parser.add_argument(
         "--probe", action="store_true", help="Primer3 designs also an "
         "internal oligo [Experimental!]")
     parser.add_argument(
         "--nolist", action="store_true", help="Species list is not used"
         " and only sequences without blast hits are used for primer design "
-        "[Experimental, not recommended!]")
+        "[Experimental, not recommended for nt DB!]")
     parser.add_argument(
         "--blastdbv5", action="store_true", help="If you have a local copy "
         " of the nt_v5 BLAST database select this option")
@@ -4129,11 +4289,11 @@ def commandline():
         "--ignore_qc", action="store_true", help="Genomes which do not"
         " pass quality control are included in the analysis")
     parser.add_argument(
-        "--remote", action="store_true", help="Use remote option of BLAST+"
-        "(Can be very slow, not recommended)")
+        "--customdb", type=str, default=None,
+        help="Absolute filepath of a custom database for blastn")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.0.1")
+        "-V", "--version", action="version", version="%(prog)s 2.1")
     args = parser.parse_args()
     return args
 
@@ -4190,7 +4350,7 @@ def main(mode=None):
                 minsize, maxsize, mpprimer, exception, target, path,
                 intermediate, qc_gene, mfold, skip_download,
                 assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, remoteblast,
+                offline, ignore_qc, mfethreshold, customdb,
                 blastseqs, probe, blastdbv5
             ) = conf_from_file.get_config(target)
             if nolist:
@@ -4199,7 +4359,7 @@ def main(mode=None):
                     minsize, maxsize, mpprimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, remoteblast,
+                    nolist, offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, blastdbv5)
             else:
                 nontargetlist = H.create_non_target_list(target)
@@ -4207,7 +4367,7 @@ def main(mode=None):
                     minsize, maxsize, mpprimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, remoteblast,
+                    nolist, offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, blastdbv5)
         else:
             if args.nolist:
@@ -4221,7 +4381,7 @@ def main(mode=None):
                 args.qc_gene, args.mfold, args.skip_download,
                 args.assemblylevel, nontargetlist,
                 args.skip_tree, args.nolist, args.offline,
-                args.ignore_qc, args.mfethreshold, args.remote,
+                args.ignore_qc, args.mfethreshold, args.customdb,
                 args.blastseqs, args.probe, args.blastdbv5)
 
         today = time.strftime("%Y_%m_%d", time.localtime())
@@ -4236,7 +4396,11 @@ def main(mode=None):
                 target + " pipeline statistics:")
             PipelineStatsCollector(target_dir).write_stat(
                 "Start: " + str(time.ctime()))
-            DataCollection(config).collect()
+            newconfig = DataCollection(config).collect()
+            if newconfig == 0:
+                pass
+            else:
+                config = newconfig
             qc_count = []
             for qc_gene in config.qc_gene:
                 qc = QualityControl(config).quality_control(qc_gene)
@@ -4284,6 +4448,10 @@ def main(mode=None):
         except KeyboardInterrupt:
             logging.error(
                 "KeyboardInterrupt while working on " + target, exc_info=True)
+            logging.error(
+                "KeyboardInterrupt during long running processes can have "
+                "severe side effects. Consider deleting the run directory and "
+                " starting a new run")
             raise
 
     if len(errors) > 0:

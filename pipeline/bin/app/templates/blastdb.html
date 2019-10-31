@@ -11,17 +11,33 @@
 <form action="" method="post" enctype="multipart/form-data" novalidate>
   {{ form.hidden_tag() }}
   
-<h1>Download / Update the nt BLAST database Version 5</h1>
+<h1>Download the nt BLAST database Version 5</h1>
 <p>This may take some hours...</p>  
 <p>
-Download the database with the update_blastdb perl script 
+Download the database with the NCBI update_blastdb perl script 
 </p>
+<p>update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5<\p>
 <p>
+  {{ form.update_blastdb.label}}
   {{ form.update_blastdb() }}
+</p>
+<h1>Download the ref_prok_rep_genomes BLAST database</h1>
+<p>Is about 10 times smaller and less extensive (~ 6 GB)</p>  
+<p>
+Download the database with the NCBI update_blastdb perl script 
+</p>
+<p>update_blastdb.pl --passive --decompress ref_prok_rep_genomes<\p>
+</p>
+  {{ form.update_refprok.label }}
+  {{ form.update_refprok() }}
 </p>
 
 <p> Alternative download using the getblastdb.py script</p>
 <p>
+  {{ form.whichdb.label }}
+  {{ form.whichdb() }} 
+  <br>
+  <br>
   {{ form.delete() }} {{ form.delete.label }} 
   <br>
   <br>

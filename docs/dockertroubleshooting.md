@@ -180,7 +180,7 @@ __Example:__
         $ sudo docker exec -it speciesprimer_pipeline bash
 
 #### Leave the container terminal
-You can leave the docker container by typing exit        
+You can leave the docker container by typing exit
 
 __Example:__
 
@@ -236,3 +236,22 @@ If you want to delete this test.txt file there are two options
 	* __HOST:__
  
 			$ sudo chown -R biologger /home/biologger/primerdesign
+
+### Time settings
+Run a container with your local time settings
+
+		$ sudo docker run -e TZ=Europe/Zurich \
+		-v $HOME/blastdb:/home/blastdb -v $HOME/primerdesign:/home/primerdesign \
+		--name speciesprimertime -p 5000:5000 -p 9001:9001 -it biologger/speciesprimer
+
+Or in an existing container 
+
+ 	* __HOST:__
+
+			$ sudo docker start {containername/id} 
+
+			$ sudo docker exec -it {containername/id} bash
+
+	* __CONTAINER:__
+
+			$ dpkg-reconfigure tzdata

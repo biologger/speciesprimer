@@ -42,7 +42,6 @@ def get_args():
 
 
 class Pipeline(Daemon):
-
     def start_download(self):
         today = time.strftime("%Y_%m_%d", time.localtime())
         logging.basicConfig(

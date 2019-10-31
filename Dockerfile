@@ -1,9 +1,9 @@
-FROM biologger/speciesprimerdeps
+FROM biologger/speciesprimerdeps:V2.1
 
 MAINTAINER biologger
 
 # Copy the directory contents into the docker directory
-COPY pipeline /home/pipeline
+COPY . /home/
 COPY boot.sh /
 # Set env variables and change mod
 ENV FLASK_APP="/home/pipeline/bin/speciesprimergui.py"
@@ -13,7 +13,6 @@ ENV PATH="/home/pipeline/bin/:${PATH}"
 ENV PATH="/home/pipeline/ext-scripts/:${PATH}"
 RUN chmod +x /home/pipeline/bin/*.py
 RUN chmod +x /boot.sh
-RUN chmod +x /home/pipeline/ext-scripts/*.py
 
 CMD ["/boot.sh"]
 WORKDIR /home/primerdesign

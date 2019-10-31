@@ -10,8 +10,6 @@ from basicfunctions import HelperFunctions as H
 # paths
 pipe_bin = os.path.abspath(__file__)
 pipe_dir = pipe_bin.split("bin")[0]
-dict_path = os.path.join(pipe_dir, "dictionaries")
-
 
 class Input:
     def __init__(self):
@@ -128,7 +126,7 @@ class Input:
                 offline = True
                 skip_download = True
                 assembly_list = ["offline"]
-                remoteblast = False
+
             else:
                 offline = False
                 skip_download = False
@@ -140,8 +138,7 @@ class Input:
                             {"skip_download": skip_download})
                         self.config_dict[target].update(
                             {"assemblylevel": assembly_list})
-                        self.config_dict[target].update(
-                            {"remoteblast": remoteblast})
+
                 else:
                     if skip_download:
                         for target in self.target_list:
@@ -149,8 +146,7 @@ class Input:
                                 {"skip_download": skip_download})
                             self.config_dict[target].update(
                                 {"assemblylevel": assembly_list})
-                            self.config_dict[target].update(
-                                {"remoteblast": remoteblast})
+
             else:
                 self.config_dict[target].update({"offline": offline})
                 if skip_download:
@@ -158,8 +154,6 @@ class Input:
                         {"skip_download": skip_download})
                     self.config_dict[target].update(
                         {"assemblylevel": assembly_list})
-                    self.config_dict[target].update(
-                        {"remoteblast": remoteblast})
 
             print("offline", offline)
 
@@ -232,38 +226,30 @@ class Input:
             print("assemblylevel:")
             print(valid)
 
-    def get_remoteblast(self, target, index, listlen):
-        if "remoteblast" not in self.config_dict[target].keys():
+    def get_customdb(self, target, index, listlen):
+        if "customdb" not in self.config_dict[target].keys():
             print("\n" + target + ":")
-            remoteblast = input(
-                "Use remote option of BLAST+? Only needed if no local copy of "
-                "the nt database is available. Can be very slow."
-                "\n(y)es/(n)o, default=(n)\n> ")
-            if remoteblast.lower() == ("y" or "yes"):
-                remoteblast = True
-            else:
-                remoteblast = False
-            if index == 0:
-                if not self.value_for_all("remoteblast", remoteblast, listlen):
-                    self.config_dict[target].update(
-                        {"remoteblast": remoteblast})
-                    if remoteblast is True:
-                        self.config_dict[target].update({"blastseqs": 500})
-                        self.config_dict[target].update({"blastdbv5": False})
+            customdb = input(
+                "Do you want to use a custom database for blastn?\n"
+                "Specifiy the absolute filepath of the custom database "
+                "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
+                " to skip, default=None\n> ")
+            if type(customdb) == str and len(customdb) > 0:
+                if os.path.isfile(customdb + ".nsq"):
+                    customdb = customdb
                 else:
-                    if remoteblast is True:
-                        for target in self.target_list:
-                            self.config_dict[target].update(
-                                {"blastseqs": 500})
-                            self.config_dict[target].update(
-                                {"blastdbv5": False})
+                    print("No BLAST DB was found " + customdb)
+                    return self.get_customdb(target, index, listlen)
             else:
-                self.config_dict[target].update({"remoteblast": remoteblast})
-                if remoteblast is True:
-                    self.config_dict[target].update({"blastseqs": 500})
-                    self.config_dict[target].update({"blastdbv5": False})
+                customdb = None
 
-            print("remoteblast", remoteblast)
+            if index == 0:
+                if not self.value_for_all("customdb", customdb, listlen):
+                    self.config_dict[target].update(
+                        {"customdb": customdb})
+            else:
+                self.config_dict[target].update({"customdb": customdb})
+            print("customdb", customdb)
 
     def get_blastseqs(self, target, index, listlen):
         options = [100, 500, 1000, 2000, 5000]
@@ -272,7 +258,7 @@ class Input:
             maxseqs = input(
                 "Set the number of sequences per BLAST search. "
                 "Decrease the number of sequences if BLAST slows down "
-                "due to low memory or if you use the BLAST remote option."
+                "due to low memory."
                 "\noptions = [100, 500, 1000, 2000, 5000]"
                 ", default=1000\n> ")
             if maxseqs:
@@ -344,7 +330,6 @@ class Input:
                 else:
                     if " " in exception:
                         exception = "_".join(exception.split(" "))
-                        print("Exception: " + exception)
             else:
                 exception = None
 
@@ -536,9 +521,30 @@ class Input:
 
             print("intermediate", intermediate)
 
-    def no_nolist(self, target, index, listlen):
+    def get_nolist(self, target, index, listlen):
         if "nolist" not in self.config_dict[target].keys():
-            self.config_dict[target].update({"nolist": False})
+#            self.config_dict[target].update({"nolist": False})
+            print("\n" + target + ":")
+            nolist = input(
+                "Do you want to perform specificity check without the "
+                "(non-target) species list (for all sequences in the DB)?"
+                "\nNot recommended for nt DB! May be used with a custom DB"
+                "\ndefault=(n)\n> ")
+
+            if nolist.lower() == ("y" or "yes"):
+                nolist = True
+            else:
+                nolist = False
+            if index == 0:
+                if not self.value_for_all(
+                    "nolist", nolist, listlen
+                ):
+                    self.config_dict[target].update(
+                        {"nolist": nolist})
+            else:
+                self.config_dict[target].update({"nolist": nolist})
+
+            print("nolist", nolist)
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
@@ -577,7 +583,7 @@ class Input:
         for i, target in enumerate(self.target_list):
             self.get_path(target, i, listlen)
             self.work_offline(target, i, listlen)
-            self.get_remoteblast(target, i, listlen)
+            self.get_customdb(target, i, listlen)
             self.get_blastseqs(target, i, listlen)
             self.use_blastdbv5(target, i, listlen)
             self.get_skip_download(target, i, listlen)
@@ -594,7 +600,7 @@ class Input:
             self.no_singleton(target, i, listlen)
             self.get_intermediate(target, i, listlen)
             self.ignore_qc(target, i, listlen)
-            self.no_nolist(target, i, listlen)
+            self.get_nolist(target, i, listlen)
 
         for target in self.target_list:
             self.write_config_file(target)
@@ -623,7 +629,7 @@ class Output:
             "offline": False,
             "ignore_qc": False,
             "mfethreshold": 90,
-            "remoteblast": False,
+            "customdb": None,
             "blastseqs": 1000,
             "probe": False,
             "blastdbv5": False}
@@ -647,7 +653,7 @@ class Output:
                     print("found:", file_path)
                     G.logger("> Found config file: " + file_path)
                     target = "/".join(root.split("/")[-2:-1])
-                    abbr = H.abbrev(target, dict_path)
+                    abbr = H.abbrev(target)
                     primer_csv = os.path.join(
                         path, "Summary", target, abbr + "_primer.csv")
                     if not os.path.isfile(primer_csv):

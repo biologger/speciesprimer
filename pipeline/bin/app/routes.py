@@ -164,7 +164,7 @@ def update_db(sub_dict, target, data):
     (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = data
     sub_dict.update({
             'target': target,
@@ -172,25 +172,26 @@ def update_db(sub_dict, target, data):
             'exception': exception, 'path': path, 'intermediate': intermediate,
             'qc_gene': qc_genes, 'mfold': mfold, 'skip_download': skip_download,
             'assemblylevel': assemblylevel, 'skip_tree': skip_tree,
-            'nolist': False, 'offline': offline, 'ignore_qc': ignore_qc,
-            'mfethreshold': mfeprimer_threshold, 'remoteblast': remoteblast,
+            'nolist': nolist, 'offline': offline, 'ignore_qc': ignore_qc,
+            'mfethreshold': mfeprimer_threshold, 'customdb': customdb,
             'blastseqs': blastseqs, 'probe': designprobe, 'blastdbv5': blastdbv5})
     return sub_dict
 
 def reset_settings(form):
     (
-    form.qc_genes.data, form.ignore_qc.data,form.skip_download.data,
+    form.qc_genes.data, form.ignore_qc.data, form.skip_download.data,
     form.assemblylevel.data, form.skip_tree.data, form.exception.data,
     form.minsize.data, form.maxsize.data, form.designprobe.data,
     form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
-    form.work_offline.data, form.remoteblast.data, form.blastseqs.data,
-    form.blastdbv5.data, form.intermediate.data
+    form.work_offline.data, form.customdb.data, form.blastseqs.data,
+    form.blastdbv5.data, form.intermediate.data, form.nolist.data
     ) = (
     ["rRNA"], False, False,
     ["all"], False, None,
     70, 200, False,
     -3.0, -3.5, 90,
-    False, False, 1000, False, False)
+    False, None, 1000,
+    False, False, False)
     return form
 
 
@@ -203,50 +204,51 @@ def load_settings(tmp_db):
     assemblylevel, skip_tree, exception,
     minsize, maxsize, designprobe,
     mfold,mpprimer, mfeprimer_threshold,
-    work_offline, remoteblast, blastseqs,
-    change_wd, blastdbv5, intermediate
+    work_offline, customdb, blastseqs,
+    change_wd, blastdbv5, intermediate, nolist
     ) = (
     settings["qc_gene"], settings["ignore_qc"], settings["skip_download"],
     settings["assemblylevel"], settings["skip_tree"], settings["exception"],
     settings["minsize"], settings["maxsize"], settings["probe"],
     settings["mfold"], settings["mpprimer"], settings["mfethreshold"],
-    settings["offline"], settings["remoteblast"], settings["blastseqs"],
-    settings['path'], settings['blastdbv5'], settings["intermediate"]
+    settings["offline"], settings["customdb"], settings["blastseqs"],
+    settings['path'], settings['blastdbv5'], settings["intermediate"],
+    settings['nolist']
     )
-    
+
     data = {
         "targets": target, "qc_genes": qc_genes, "ignore_qc": ignore_qc, "skip_download": skip_download,
         "assemblylevel": assemblylevel, "skip_tree": skip_tree, "exception": exception,
         "minsize": minsize, "maxsize": maxsize, "designprobe": designprobe,
         "mfold": mfold, "mpprimer": mpprimer, "mfeprimer_threshold": mfeprimer_threshold,
-        "work_offline": work_offline, "remoteblast": remoteblast, "blastseqs": blastseqs,
-        "change_wd": change_wd, "blastdbv5": blastdbv5, "intermediate": intermediate}
+        "work_offline": work_offline, "customdb": customdb, "blastseqs": blastseqs,
+        "change_wd": change_wd, "blastdbv5": blastdbv5,
+        "intermediate": intermediate, "nolist": nolist}
     return data
 
 def get_settings(form):
     (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = (
         form.qc_genes.data, form.ignore_qc.data,form.skip_download.data,
         form.assemblylevel.data, form.skip_tree.data, form.exception.data,
         form.minsize.data, form.maxsize.data, form.designprobe.data,
         form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
-        form.work_offline.data, form.remoteblast.data, form.blastseqs.data,
-        form.change_wd.data, form.blastdbv5.data, form.intermediate.data
+        form.work_offline.data, form.customdb.data, form.blastseqs.data,
+        form.change_wd.data, form.blastdbv5.data, form.intermediate.data,
+        form.nolist.data
         )
     if offline:
         skip_download = True
-        remoteblast = False
         assemblylevel = ['offline']
     if skip_download:
         assemblylevel = ['offline']
-    if remoteblast:
-        blastseqs = 500
-        blastdbv5 = False
     if exception == '':
         exception = None
+    if customdb == "":
+        customdb = None
     elif exception is not None:
         exception = '_'.join(exception.strip(' ').split(' '))
     if 'all' in assemblylevel:
@@ -254,7 +256,7 @@ def get_settings(form):
     return (
         qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, remoteblast, blastseqs, path, blastdbv5, intermediate)
+        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -262,17 +264,17 @@ def settings():
     target_choice_list, tmp_db = check_targets()
     if len(target_choice_list) == 0:
         return redirect(url_for('controlrun'))
-    
-    if tmp_db['new_run']['same_settings']:        
+
+    if tmp_db['new_run']['same_settings']:
         def_path = tmp_db['new_run']['path']
         form = SettingsForm(change_wd = def_path)
         form.targets.choices = [("All targets", "All targets")]
     elif tmp_db['new_run']['change_settings']:
         form = SettingsForm(data=load_settings(tmp_db))
         form.targets.choices = target_choice_list
-    else:        
+    else:
         def_path = tmp_db['new_run']['path']
-        form = SettingsForm(change_wd = def_path)        
+        form = SettingsForm(change_wd = def_path)
         form.targets.choices = target_choice_list
 
     if form.validate_on_submit():
@@ -308,10 +310,10 @@ def settings():
                 flash('Changed settings for {}'.format(' '.join(target.split('_'))))
                 flash(json.dumps(new_config))
                 return redirect(url_for('controlrun'))
-            except FileNotFoundError: 
+            except FileNotFoundError:
                 flash("The selected directory does not exist")
                 return redirect(url_for('settings'))
-            
+
         else:
             flash('Saved settings for {}'.format(' '.join(target.split('_'))))
         flash(json.dumps(new_config, sort_keys=True))
@@ -422,6 +424,39 @@ def updatedb():
             stop_updatedb()
     return render_template('dbdownload.html', title='Control BLAST db download', form=form)
 
+def start_updatedb_ref():
+    subprocess.Popen(["updateblastdbdaemon_ref.py", "start", "200"])
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    log_file = os.path.join("/", "home", "primerdesign", "speciesprimer_" + today + ".log")
+    if os.path.isfile("/tmp/frontail.pid"):
+        with open("/tmp/frontail.pid") as f:
+            for line in f:
+                pid = line.strip()
+        pidint = int(pid)
+        if isinstance(pidint, int):
+            try:
+                os.kill(pidint, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        os.remove("/tmp/frontail.pid")
+    frontail_cmd = [
+            "frontail-linux", "-d", "-n", "20", "--pid-path", "/tmp/frontail.pid", log_file]
+    subprocess.Popen(frontail_cmd)
+
+def stop_updatedb_ref():
+    subprocess.Popen(["updateblastdbdaemon_ref.py", "stop", "200"])
+
+@app.route('/updatedb', methods=['GET', 'POST'])
+def updatedb_ref():
+    form = DBForm()
+    if form.validate_on_submit():
+        if form.submit.data:
+            start_updatedb_ref()
+            time.sleep(1)
+        elif form.stop.data:
+            stop_updatedb_ref()
+    return render_template('dbdownload.html', title='Control BLAST db download', form=form)
+
 @app.route('/controlrun', methods=['GET', 'POST'])
 def controlrun():
     form = ControlRunForm()
@@ -466,11 +501,14 @@ def blastdb():
     if form.validate_on_submit():
         if form.update_blastdb.data is True:
             return redirect(url_for('updatedb'))
+        elif form.update_refprok.data is True:
+            return redirect(url_for('updatedb_ref'))
         elif form.update_txids.data is True:
             get_bacteria_taxids()
         elif form.get_blastdb.data is True:
             delete = form.delete.data
-            update_dict = {'BLAST_DB':{'delete': delete}}
+            db = form.whichdb.data
+            update_dict = {'BLAST_DB':{'delete': delete, 'db': db}}
             update_tmp_db(update_dict)
             return redirect(url_for('dbdownload'))
 
