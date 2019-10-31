@@ -167,6 +167,7 @@ class DataCollection():
         self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.ex_dir = os.path.join(
             self.config.path, "excludedassemblies", self.target)
+        self.contiglimit = 500
 
     def get_email_for_Entrez(self):
         if os.path.isfile(tmp_db_path):
@@ -624,6 +625,25 @@ class DataCollection():
                     if not line.strip() == taxid:
                         r.write(line)
 
+    def remove_max_contigs(self):
+        for files in os.listdir(self.genomic_dir):
+            if files.endswith(".fna"):
+                contigcount = 0
+                filepath = os.path.join(self.genomic_dir, files)
+                for line in open(filepath).readlines():
+                    if ">" in line:
+                        contigcount += 1
+                if contigcount >= self.contiglimit:
+                    if self.config.ignore_qc:
+                        pass
+                    else:
+                        msg = (
+                            files + " has more than " + str(self.configlimit)
+                            + " and is removed before annotation")
+                        print(msg)
+                        G.logger(msg)
+                        os.remove(filepath)
+
     def collect(self):
         G.logger("Run: collect data(" + self.target + ")")
         self.prepare_dirs()
@@ -646,6 +666,7 @@ class DataCollection():
                         filepath = os.path.join(self.genomic_dir, files)
                         G.run_subprocess(
                             ["gunzip", filepath], False, True, False, False)
+                        self.remove_max_contigs()
                 os.chdir(self.target_dir)
         else:
             syn = []
@@ -751,37 +772,6 @@ class QualityControl:
                     gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
                     if gene not in self.qc_gene_search:
                         self.qc_gene_search.append(gene)
-
-    def new_count_contigs(self, gff_list, contiglimit):
-        exclude = []
-        for dirs in os.listdir(self.target_dir):
-            if dirs not in systemdirs:
-                path = os.path.join(self.target_dir, dirs)
-                if os.path.isdir(path):
-                    for files in os.listdir(path):
-                        if files.endswith(".fna"):
-                            filepath = os.path.join(path, files)
-                            file = files.split(".fna")[0]
-                            with open(filepath, "r") as f:
-                                records = list(SeqIO.parse(f, "fasta"))
-                                if len(records) > contiglimit:
-                                    exclude.append(file)
-
-        if len(exclude) > 0:
-            for item in exclude:
-                if item + ".gff" in gff_list:
-                    gff_list.remove(item + ".gff")
-                data = [item, "", "", "", "", "Max contigs"]
-                if data not in self.contig_ex:
-                    self.contig_ex.append(data)
-            info = (
-                "skip " + str(len(self.contig_ex))
-                + " Genome(s) with more than " + str(self.contiglimit)
-                + " contigs")
-            print(info)
-            G.logger("> " + info)
-
-        return gff_list
 
     def count_contigs(self, gff_list, contiglimit):
         exclude = []
