@@ -589,12 +589,19 @@ class DataCollection():
                 print("\n" + info)
                 try:
                     G.run_subprocess(prokka_cmd, True, True, False, False)
-                except KeyboardInterrupt:
+                except (KeyboardInterrupt, SystemExit):
                     logging.error(
                         "KeyboardInterrupt during annotation", exc_info=True)
                     if os.path.isdir(outdir):
                         shutil.rmtree(outdir)
                     raise
+                except Exception:
+                    msg = "Exception during annotation"
+                    logging.error(
+                        msg, exc_info=True)                    
+                    if os.path.isdir(outdir):
+                        shutil.rmtree(outdir) 
+                    errors.append([self.target, msg])
 
                 annotation_dirs.append(file_name + "_" + date)
 
@@ -1407,11 +1414,19 @@ class PangenomeAnalysis:
         try:
             G.run_shell(
                 roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt during pan-genome analysis", exc_info=True)
-            shutil.rmtree(self.pangenome_dir)
+            if os.path.isdir(self.pangenome_dir):
+                shutil.rmtree(self.pangenome_dir)
             raise
+        except Exception:
+            msg = "Exception during pan-genome analysis"
+            logging.error(
+                msg, exc_info=True)                    
+            if os.path.isdir(self.pangenome_dir):
+                shutil.rmtree(self.pangenome_dir) 
+            errors.append([self.target, msg])
 
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
@@ -1424,12 +1439,20 @@ class PangenomeAnalysis:
                 G.run_shell(
                     treecmd, printcmd=True, logcmd=True,
                     log=True, printoption=False)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during fasttree run", exc_info=True)
                 if os.path.isfile(tree):
                     os.remove(tree)
                 raise
+                
+            except Exception:
+                msg = "Exception during fasttree run"
+                logging.error(
+                    msg, exc_info=True)                    
+                if os.path.isfile(tree):
+                    os.remove(tree)
+                errors.append([self.target, msg])
 
         os.chdir(self.target_dir)
 
@@ -1705,13 +1728,20 @@ class CoreGeneSequences:
                 try:
                     G.run_subprocess(
                         ["parallel", "-a", run_file], True, True, False, False)
-                except KeyboardInterrupt:
+                except (KeyboardInterrupt, SystemExit):
                     error_msg = "Error: KeyboardInterrupt during Prank MSA run"
                     print(error_msg)
                     G.logger("> " + error_msg)
-                    shutil.rmtree(self.alignment_dir)
+                    if os.path.isdir(self.alignment_dir):
+                        shutil.rmtree(self.alignment_dir)
                     raise
-
+                except Exception:
+                    msg = "Exception during Prank MSA run"
+                    logging.error(
+                        msg, exc_info=True)                    
+                    if os.path.isdir(self.alignment_dir):
+                        shutil.rmtree(self.alignment_dir)
+                    errors.append([self.target, msg])
 
             with open(coregenes, "w") as f:
                 for fastafile in fasta_files:
@@ -1785,11 +1815,20 @@ class CoreGeneSequences:
             try:
                 G.run_subprocess(
                     ["parallel", "-a", run_file], True, True, True, False)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during consensus run", exc_info=True)
-                shutil.rmtree(self.consensus_dir)
+                if os.path.isdir(self.consensus_dir):
+                    shutil.rmtree(self.consensus_dir)
                 raise
+
+            except Exception:
+                msg = "Exception during consensus run"
+                logging.error(
+                    msg, exc_info=True)                    
+                if os.path.isdir(self.consensus_dir):
+                    shutil.rmtree(self.consensus_dir)
+                errors.append([self.target, msg])
 
             records = []
             for files in os.listdir(self.consensus_dir):
@@ -2060,12 +2099,20 @@ class Blast:
                 if blast_cmd:
                     try:
                         G.run_subprocess(blast_cmd)
-                    except KeyboardInterrupt:
+                    except (KeyboardInterrupt, SystemExit):
                         logging.error(
                             "KeyboardInterrupt during BLAST search", exc_info=True)
                         if os.path.isfile(filename):
                             os.remove(filename)
                         raise
+
+                    except Exception:
+                        msg = "Exception during BLAST search"
+                        logging.error(
+                            msg, exc_info=True)                    
+                        if os.path.isfile(filename):
+                            os.remove(filename)
+                        errors.append([self.target, msg])
 
             duration = time.time() - start
             G.logger(
@@ -2781,12 +2828,19 @@ class PrimerDesign():
                 "-echo_settings_file", "-output=" + output_file, input_file]
             try:
                 G.run_subprocess(primer3cmd, True, True, False, True)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during primer3 run", exc_info=True)
                 if os.path.isfile(output_file):
                     os.remove(output_file)
                 raise
+            except Exception:
+                msg = "Exception during primer3 run"
+                logging.error(
+                    msg, exc_info=True)                    
+                if os.path.isfile(output_file):
+                    os.remove(output_file)
+                errors.append([self.target, msg])               
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -3102,13 +3156,22 @@ class PrimerQualityControl:
         cmd = "IndexDb.sh " + db_name + " 9"
         try:
             G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt during DB indexing", exc_info=True)
             for files in os.listdir(self.primer_qc_dir):
                 if files.startswith(db_name):
                     os.remove(files)
             raise
+        except Exception:
+            msg = "Exception during DB indexing"
+            logging.error(
+                msg, exc_info=True)                    
+            for files in os.listdir(self.primer_qc_dir):
+                if files.startswith(db_name):
+                    os.remove(files)
+            errors.append([self.target, msg])                 
+
         os.chdir(self.primer_dir)
         end = time.time() - start
         G.logger(
@@ -4445,7 +4508,7 @@ def main(mode=None):
             logging.error(
                 "fatal error while working on " + target, exc_info=True)
 
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt while working on " + target, exc_info=True)
             logging.error(
