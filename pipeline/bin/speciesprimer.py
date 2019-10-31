@@ -598,9 +598,9 @@ class DataCollection():
                 except Exception:
                     msg = "Exception during annotation"
                     logging.error(
-                        msg, exc_info=True)                    
+                        msg, exc_info=True)
                     if os.path.isdir(outdir):
-                        shutil.rmtree(outdir) 
+                        shutil.rmtree(outdir)
                     errors.append([self.target, msg])
 
                 annotation_dirs.append(file_name + "_" + date)
@@ -1423,9 +1423,9 @@ class PangenomeAnalysis:
         except Exception:
             msg = "Exception during pan-genome analysis"
             logging.error(
-                msg, exc_info=True)                    
+                msg, exc_info=True)
             if os.path.isdir(self.pangenome_dir):
-                shutil.rmtree(self.pangenome_dir) 
+                shutil.rmtree(self.pangenome_dir)
             errors.append([self.target, msg])
 
     def run_fasttree(self):
@@ -1445,11 +1445,11 @@ class PangenomeAnalysis:
                 if os.path.isfile(tree):
                     os.remove(tree)
                 raise
-                
+
             except Exception:
                 msg = "Exception during fasttree run"
                 logging.error(
-                    msg, exc_info=True)                    
+                    msg, exc_info=True)
                 if os.path.isfile(tree):
                     os.remove(tree)
                 errors.append([self.target, msg])
@@ -1738,7 +1738,7 @@ class CoreGeneSequences:
                 except Exception:
                     msg = "Exception during Prank MSA run"
                     logging.error(
-                        msg, exc_info=True)                    
+                        msg, exc_info=True)
                     if os.path.isdir(self.alignment_dir):
                         shutil.rmtree(self.alignment_dir)
                     errors.append([self.target, msg])
@@ -1825,7 +1825,7 @@ class CoreGeneSequences:
             except Exception:
                 msg = "Exception during consensus run"
                 logging.error(
-                    msg, exc_info=True)                    
+                    msg, exc_info=True)
                 if os.path.isdir(self.consensus_dir):
                     shutil.rmtree(self.consensus_dir)
                 errors.append([self.target, msg])
@@ -1889,7 +1889,7 @@ class CoreGeneSequences:
                 count = 1
                 split_list = split_seq.split("*")
                 for item in split_list:
-                    if len(item) >= self.config.minsize:
+                    if len(item) > self.config.minsize:
                         desc = record.id
                         if "group_" in desc:
                             seq_name = (
@@ -2109,7 +2109,7 @@ class Blast:
                     except Exception:
                         msg = "Exception during BLAST search"
                         logging.error(
-                            msg, exc_info=True)                    
+                            msg, exc_info=True)
                         if os.path.isfile(filename):
                             os.remove(filename)
                         errors.append([self.target, msg])
@@ -2834,13 +2834,6 @@ class PrimerDesign():
                 if os.path.isfile(output_file):
                     os.remove(output_file)
                 raise
-            except Exception:
-                msg = "Exception during primer3 run"
-                logging.error(
-                    msg, exc_info=True)                    
-                if os.path.isfile(output_file):
-                    os.remove(output_file)
-                errors.append([self.target, msg])               
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -2941,8 +2934,11 @@ class PrimerDesign():
         info = "Run: parse_Primer3_output(" + self.target + ")"
         print(info)
         G.logger(info)
+        problem = []
         with open(path_to_file, "r") as p:
             for line in p:
+                if "PRIMER_ERROR=Cannot open " in line:
+                    problem.append(line)
                 key = line.split("=")[0]
                 value = line.strip().split("=")[1]
                 if not ("MIN" in key or "MAX" in key or "OPT" in key):
@@ -2954,6 +2950,17 @@ class PrimerDesign():
                     parseInternalProbe(key, value)
                     parsePrimerPair(key, value)
 
+        if len(problem) > 0:
+            os.remove(path_to_file)
+            for item in problem:
+                errors.append([self.target, item])
+            msg = "Error during primer design "
+            print(msg)
+            G.logger(msg)
+            G.logger(problem)
+            return 1
+        return 0
+
     def get_amplicon_seq(self):
         def PCR(left, rc_right, temp):
             pcr_product = (
@@ -2961,6 +2968,7 @@ class PrimerDesign():
             return pcr_product
 
         for key in self.p3dict.keys():
+            print(self.p3dict[key]["Primer_pairs"])
             if self.p3dict[key]["Primer_pairs"] > 0:
                template = self.p3dict[key]["template_seq"]
                for pp in self.p3dict[key].keys():
@@ -2985,7 +2993,9 @@ class PrimerDesign():
         G.create_directory(self.primer_dir)
         self.run_primer3()
         p3_output = os.path.join(self.primer_dir, "primer3_output")
-        self.parse_Primer3_output(p3_output)
+        exitstat = self.parse_Primer3_output(p3_output)
+        if exitstat == 1:
+            return {}
         self.get_amplicon_seq()
         self.write_primer3_data()
         return self.p3dict
@@ -3166,11 +3176,11 @@ class PrimerQualityControl:
         except Exception:
             msg = "Exception during DB indexing"
             logging.error(
-                msg, exc_info=True)                    
+                msg, exc_info=True)
             for files in os.listdir(self.primer_qc_dir):
                 if files.startswith(db_name):
                     os.remove(files)
-            errors.append([self.target, msg])                 
+            errors.append([self.target, msg])
 
         os.chdir(self.primer_dir)
         end = time.time() - start
