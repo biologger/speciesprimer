@@ -6,7 +6,7 @@ MAINTAINER biologger
 COPY . /
 COPY boot.sh /
 # Set env variables and change mod
-ENV FLASK_APP="/pipeline/app/speciesprimergui.py"
+ENV FLASK_APP="/pipeline/gui/speciesprimergui.py"
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV PATH="/pipeline/:${PATH}"
@@ -17,4 +17,4 @@ RUN chmod +x /pipeline/daemon/*.py
 RUN chmod +x /boot.sh
 
 CMD ["/boot.sh"]
-WORKDIR /home/primerdesign
+WORKDIR /primerdesign

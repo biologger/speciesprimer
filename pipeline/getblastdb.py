@@ -265,11 +265,11 @@ def get_DB(mode=False):
                 tmp_db = json.loads(line)
         delete = tmp_db['BLAST_DB']['delete']
         db = tmp_db['BLAST_DB']['db']
-        blastdb_dir = "/home/blastdb"
+        blastdb_dir = "/blastdb"
 
         logging.basicConfig(
             filename=os.path.join(
-                "/", "home", "primerdesign",
+                "/", "primerdesign",
                 "speciesprimer_" + today + ".log"),
             level=logging.DEBUG, format="%(message)s")
 

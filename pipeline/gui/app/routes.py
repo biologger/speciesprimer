@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 
 
 app_dir = os.path.dirname(os.path.abspath(__file__))
-pipe_dir = app_dir.split('app')[0]
+pipe_dir = app_dir.split('gui')[0]
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 
@@ -379,7 +379,7 @@ def start_db_download():
     subprocess.Popen(frontail_cmd)
 
 def stop_db_download():
-    subprocess.Popen(["daemonize.py", "start", "200", 'GetBlastDB'])
+    subprocess.Popen(["daemonize.py", "stop", "200", 'GetBlastDB'])
 
 @app.route('/dbdownload', methods=['GET', 'POST'])
 def dbdownload():
@@ -420,10 +420,12 @@ def updatedb():
     form = DBForm()
     if form.validate_on_submit():
         if form.submit.data:
-            start_updatedb(["daemonize.py", "start", "200", "Update_ntDB"])
+            command = ["daemonize.py", "start", "200", "Update_ntDB"]
+            start_updatedb(command)
             time.sleep(1)
         elif form.stop.data:
-            stop_updatedb(["daemonize.py", "stop", "200", "Update_ntDB"])
+            command = ["daemonize.py", "stop", "200", "Update_ntDB"]
+            stop_updatedb(command)
     return render_template('dbdownload.html', title='Control BLAST db download', form=form)
 
 @app.route('/updatedb', methods=['GET', 'POST'])
@@ -431,10 +433,12 @@ def updatedb_ref():
     form = DBForm()
     if form.validate_on_submit():
         if form.submit.data:
-            start_updatedb(["daemonize.py", "start", "200", "Update_prokDB"])
+            command = ["daemonize.py", "start", "200", "Update_prokDB"]
+            start_updatedb(command)
             time.sleep(1)
         elif form.stop.data:
-            stop_updatedb(["daemonize.py", "stop", "200", "Update_prokDB"])
+            command = ["daemonize.py", "stop", "200", "Update_prokDB"]
+            stop_updatedb(command)
     return render_template('dbdownload.html', title='Control BLAST db download', form=form)
 
 @app.route('/controlrun', methods=['GET', 'POST'])

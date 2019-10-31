@@ -9,7 +9,6 @@ import logging
 import subprocess
 from mydaemon import Daemon
 
-   
 
 class Daemonize(Daemon):
 
@@ -34,25 +33,25 @@ class Daemonize(Daemon):
             time.sleep(1)
 
 
-def GetBlastDB(Daemonize):  
+class GetBlastDB(Daemonize):
 
     pipe_dir = os.path.abspath(__file__).split("daemon")[0]
-    sys.path.append(pipe_dir)            
-    def command(self):   
+    sys.path.append(pipe_dir)
+    def command(self):
         import getblastdb
         getblastdb.get_DB(mode="auto")
-        
-        
-def SpeciesPrimer(Daemonize): 
+
+
+class SpeciesPrimer(Daemonize):
 
     pipe_dir = os.path.abspath(__file__).split("daemon")[0]
-    sys.path.append(pipe_dir) 
+    sys.path.append(pipe_dir)
     def command(self):
         import speciesprimer
         speciesprimer.main(mode="auto")
 
-    
-def Update_prokDB(Daemonize):
+
+class Update_prokDB(Daemonize):
 
     def command(self):
         today = time.strftime("%Y_%m_%d", time.localtime())
@@ -83,7 +82,7 @@ def Update_prokDB(Daemonize):
             check_output()
 
 
-def Update_ntDB(Daemonize):
+class Update_ntDB(Daemonize):
 
     def command(self):
         today = time.strftime("%Y_%m_%d", time.localtime())
@@ -112,4 +111,3 @@ def Update_ntDB(Daemonize):
                     break
         while process.poll() is None:
             check_output()
-    

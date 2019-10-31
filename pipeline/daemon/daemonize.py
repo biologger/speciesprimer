@@ -3,6 +3,7 @@
 
 import sys
 import argparse
+from mydaemon import Daemon
 
 DEBUG = 1
 
@@ -47,7 +48,7 @@ def main_daemon():
     try:
         (action, uniqid, dclass) = get_args()
         # Create daemon object.
-        import importlib        
+        import importlib
         daemonclass = importlib.import_module('daemonclass')
         Runner = getattr(daemonclass, dclass)
 
@@ -55,7 +56,7 @@ def main_daemon():
         PIDFILE = PIDFILE.replace('#ID#', uniqid)
         RUNFILE = RUNFILE.replace('#ID#', uniqid)
         d = Runner(name=DAEMON_NAME, pidfile=PIDFILE, runfile=RUNFILE,
-                     stoptimeout=DAEMON_STOP_TIMEOUT, debug=DEBUG)
+                   stoptimeout=DAEMON_STOP_TIMEOUT, debug=DEBUG)
 
         # Action requested.
         if action == 'start':
