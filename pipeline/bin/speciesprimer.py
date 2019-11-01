@@ -1894,7 +1894,7 @@ class CoreGeneSequences:
                 count = 1
                 split_list = split_seq.split("*")
                 for item in split_list:
-                    if len(item) > self.config.minsize:
+                    if len(item) >= self.config.minsize:
                         desc = record.id
                         if "group_" in desc:
                             seq_name = (
@@ -2224,7 +2224,9 @@ class BlastParser:
             if min(query_end) >= self.config.minsize:
                 qletters = str(blast_record.query_letters)
                 seq_range = "[" + str(min(query_end)) + ":" + qletters + "]"
-                seq_ends.append([blast_record.query, seq_range])
+                seqlen = int(qletters) - min(query_end)
+                if  seqlen >= self.config.minsize:
+                    seq_ends.append([blast_record.query, seq_range])
         if len(seq_ends) > 0:
             filename = os.path.join(self.blast_dir, "partialseqs.txt")
             with open(filename, "w") as f:
@@ -2843,7 +2845,8 @@ class PrimerDesign():
             G.logger("> " + info)
             print(info)
 
-    def parse_Primer3_output(self, path_to_file):
+    def parse_Primer3_output(self, p3_output):
+        settings_file = os.path.join(pipe_dir, "p3parameters")
 
         def parseSeqId(key, value):
             if key.startswith("SEQUENCE_ID"):
@@ -2858,64 +2861,28 @@ class PrimerDesign():
                 self.p3dict[p3list[-1]].update(
                     {"template_seq": value})
 
-
         def countPrimer(key, value):
             if key.startswith("PRIMER_PAIR_NUM_RETURNED"):
-                lookup = p3list[-1]
-                self.p3dict[lookup]["Primer_pairs"] = int(value)
+                self.p3dict[p3list[-1]]["Primer_pairs"] = int(value)
                 for i in range(0, int(value)):
                     self.p3dict[p3list[-1]].update({"Primer_pair_"+str(i): {}})
 
-        def parseRightPrimer(key, value):
+        def parsePrimer(key, value, pos):
             pp = "Primer_pair_"
-            if key.startswith("PRIMER_RIGHT"):
+            if key.startswith("PRIMER_"+ pos):
                 i = key.split("_")[2]
                 if key.endswith("_PENALTY"):
                     primer_rpen = value
                     self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_R_penalty": float(primer_rpen)})
+                        {"primer_" + pos[0] + "_penalty": float(primer_rpen)})
                 if key.endswith("_SEQUENCE"):
                     primer_rseq = value
                     self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_R_sequence": primer_rseq})
+                        {"primer_" + pos[0] + "_sequence": primer_rseq})
                 if key.endswith("_TM"):
                     right_TM = value
                     self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_R_TM": float(right_TM)})
-
-        def parseLeftPrimer(key, value):
-            pp = "Primer_pair_"
-            if key.startswith("PRIMER_LEFT"):
-                i = key.split("_")[2]
-                if key.endswith("_PENALTY"):
-                    primer_lpen = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_L_penalty": float(primer_lpen)})
-                if key.endswith("_SEQUENCE"):
-                    primer_lseq = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_L_sequence": primer_lseq})
-                if key.endswith("_TM"):
-                    left_TM = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_L_TM": float(left_TM)})
-
-        def parseInternalProbe(key, value):
-            pp = "Primer_pair_"
-            if key.startswith("PRIMER_INTERNAL"):
-                i = key.split("_")[2]
-                if key.endswith("_PENALTY"):
-                    primer_ipen = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_I_penalty": float(primer_ipen)})
-                if key.endswith("_SEQUENCE"):
-                    primer_iseq = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_I_sequence": primer_iseq})
-                if key.endswith("_TM"):
-                    int_TM = value
-                    self.p3dict[p3list[-1]][pp + str(i)].update(
-                        {"primer_I_TM": float(int_TM)})
+                        {"primer_" + pos[0] + "_TM": float(right_TM)})
 
         def parsePrimerPair(key, value):
             pp = "Primer_pair_"
@@ -2934,36 +2901,62 @@ class PrimerDesign():
                     self.p3dict[p3list[-1]][pp + str(i)].update(
                         {"product_TM": float(prod_TM)})
 
+        def read_primeroutput(p3_output):
+            settings = 1
+            primerdatasets = []
+            primerdata = []
+            primererror = []
+            with open(p3_output) as f:
+                for line in f:
+                    line = line.strip()
+                    if "PRIMER_ERROR=Cannot open " in line:
+                        msg = (
+                            "primer3 cannot open the settingsfile: "
+                            + settings_file)
+                        G.logger(">" + msg)
+                        errors.append([self.target, msg])
+                        raise Exception
+                    if "P3_SETTINGS_FILE_END=" in line:
+                        settings = 0
+                    if settings == 0:
+                        if not (line == "=" or "P3_SETTINGS_FILE_END=" in line):
+                            if "PRIMER_ERROR=" in line:
+                                primerdata.append(line)
+                                primererror.append(primerdata)
+                                primerdata = []
+                            else:
+                                primerdata.append(line)
+                    if line == "=":
+                        primerdatasets.append(primerdata)
+                        primerdata = []
+
+            if not primererror == []:
+
+
+                errorfile = os.path.join(self.primer_dir, "primer3_errors.csv")
+                msg = "Detected errors during primer3 run, check:\n" + errorfile
+                G.logger(">" + msg)
+                print("\n" + msg + "\n")
+                errors.append([self.target, msg])
+                G.csv_writer(errorfile, primererror)
+            return primerdatasets
+
         p3list = []
         info = "Run: parse_Primer3_output(" + self.target + ")"
         print(info)
         G.logger(info)
-        problem = []
-        with open(path_to_file, "r") as p:
-            for line in p:
-                if "PRIMER_ERROR=Cannot open " in line:
-                    problem.append(line)
-                key = line.split("=")[0]
-                value = line.strip().split("=")[1]
-                if not ("MIN" in key or "MAX" in key or "OPT" in key):
-                    parseSeqId(key, value)
-                    parseTemplate(key, value)
-                    countPrimer(key, value)
-                    parseRightPrimer(key, value)
-                    parseLeftPrimer(key, value)
-                    parseInternalProbe(key, value)
-                    parsePrimerPair(key, value)
-
-        if len(problem) > 0:
-            os.remove(path_to_file)
-            for item in problem:
-                errors.append([self.target, item])
-            msg = "Error during primer design "
-            print(msg)
-            G.logger(msg)
-            G.logger(problem)
-            return 1
-        return 0
+        primerdatasets = read_primeroutput(p3_output)
+        for primerdata in primerdatasets:
+            for item in primerdata:
+                key = item.split("=")[0]
+                value = item.split("=")[1]
+                parseSeqId(key, value)
+                parseTemplate(key, value)
+                countPrimer(key, value)
+                parsePrimer(key, value, "RIGHT")
+                parsePrimer(key, value, "LEFT")
+                parsePrimer(key, value, "INTERNAL")
+                parsePrimerPair(key, value)
 
     def get_amplicon_seq(self):
         def PCR(left, rc_right, temp):
@@ -2972,7 +2965,6 @@ class PrimerDesign():
             return pcr_product
 
         for key in self.p3dict.keys():
-            print(self.p3dict[key]["Primer_pairs"])
             if self.p3dict[key]["Primer_pairs"] > 0:
                template = self.p3dict[key]["template_seq"]
                for pp in self.p3dict[key].keys():
@@ -2997,9 +2989,7 @@ class PrimerDesign():
         G.create_directory(self.primer_dir)
         self.run_primer3()
         p3_output = os.path.join(self.primer_dir, "primer3_output")
-        exitstat = self.parse_Primer3_output(p3_output)
-        if exitstat == 1:
-            return {}
+        self.parse_Primer3_output(p3_output)
         self.get_amplicon_seq()
         self.write_primer3_data()
         return self.p3dict

@@ -19,6 +19,7 @@ import shutil
 import pytest
 import json
 import time
+import csv
 from Bio import SeqIO
 
 BASE_PATH = os.path.abspath(__file__).split("tests")[0]
@@ -742,14 +743,46 @@ def test_PrimerDesign(config):
     from speciesprimer import PrimerDesign
     pd = PrimerDesign(config)
     G.create_directory(pd.primer_dir)
-    pd.run_primer3()
     p3_output = os.path.join(pd.primer_dir, "primer3_output")
+    with pytest.raises(Exception):
+        settings_file = os.path.join(BASE_PATH, "p3parameters")
+        errorsettings = os.path.join(BASE_PATH, "p3parameters_none")
+        try:
+            os.rename(settings_file, errorsettings)
+            pd.run_primerdesign()
+        finally:
+            os.rename(errorsettings, settings_file)
+
+    os.remove(p3_output)
+    pd.run_primer3()
+
     assert os.path.isfile(p3_output) == True
     pd.run_primerdesign()
+
     with open(reffile) as f:
         for line in f:
             refdict = json.loads(line)
+
     assert refdict == pd.p3dict
+
+    # test primer3 error
+    p3_error = os.path.join(testfiles_dir, "primer3_output_err")
+    pd.p3dict = {}
+    pd.parse_Primer3_output(p3_error)
+    errorreport = os.path.join(pd.primer_dir, "primer3_errors.csv")
+    assert os.path.isfile(errorreport) == True
+    with open(errorreport) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            assert row == [
+                'SEQUENCE_ID=yfnB_2',
+                'SEQUENCE_TEMPLATE=GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
+                'PRIMER_PRODUCT_SIZE_RANGE=70-200',
+                'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length < min PRIMER_PRODUCT_SIZE_RANGE']
+
+
+
+
 
 def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import PrimerQualityControl
@@ -1106,16 +1139,16 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
-def test_end(config):
-    def remove_test_files(config):
-        test = config.path
-        shutil.rmtree(test)
-        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        os.chdir(BASE_PATH)
-
-    remove_test_files(config)
+#def test_end(config):
+#    def remove_test_files(config):
+#        test = config.path
+#        shutil.rmtree(test)
+#        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+#        if os.path.isfile(tmp_path):
+#            os.remove(tmp_path)
+#        os.chdir(BASE_PATH)
+#
+#    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
