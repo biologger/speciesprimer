@@ -512,6 +512,10 @@ def test_CoreGenes(config):
         new_ffn_dir = os.path.join(testfiles_dir, "ffn_files")
         shutil.copytree(new_ffn_dir, CG.ffn_dir)
 
+    def test_get_singlecopy_genes(config):
+        coregenesummary = CG.get_singlecopy_genes
+        assert coregenesummary == [8, 14, 2, 8]
+
     def test_coregene_extract(config):
         G.create_directory(CG.results_dir)
         fasta_dir = os.path.join(CG.results_dir, "fasta")

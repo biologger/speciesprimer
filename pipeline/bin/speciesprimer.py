@@ -1531,14 +1531,15 @@ class CoreGenes:
                             data_row.append(gene_name)
                             for locus in loci:
                                 data_row.append(locus)
-                            newtabledata.append(data_row)
                             if "group" in gene_name:
                                     all_core.append(gene_name)
+                                    newtabledata.append(data_row)
                             if "group" not in gene_name:
                                 if len(gene_name.split("_")) > 1:
                                     multi_annotated.append(gene_name)
                                 else:
                                     all_core.append(gene_name)
+                                    newtabledata.append(data_row)
 
         if mode == "normal":
             with open(self.singlecopy, "w") as f:
@@ -1547,6 +1548,10 @@ class CoreGenes:
                     w.writerow(item)
 
         self.print_gene_stats(all_core, total_count)
+        coregenesummary = [
+            len(all_core), len(total_count),
+            len(multi_annotated), len(newtabledata)]
+        return coregenesummary
 
     def print_gene_stats(self, all_core, total_count):
         all_genes = (
