@@ -152,6 +152,16 @@ class GeneralFunctions:
                 if not os.path.isdir(path_to_dir):
                     raise
 
+    @staticmethod
+    def csv_writer(filepath, inputlist, header=None):
+        with open(filepath, "w") as f:
+            writer = csv.writer(f)
+            if header:
+                if any(isinstance(item, list) for item in header):
+                    writer.writerows(header)
+                else:
+                    writer.writerow(header)
+            writer.writerows(inputlist)
 
 class HelperFunctions:
 
