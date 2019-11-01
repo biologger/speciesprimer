@@ -402,8 +402,9 @@ def test_QualityControl(config):
         qc_seqs = QC.choose_sequence(qc_gene)
         assert len(qc_seqs) == 1
         assert len(qc_seqs[0]) == 2
-        assert len(qc_seqs[0][0]) == 23
-        assert len(qc_seqs[0][1]) == 1569
+        # these values changed due to removal of fasta style ">" and new line
+        assert len(qc_seqs[0][0]) == 21
+        assert len(qc_seqs[0][1]) == 1568
         return qc_seqs
 
     def qc_blast(qc_gene):
@@ -663,7 +664,7 @@ def test_blastprep(config):
     input_list = []
     for i in range(0,5000):
         i = i + 1
-        elem = [">seq_"+ str(i) + "\n", i *"A" + "\n"]
+        elem = ["seq_"+ str(i), i *"A"]
         input_list.append(elem)
     name = "test"
     directory = tmpdir
@@ -800,8 +801,8 @@ def test_PrimerQualityControl_specificitycheck(config):
         exitstat = pqc.collect_primer()
         item = ['comFA_5', 'Primer_pair_7', 11.374516]
         pqc.get_blast_input(item) # test self.primerlist
-        assert pqc.primerlist[-2] == ['>Lb_curva_comFA_5_P7_F\n', 'ACAACGCTTATTATTATTTGTGCCA\n']
-        assert pqc.primerlist[-1] == ['>Lb_curva_comFA_5_P7_R\n', 'AAAGGCCGCTATCTTGTCTAAT\n']
+        assert pqc.primerlist[-2] == ['Lb_curva_comFA_5_P7_F', 'ACAACGCTTATTATTATTTGTGCCA']
+        assert pqc.primerlist[-1] == ['Lb_curva_comFA_5_P7_R', 'AAAGGCCGCTATCTTGTCTAAT']
         del pqc.primerlist[-1]
         del pqc.primerlist[-1]
 

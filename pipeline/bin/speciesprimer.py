@@ -998,7 +998,7 @@ class QualityControl:
                     z = dict(zip(tuple(recid), tuple(recseq)))
                     a = {v: k for k, v in z.items()}
                     o.write(">" + str(a[q]) + "\n" + str(q) + "\n")
-                    qc_seqs.append([">" + str(a[q]) + "\n", str(q) + "\n"])
+                    qc_seqs.append([str(a[q]), str(q)])
 
         return qc_seqs
 
@@ -1905,15 +1905,14 @@ class CoreGeneSequences:
                                 desc.split("_")[-2:-1][0] + "_" + str(count))
                         seq = item
                         count += 1
-                        conserv_seqs.append(
-                            ["> " + seq_name + "\n", seq + "\n"])
+                        conserv_seqs.append([seq_name, seq])
                         self.conserved_dict.update({seq_name: seq})
 
         if len(conserv_seqs) > 0:
             with open(result_path, "w") as f:
                 for seq in conserv_seqs:
-                    f.write(seq[0])
-                    f.write(seq[1])
+                    f.write(">" + seq[0] + "\n")
+                    f.write(seq[1] + "\n")
             info = "Number of conserved sequences: " + str(len(conserv_seqs))
             PipelineStatsCollector(self.target_dir).write_stat(info)
             print(info)
@@ -1997,9 +1996,9 @@ class BlastPrep():
                     self.directory, self.filename + ".part-"+str(key))
                 with open(file_name, "w") as f:
                     for item in self.list_dict[key]:
-                        f.write(item[0])
-                        inputsequences.append(item[0].split(">")[1].strip())
-                        f.write(item[1])
+                        f.write(">" + item[0] + "\n")
+                        inputsequences.append(item[0])
+                        f.write(item[1] + "\n")
         return inputsequences
 
     def run_blastprep(self):
@@ -2258,7 +2257,7 @@ class BlastParser:
             for item in selected_seqs:
                 if "complete" in item[1]:
                     f.write(
-                        "SEQUENCE_ID="+item[0] + "\nSEQUENCE_TEMPLATE="
+                        "SEQUENCE_ID=" + item[0] + "\nSEQUENCE_TEMPLATE="
                         + str(conserved_seq_dict[item[0]])
                         + "\nPRIMER_PRODUCT_SIZE_RANGE="
                         + str(self.config.minsize) + "-"
@@ -3077,8 +3076,8 @@ class PrimerQualityControl:
             "_".join(p_fwd_name.split("_")[0:-1]) + "_R")
         p_fwd_seq = self.primer3_dict[item[0]][item[1]]['primer_L_sequence']
         p_rev_seq = self.primer3_dict[item[0]][item[1]]['primer_R_sequence']
-        self.primerlist.append([">"+p_fwd_name + "\n", p_fwd_seq + "\n"])
-        self.primerlist.append([">"+p_rev_name + "\n", p_rev_seq + "\n"])
+        self.primerlist.append([p_fwd_name, p_fwd_seq])
+        self.primerlist.append([p_rev_name, p_rev_seq])
 
     def get_primerinfo(self, selected_seqs, mode):
         G.logger("Run: get_primerinfo(" + self.target + ")")
@@ -3902,12 +3901,6 @@ class PrimerQualityControl:
             results = []
             return results
 
-    def get_inputsequences(self, primerlist):
-        inputsequences = []
-        for primer in primerlist:
-            inputsequences.append(primer[0].split(">")[1].strip())
-        return inputsequences
-
     def run_primer_qc(self):
         G.logger("Run: run_primer_qc(" + self.target + ")")
         total_results = []
@@ -3922,12 +3915,10 @@ class PrimerQualityControl:
 
                 bla = Blast(self.config, self.primerblast_dir, "primer")
                 bla.run_blast("primer", use_cores)
-            else:
-                inputseqs = self.get_inputsequences(self.primerlist)
 
             self.call_blastparser.run_blastparser("primer")
 
-            primer_qc_list = self.get_primerinfo(inputseqs, "mfeprimer")
+            primer_qc_list = self.get_primerinfo(self.primerlist, "mfeprimer")
 
             for files in os.listdir(self.primer_qc_dir):
                 if (
