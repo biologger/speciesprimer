@@ -966,16 +966,12 @@ class QualityControl:
                                     query, gi, db_id, spec,
                                     expected, "passed QC"]
                                 passed.append(success)
-                    # allows passing qc if the species is correct but the
-                    # blast hit sequence name does not include the subspecies
-#                    elif "subsp" in expected:
-#                        if " ".join(expected.split(" ")[0:2]) == spec:
-#                            if query not in wrote:
-#                                wrote.append(query)
-#                                success = [
-#                                    query, gi, db_id, spec,
-#                                    expected, "passed QC"]
-#                                passed.append(success)
+                        else:
+                            if query not in wrote:
+                                wrote.append(query)
+                                fail = [
+                                    query, gi, db_id, spec, expected, "failed QC"]
+                                problems.append(fail)
                     else:
                         if query not in wrote:
                             wrote.append(query)
