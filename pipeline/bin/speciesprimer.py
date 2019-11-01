@@ -2081,7 +2081,9 @@ class BlastParser:
             if min(query_end) >= self.config.minsize:
                 qletters = str(blast_record.query_letters)
                 seq_range = "[" + str(min(query_end)) + ":" + qletters + "]"
-                seq_ends.append([blast_record.query, seq_range])
+                seqlen = int(qletters) - min(query_end)
+                if  seqlen >= self.config.minsize:
+                    seq_ends.append([blast_record.query, seq_range])
         if len(seq_ends) > 0:
             filename = os.path.join(self.blast_dir, "partialseqs.txt")
             with open(filename, "w") as f:
