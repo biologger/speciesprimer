@@ -959,7 +959,8 @@ class QualityControl:
                             passed.append(success)
 
                     elif self.exception is not None:
-                        if self.exception in spec:
+                        exception = " ".join(self.exception.split("_"))
+                        if exception in spec:
                             if query not in wrote:
                                 wrote.append(query)
                                 success = [
