@@ -196,14 +196,15 @@ def test_DataCollection(config):
         try:
             response = urlopen('https://www.google.com/', timeout=5)
             return True
-        except:
+        except Exception as exc:
             print("No internet connection!!! Skip online tests")
+            print(exc)
             return False
 
     def test_get_taxid(target):
         syn, taxid = DC.get_taxid(target)
         assert taxid == '28038'
-        assert syn == ["Bacterium curvatum"]
+        assert syn == ["Bacterium_curvatum"]
         return taxid
 
     def test_prokka_is_installed():
@@ -244,7 +245,7 @@ def test_DataCollection(config):
 
     test_get_email_from_config(config)
     DC.prepare_dirs()
-    if internet_connection == True:
+    if internet_connection() == True:
         test_get_taxid(config.target)
         
     G.create_directory(DC.gff_dir)

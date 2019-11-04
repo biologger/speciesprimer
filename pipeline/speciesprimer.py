@@ -231,7 +231,7 @@ class DataCollection():
                 for gi in removed_gis:
                     f.write(gi + "\n")
 
-    def get_ncbi_links(self, taxid, email, maxrecords=2000 ):
+    def get_ncbi_links(self, taxid, maxrecords=2000 ):
 
         def collect_genomedata(taxid, email):
             genomedata = []
@@ -302,6 +302,7 @@ class DataCollection():
 
         G.logger("Run: ncbi_genome_links(" + self.target + ")")
         os.chdir(self.config_dir)
+        email = H.get_email_for_Entrez()
         genomedata = collect_genomedata(taxid, email)
         time.sleep(1)
         link_list = get_links(genomedata)
@@ -632,7 +633,7 @@ class DataCollection():
                 self.config.exception = exceptions
 
             self.create_taxidlist(taxid)
-            self.get_ncbi_links(taxid, email)
+            self.get_ncbi_links(taxid)
             if not self.config.skip_download:
                 self.ncbi_download()
             else:
