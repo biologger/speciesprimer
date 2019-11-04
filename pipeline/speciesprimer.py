@@ -179,11 +179,11 @@ class DataCollection():
             return None
         else:
             synwarn = []
-            target_plain = " ".join(target.split("_"))
-            if not target_plain == scienctificname:
+            target_name = " ".join(target.split("_"))
+            if not target_name == scienctificname:
                 synwarn.append(scienctificname)
             for item in synonyms:
-                if not item == target_plain:
+                if not item == target_name:
                     exception = '_'.join(item.split(" "))
                     synwarn.append(exception)
 
@@ -199,7 +199,7 @@ class DataCollection():
                 print(info2 + "\n")
                 G.logger("> " + info)
                 G.logger(synwarn)
-                G.logger(">" + info2)
+                G.logger("> " + info2)
                 return synwarn
 
     def get_taxid(self, target):
@@ -547,6 +547,7 @@ class DataCollection():
                         print("\n" + msg + "\n")
                         G.logger(msg)
                         shutil.rmtree(outdir)
+                    raise
 
                 annotation_dirs.append(file_name + "_" + date)
 
@@ -597,6 +598,16 @@ class DataCollection():
                         os.remove(filepath)
 
     def collect(self):
+
+        def update_configfile(exception):
+            conffile = os.path.join(self.config_dir, "config.json")
+            with open(conffile) as f:
+                for line in f:
+                    config_dict = json.loads(line)
+            config_dict.update({"exception": exception})
+            with open(conffile, "w") as f:
+                f.write(json.dumps(config_dict))
+
         G.logger("Run: collect data(" + self.target + ")")
         self.prepare_dirs()
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
@@ -605,6 +616,21 @@ class DataCollection():
 
         if not self.config.offline:
             syn, taxid, email = self.get_taxid(self.target)
+            if not syn == []:
+                if self.config.exception == None:
+                    exceptions = []
+                    for item in syn:
+                        if not item in exceptions:
+                            exceptions.append(item)
+                else:
+                    exceptions = [self.config.exception]
+                    for item in syn:
+                        if not item in exceptions:
+                            exceptions.append(item)
+
+                update_configfile(exceptions)
+                self.config.exception = exceptions
+
             self.create_taxidlist(taxid)
             self.get_ncbi_links(taxid, email)
             if not self.config.skip_download:
@@ -621,7 +647,6 @@ class DataCollection():
                         self.remove_max_contigs()
                 os.chdir(self.target_dir)
         else:
-            syn = []
             G.create_directory(self.gff_dir)
             G.create_directory(self.ffn_dir)
             G.create_directory(self.fna_dir)
@@ -642,40 +667,7 @@ class DataCollection():
                 if os.path.isdir(dirpath):
                     shutil.rmtree(dirpath)
 
-        if syn:
-            if self.exception == None:
-                exceptions = []
-                for item in syn:
-                    if not item in exceptions:
-                        exceptions.append(item)
-                config = CLIconf(
-                    self.config.minsize, self.config.maxsize,
-                    self.config.mpprimer, exceptions, self.config.target,
-                    self.config.path, self.config.intermediate, self.config.qc_gene,
-                    self.config.mfold, self.config.skip_download, self.config.assemblylevel,
-                    self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
-                    self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
-                    self.config.customdb, self.config.blastseqs, self.config.probe,
-                    self.config.blastdbv5)
-
-            else:
-                exceptions = [self.exception]
-                for item in syn:
-                    if not item in exceptions:
-                        exceptions.append(item)
-                    config = CLIconf(
-                        self.config.minsize, self.config.maxsize,
-                        self.config.mpprimer, exceptions, self.config.target,
-                        self.config.path, self.config.intermediate, self.config.qc_gene,
-                        self.config.mfold, self.config.skip_download, self.config.assemblylevel,
-                        self.config.nontargetlist, self.config.skip_tree, self.config.nolist,
-                        self.config.offline, self.config.ignore_qc, self.config.mfethreshold,
-                        self.config.customdb, self.config.blastseqs, self.config.probe,
-                        self.config.blastdbv5)
-
-        else:
-            config = self.config
-        return config
+        return self.config
 
 class QualityControl:
     # dictionary containing the search word for annotated genes in gff files
@@ -1352,6 +1344,7 @@ class PangenomeAnalysis:
                 print("\n" + msg + "\n")
                 G.logger(msg)
                 shutil.rmtree(self.pangenome_dir)
+            raise
 
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
@@ -1372,6 +1365,7 @@ class PangenomeAnalysis:
                     print("\n" + msg + "\n")
                     G.logger(msg)
                     os.remove(tree)
+                raise
         os.chdir(self.target_dir)
 
     def run_pangenome_analysis(self):
@@ -1663,6 +1657,7 @@ class CoreGeneSequences:
                         print("\n" + msg + "\n")
                         G.logger(msg)
                         os.remove(run_file)
+                    raise
 
             with open(coregenes, "w") as f:
                 for fastafile in fasta_files:
@@ -1744,6 +1739,7 @@ class CoreGeneSequences:
                     print("\n" + msg + "\n")
                     G.logger(msg)
                     shutil.rmtree(self.consensus_dir)
+                raise
 
             records = []
             for files in os.listdir(self.consensus_dir):
@@ -2021,6 +2017,7 @@ class Blast:
                             print("\n" + msg + "\n")
                             G.logger(msg)
                             os.remove(filename)
+                        raise
 
             duration = time.time() - start
             G.logger(
@@ -2464,6 +2461,7 @@ class BlastParser:
                         print("\n" + msg + "\n")
                         G.logger(msg)
                         os.remove(filepath)
+                    raise
 
             else:
                 info2 = "Skip writing " + filename
@@ -2752,6 +2750,7 @@ class PrimerDesign():
                     print("\n" + msg + "\n")
                     G.logger(msg)
                     os.remove(output_file)
+                raise
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -3081,6 +3080,7 @@ class PrimerQualityControl:
                     print("\n" + msg + "\n")
                     G.logger(msg)
                     os.remove(files)
+            raise
 
         os.chdir(self.primer_dir)
         end = time.time() - start
@@ -4300,6 +4300,9 @@ def main(mode=None):
             use_configfile = True
         else:
             targets = args.target
+
+        if not os.path.isabs(args.path):
+            args.path = os.path.join(os.getcwd(), args.path)
 
         if args.email:
             H.get_email_for_Entrez(args.email)
