@@ -188,7 +188,7 @@ def test_DataCollection(config):
     DC = DataCollection(config)
 
     def test_get_email_from_config(config):
-        email = DC.get_email_for_Entrez()
+        email = H.get_email_for_Entrez()
         assert email == "biologger@protonmail.com"
         return email
 

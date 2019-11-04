@@ -258,14 +258,17 @@ class HelperFunctions:
             time.sleep(2)
             raise
 
-
-    def get_email_for_Entrez(self, email=None):
+    @staticmethod
+    def get_email_for_Entrez(email=None):
         if os.path.isfile(tmp_db_path):
             with open(tmp_db_path) as f:
                 for line in f:
                     tmp_db = json.loads(line)
             if email:
-                tmp_db.update({'email': email})
+                if "@" and "." in email:
+                    tmp_db.update({'email': email})
+                    with open(tmp_db_path, 'w') as f:
+                        f.write(json.dumps(tmp_db))
             try:
                 mail = tmp_db['email']
                 if '@' and '.' in mail:
@@ -274,17 +277,17 @@ class HelperFunctions:
                 email = input(
                     "To make use of NCBI's E-utilities, "
                     "Please enter your email address. \n")
+                if "@" and "." in email:
+                    with open(tmp_db_path) as f:
+                        for line in f:
+                            tmp_db = json.loads(line)
+                    tmp_db.update({'email': email})
+                    with open(tmp_db_path, 'w') as f:
+                        f.write(json.dumps(tmp_db))
+                else:
+                    print("Not a valid email adress")
+                    HelperFunctions().get_email_for_Entrez()
 
-            if "@" and "." in email:
-                with open(tmp_db_path) as f:
-                    for line in f:
-                        tmp_db = json.loads(line)
-                tmp_db.update({'email': email})
-                with open(tmp_db_path, 'w') as f:
-                    f.write(json.dumps(tmp_db))
-            else:
-                print("Not a valid email adress")
-                self.get_email_for_Entrez()
         else:
             if email:
                 pass
@@ -304,6 +307,6 @@ class HelperFunctions:
                     f.write(json.dumps(tmp_db))
             else:
                 print("Not a valid email adress")
-                self.get_email_for_Entrez()
+                HelperFunctions().get_email_for_Entrez()
 
         return email
