@@ -169,51 +169,6 @@ class DataCollection():
             self.config.path, "excludedassemblies", self.target)
         self.contiglimit = 500
 
-    def get_email_for_Entrez(self):
-        if os.path.isfile(tmp_db_path):
-            with open(tmp_db_path) as f:
-                for line in f:
-                    tmp_db = json.loads(line)
-            try:
-                mail = tmp_db['email']
-                if '@' and '.' in mail:
-                    email = mail.strip()
-            except KeyError:
-                email = input(
-                    "To make use of NCBI's E-utilities, "
-                    "Please enter your email address. \n"
-                )
-                if "@" and "." in email:
-                    with open(tmp_db_path) as f:
-                        for line in f:
-                            tmp_db = json.loads(line)
-                    tmp_db.update({'email': email})
-                    with open(tmp_db_path, 'w') as f:
-                        f.write(json.dumps(tmp_db))
-                else:
-                    print("Not a valid email adress")
-                    self.get_email_for_Entrez()
-        else:
-            email = input(
-                "To make use of NCBI's E-utilities, "
-                "Please enter your email address. \n"
-            )
-            if "@" and "." in email:
-                tmp_db = {
-                    'email': email, 'new_run': {
-                        'path': '', 'targets': {},
-                        'same_settings': False,
-                        'change_settings': False
-                    }
-                }
-                with open(tmp_db_path, 'w') as f:
-                    f.write(json.dumps(tmp_db))
-            else:
-                print("Not a valid email adress")
-                self.get_email_for_Entrez()
-
-        return email
-
     def check_synomyms(self, taxid, email, target):
         Entrez.email = email
         searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
@@ -248,7 +203,7 @@ class DataCollection():
                 return synwarn
 
     def get_taxid(self, target):
-        Entrez.email = self.get_email_for_Entrez()
+        Entrez.email = H.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
         syn = self.check_synomyms(taxid, Entrez.email, target)
         return syn, taxid, Entrez.email
@@ -4289,6 +4244,10 @@ def commandline():
     parser.add_argument(
         "--customdb", type=str, default=None,
         help="Absolute filepath of a custom database for blastn")
+    parser.add_argument(
+        "-e", "--email", type=str, default=None,
+        help="A valid email address to make use of NCBI's E-utilities"
+        " default=None (user input is required later for online functions)")
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.1")
@@ -4318,6 +4277,7 @@ def auto_run():
     return targets, conf_from_file, use_configfile
 
 
+
 def main(mode=None):
     today = time.strftime("%Y_%m_%d", time.localtime())
     use_configfile = False
@@ -4340,6 +4300,9 @@ def main(mode=None):
             use_configfile = True
         else:
             targets = args.target
+
+        if args.email:
+            H.get_email_for_Entrez(args.email)
 
     for target in targets:
         target = target.capitalize()

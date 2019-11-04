@@ -6,11 +6,13 @@ import logging
 import subprocess
 import os
 import csv
+import json
 import concurrent.futures
 from Bio import Entrez
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
+tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 
 class GeneralFunctions:
     @staticmethod
@@ -255,3 +257,53 @@ class HelperFunctions:
             GeneralFunctions().logger("> " + info)
             time.sleep(2)
             raise
+
+
+    def get_email_for_Entrez(self, email=None):
+        if os.path.isfile(tmp_db_path):
+            with open(tmp_db_path) as f:
+                for line in f:
+                    tmp_db = json.loads(line)
+            if email:
+                tmp_db.update({'email': email})
+            try:
+                mail = tmp_db['email']
+                if '@' and '.' in mail:
+                    email = mail.strip()
+            except KeyError:
+                email = input(
+                    "To make use of NCBI's E-utilities, "
+                    "Please enter your email address. \n")
+
+            if "@" and "." in email:
+                with open(tmp_db_path) as f:
+                    for line in f:
+                        tmp_db = json.loads(line)
+                tmp_db.update({'email': email})
+                with open(tmp_db_path, 'w') as f:
+                    f.write(json.dumps(tmp_db))
+            else:
+                print("Not a valid email adress")
+                self.get_email_for_Entrez()
+        else:
+            if email:
+                pass
+            else:
+                email = input(
+                    "To make use of NCBI's E-utilities, "
+                    "Please enter your email address. \n")
+            if "@" and "." in email:
+                tmp_db = {
+                    'email': email, 'new_run': {
+                        'path': '', 'targets': {},
+                        'same_settings': False,
+                        'change_settings': False
+                    }
+                }
+                with open(tmp_db_path, 'w') as f:
+                    f.write(json.dumps(tmp_db))
+            else:
+                print("Not a valid email adress")
+                self.get_email_for_Entrez()
+
+        return email
