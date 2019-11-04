@@ -752,7 +752,9 @@ def test_PrimerDesign(config):
         finally:
             os.rename(errorsettings, settings_file)
 
-    os.remove(p3_output)
+    if os.path.isfile(p3_output):
+        os.remove(p3_output)
+
     pd.run_primer3()
 
     assert os.path.isfile(p3_output) == True
@@ -778,10 +780,6 @@ def test_PrimerDesign(config):
                 'SEQUENCE_TEMPLATE=GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
                 'PRIMER_PRODUCT_SIZE_RANGE=70-200',
                 'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length < min PRIMER_PRODUCT_SIZE_RANGE']
-
-
-
-
 
 def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import PrimerQualityControl
