@@ -35,7 +35,7 @@ class Daemonize(Daemon):
 
 class GetBlastDB(Daemonize):
 
-    pipe_dir = os.path.abspath(__file__).split("daemon")[0]
+    pipe_dir = os.path.abspath(__file__).split("gui")[0]
     sys.path.append(pipe_dir)
     def command(self):
         import getblastdb
@@ -44,7 +44,7 @@ class GetBlastDB(Daemonize):
 
 class SpeciesPrimer(Daemonize):
 
-    pipe_dir = os.path.abspath(__file__).split("daemon")[0]
+    pipe_dir = os.path.abspath(__file__).split("gui")[0]
     sys.path.append(pipe_dir)
     def command(self):
         import speciesprimer
