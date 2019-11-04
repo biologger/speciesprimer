@@ -354,7 +354,7 @@ def start_pipeline():
         os.remove("/tmp/frontail.pid")
     frontail_cmd = [
             "frontail-linux", "-d", "-n", "20", "--pid-path", "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd)
+    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
 
 def stop_pipeline():
     subprocess.Popen(["daemonize.py", "stop", "100", "SpeciesPrimer"])
@@ -376,7 +376,7 @@ def start_db_download():
         os.remove("/tmp/frontail.pid")
     frontail_cmd = [
             "frontail-linux", "-d", "-n", "20", "--pid-path", "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd)
+    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
 
 def stop_db_download():
     subprocess.Popen(["daemonize.py", "stop", "200", 'GetBlastDB'])
@@ -409,7 +409,7 @@ def start_updatedb(command):
         os.remove("/tmp/frontail.pid")
     frontail_cmd = [
             "frontail-linux", "-d", "-n", "20", "--pid-path", "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd)
+    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
 
 def stop_updatedb(command):
     subprocess.Popen(command)
