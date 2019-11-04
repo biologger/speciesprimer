@@ -261,25 +261,20 @@ class DataCollection():
     def create_GI_list(self):
         G.logger("Run: create_GI_list(" + self.target + ")")
         removed_gis = []
-        if os.path.isdir(os.path.join(pipe_dir, "NO_Blast")):
-            for files in os.listdir(os.path.join(pipe_dir, "NO_Blast")):
-                if files.endswith(".gi"):
-                    with open(
-                        os.path.join(pipe_dir, "NO_Blast", files), "r"
-                    ) as f:
-                        for line in f:
-                            if "#" in line:
-                                pass
-                            else:
-                                gi = line.strip()
-                                if gi not in removed_gis:
-                                    removed_gis.append(gi)
-            if len(removed_gis) > 0:
-                with open(
-                    os.path.join(self.config_dir, "NO_Blast.gi"), "w"
-                ) as f:
-                    for gi in removed_gis:
-                        f.write(gi + "\n")
+        with open(os.path.join(dict_path, "no_blast.gi"), "r") as f:
+            for line in f:
+                if "#" in line:
+                    pass
+                else:
+                    gi = line.strip()
+                    if gi not in removed_gis:
+                        removed_gis.append(gi)
+        if len(removed_gis) > 0:
+            with open(
+                os.path.join(self.config_dir, "no_blast.gi"), "w"
+            ) as f:
+                for gi in removed_gis:
+                    f.write(gi + "\n")
 
     def get_ncbi_links(self, taxid, email, maxrecords=2000 ):
 
@@ -763,7 +758,7 @@ class QualityControl:
 
     def get_excluded_gis(self):
         excluded_gis = []
-        gi_file = os.path.join(self.config_dir, "NO_Blast.gi")
+        gi_file = os.path.join(self.config_dir, "no_blast.gi")
         if os.path.isfile(gi_file):
             if os.stat(gi_file).st_size > 0:
                 with open(gi_file, "r") as f:
@@ -2328,7 +2323,7 @@ class BlastParser:
 
     def get_excluded_gis(self):
         excluded_gis = []
-        gi_file = os.path.join(self.config_dir, "NO_Blast.gi")
+        gi_file = os.path.join(self.config_dir, "no_blast.gi")
         if os.path.isfile(gi_file):
             if os.stat(gi_file).st_size > 0:
                 with open(gi_file, "r") as f:

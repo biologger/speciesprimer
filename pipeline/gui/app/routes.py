@@ -474,7 +474,7 @@ def get_bacteria_taxids():
     taxidresult = Entrez.read(searchtaxid)
     taxids = taxidresult["IdList"]
     taxids.sort(key=lambda x: int(x))
-    filename = os.path.join(pipe_dir, "dictionaries", "2.txids")
+    filename = os.path.join(dict_path, "2.txids")
     with open(filename, "w") as f:
         for txid in taxids:
             f.write(txid + "\n")
@@ -506,7 +506,7 @@ def pipelineconfig():
             f = form.up_list.data
             filename = secure_filename(f.filename)
             if filename:
-                f.save(os.path.join(pipe_dir, "dictionaries", "species_list.txt"))
+                f.save(os.path.join(dict_path, "species_list.txt"))
                 flash("saved species list")
             else:
                 flash("not a supported file")
@@ -515,7 +515,7 @@ def pipelineconfig():
             f = form.up_abbrev.data
             filename = secure_filename(f.filename)
             if filename:
-                f.save(os.path.join(pipe_dir, "dictionaries", "genus_abbrev.csv"))
+                f.save(os.path.join(dict_path, "genus_abbrev.csv"))
                 flash("saved genus abbreviations")
             else:
                 flash("not a supported file")
@@ -532,8 +532,8 @@ def pipelineconfig():
             f = form.up_noblast.data
             filename = secure_filename(f.filename)
             if filename:
-                f.save(os.path.join(pipe_dir, "NO_Blast", "NO_BLAST.gi"))
-                flash("saved NO_BLAST.gi")
+                f.save(os.path.join(dict_path, "no_blast.gi"))
+                flash("saved no_blast.gi")
             else:
                 flash("not a supported file")
         elif form.down_list.data is True:
@@ -543,26 +543,26 @@ def pipelineconfig():
         elif form.down_p3sett.data is True:
             return send_file(os.path.join(dict_path, "p3parameters"), as_attachment=True, attachment_filename="p3parameters")
         elif form.down_noblast.data is True:
-            return send_file(os.path.join(pipe_dir, "NO_Blast", "NO_BLAST.gi"), as_attachment=True, attachment_filename='NO_BLAST.gi')
+            return send_file(os.path.join(dict_path, "no_blast.gi"), as_attachment=True, attachment_filename='no_blast.gi')
 
         elif form.reset_list.data is True:
-            old_file = os.path.join(pipe_dir, "dictionaries", "species_list.txt")
-            default = os.path.join(pipe_dir, "default", "species_list.txt")
+            old_file = os.path.join(dict_path, "species_list.txt")
+            default = os.path.join(dict_path, "default", "species_list.txt")
             shutil.copy(default, old_file)
             flash("Reset species_list.txt")
         elif form.reset_abbrev.data is True:
             old_file = os.path.join(dict_path, "genus_abbrev.csv")
-            default = os.path.join(pipe_dir, "default", "genus_abbrev.csv")
+            default = os.path.join(dict_path, "default", "genus_abbrev.csv")
             shutil.copy(default, old_file)
             flash("Reset genus_abbrev.csv")
         elif form.reset_noblast.data is True:
-            old_file = os.path.join(pipe_dir, "NO_Blast", "NO_BLAST.gi")
-            default = os.path.join(pipe_dir, "default", "NO_BLAST.gi")
+            old_file = os.path.join(dict_path, "no_blast.gi")
+            default = os.path.join(dict_path, "default", "no_blast.gi")
             shutil.copy(default, old_file)
-            flash("Reset NO_BLAST.gi")
+            flash("Reset no_blast.gi")
         elif form.reset_p3sett.data is True:
             old_file = os.path.join(dict_path, "p3parameters")
-            default = os.path.join(pipe_dir, "default", "p3parameters")
+            default = os.path.join(dict_path, "default", "p3parameters")
             shutil.copy(default, old_file)
             flash("Reset p3parameters")
 

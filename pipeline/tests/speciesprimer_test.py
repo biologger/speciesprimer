@@ -334,12 +334,12 @@ def test_QualityControl(config):
     create_customblastdb()
 
     def prepare_GI_list():
-        filepath = os.path.join(QC.config_dir, "NO_Blast.gi")
+        filepath = os.path.join(QC.config_dir, "no_blast.gi")
         with open(filepath, "w") as f:
             f.write("1231231231")
 
     def remove_GI_list():
-        filepath = os.path.join(QC.config_dir, "NO_Blast.gi")
+        filepath = os.path.join(QC.config_dir, "no_blast.gi")
         if os.path.isfile(filepath):
             os.remove(filepath)
 
