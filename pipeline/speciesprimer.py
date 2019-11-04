@@ -588,15 +588,10 @@ class DataCollection():
                     logging.error(
                         "KeyboardInterrupt during annotation", exc_info=True)
                     if os.path.isdir(outdir):
+                        msg = "Removing " + outdir
+                        print("\n" + msg + "\n")
+                        G.logger(msg)
                         shutil.rmtree(outdir)
-                    raise
-                except Exception:
-                    msg = "Exception during annotation"
-                    logging.error(
-                        msg, exc_info=True)
-                    if os.path.isdir(outdir):
-                        shutil.rmtree(outdir)
-                    errors.append([self.target, msg])
 
                 annotation_dirs.append(file_name + "_" + date)
 
@@ -1398,15 +1393,10 @@ class PangenomeAnalysis:
             logging.error(
                 "KeyboardInterrupt during pan-genome analysis", exc_info=True)
             if os.path.isdir(self.pangenome_dir):
+                msg = "Removing " + self.pangenome_dir
+                print("\n" + msg + "\n")
+                G.logger(msg)
                 shutil.rmtree(self.pangenome_dir)
-            raise
-        except Exception:
-            msg = "Exception during pan-genome analysis"
-            logging.error(
-                msg, exc_info=True)
-            if os.path.isdir(self.pangenome_dir):
-                shutil.rmtree(self.pangenome_dir)
-            errors.append([self.target, msg])
 
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
@@ -1423,17 +1413,10 @@ class PangenomeAnalysis:
                 logging.error(
                     "KeyboardInterrupt during fasttree run", exc_info=True)
                 if os.path.isfile(tree):
+                    msg = "Removing " + tree
+                    print("\n" + msg + "\n")
+                    G.logger(msg)
                     os.remove(tree)
-                raise
-
-            except Exception:
-                msg = "Exception during fasttree run"
-                logging.error(
-                    msg, exc_info=True)
-                if os.path.isfile(tree):
-                    os.remove(tree)
-                errors.append([self.target, msg])
-
         os.chdir(self.target_dir)
 
     def run_pangenome_analysis(self):
@@ -1716,15 +1699,15 @@ class CoreGeneSequences:
                     print(error_msg)
                     G.logger("> " + error_msg)
                     if os.path.isdir(self.alignment_dir):
+                        msg = "Removing " + self.alignment_dir
+                        print("\n" + msg + "\n")
+                        G.logger(msg)
                         shutil.rmtree(self.alignment_dir)
-                    raise
-                except Exception:
-                    msg = "Exception during Prank MSA run"
-                    logging.error(
-                        msg, exc_info=True)
-                    if os.path.isdir(self.alignment_dir):
-                        shutil.rmtree(self.alignment_dir)
-                    errors.append([self.target, msg])
+                    if os.path.isfile(run_file):
+                        msg = "Removing " + run_file
+                        print("\n" + msg + "\n")
+                        G.logger(msg)
+                        os.remove(run_file)
 
             with open(coregenes, "w") as f:
                 for fastafile in fasta_files:
@@ -1802,16 +1785,10 @@ class CoreGeneSequences:
                 logging.error(
                     "KeyboardInterrupt during consensus run", exc_info=True)
                 if os.path.isdir(self.consensus_dir):
+                    msg = "Removing " + self.consensus_dir
+                    print("\n" + msg + "\n")
+                    G.logger(msg)
                     shutil.rmtree(self.consensus_dir)
-                raise
-
-            except Exception:
-                msg = "Exception during consensus run"
-                logging.error(
-                    msg, exc_info=True)
-                if os.path.isdir(self.consensus_dir):
-                    shutil.rmtree(self.consensus_dir)
-                errors.append([self.target, msg])
 
             records = []
             for files in os.listdir(self.consensus_dir):
@@ -2085,16 +2062,10 @@ class Blast:
                         logging.error(
                             "KeyboardInterrupt during BLAST search", exc_info=True)
                         if os.path.isfile(filename):
+                            msg = "Removing " + filename
+                            print("\n" + msg + "\n")
+                            G.logger(msg)
                             os.remove(filename)
-                        raise
-
-                    except Exception:
-                        msg = "Exception during BLAST search"
-                        logging.error(
-                            msg, exc_info=True)
-                        if os.path.isfile(filename):
-                            os.remove(filename)
-                        errors.append([self.target, msg])
 
             duration = time.time() - start
             G.logger(
@@ -2523,12 +2494,22 @@ class BlastParser:
                 data = nonreddata[part*maxsize:end]
                 fasta_seqs = G.run_parallel(
                         self.get_seq_fromDB, data, db)
-                with open(filepath, "w") as r:
-                    for fastainfo in fasta_seqs:
-                        name = fastainfo[0].split(":")
-                        fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
-                        fastadata = "\n".join(fastainfo) + "\n"
-                        r.write(fastadata)
+                try:
+                    with open(filepath, "w") as r:
+                        for fastainfo in fasta_seqs:
+                            name = fastainfo[0].split(":")
+                            fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
+                            fastadata = "\n".join(fastainfo) + "\n"
+                            r.write(fastadata)
+                except (KeyboardInterrupt, SystemExit):
+                    logging.error(
+                        "KeyboardInterrupt during DB extraction", exc_info=True)
+                    if os.path.isfile(filepath):
+                        msg = "Removing " + filepath
+                        print("\n" + msg + "\n")
+                        G.logger(msg)
+                        os.remove(filepath)
+
             else:
                 info2 = "Skip writing " + filename
                 print(info2)
@@ -2555,8 +2536,11 @@ class BlastParser:
         G.create_directory(self.primer_qc_dir)
         nonreddata = self.sort_nontarget_sequences(nonred_dict)
         if len(nonreddata) == 0:
-            print("Error did not find any sequences for the non-target DB")
-            G.logger("> Error did not find any sequences for non-target DB")
+            msg = (
+                "Error did not find any sequences for non-target DB. "
+                + "Please check the species list and/or BLAST database")
+            print(msg)
+            G.logger("> " + msg)
             return
         self.write_nontarget_sequences(nonreddata)
 
@@ -2809,8 +2793,10 @@ class PrimerDesign():
                 logging.error(
                     "KeyboardInterrupt during primer3 run", exc_info=True)
                 if os.path.isfile(output_file):
+                    msg = "Removing " + output_file
+                    print("\n" + msg + "\n")
+                    G.logger(msg)
                     os.remove(output_file)
-                raise
         else:
             info = "Skip primerdesign with primer3"
             G.logger("> " + info)
@@ -3136,16 +3122,10 @@ class PrimerQualityControl:
                 "KeyboardInterrupt during DB indexing", exc_info=True)
             for files in os.listdir(self.primer_qc_dir):
                 if files.startswith(db_name):
+                    msg = "Removing " + files
+                    print("\n" + msg + "\n")
+                    G.logger(msg)
                     os.remove(files)
-            raise
-        except Exception:
-            msg = "Exception during DB indexing"
-            logging.error(
-                msg, exc_info=True)
-            for files in os.listdir(self.primer_qc_dir):
-                if files.startswith(db_name):
-                    os.remove(files)
-            errors.append([self.target, msg])
 
         os.chdir(self.primer_dir)
         end = time.time() - start
@@ -4468,8 +4448,7 @@ def main(mode=None):
                 "KeyboardInterrupt while working on " + target, exc_info=True)
             logging.error(
                 "KeyboardInterrupt during long running processes can have "
-                "severe side effects. Consider deleting the run directory and "
-                " starting a new run")
+                "severe side effects. We tried to remove the affected files. ")
             raise
 
     if len(errors) > 0:
