@@ -10,9 +10,15 @@ import logging
 import time
 import filecmp
 import subprocess
+import json
+
 
 BASEURLnt = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
-BASEURLref = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/' 
+BASEURLref = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/'
+
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
+tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+
 
 def commandline():
     parser = argparse.ArgumentParser(
@@ -27,8 +33,8 @@ def commandline():
         "-delete", "--delete", action="store_true", default=False,
         help="Delete the tar files after extraction to save Harddisk space")
     parser.add_argument(
-        "-db", "--database", type=str, 
-        help="Select nt_v5 or ref_prok_rep_genomes", default="nt_v5", 
+        "-db", "--database", type=str,
+        help="Select nt_v5 or ref_prok_rep_genomes", default="nt_v5",
         choices=["nt_v5", "ref_prok_rep_genomes"])
     args = parser.parse_args()
     return args
@@ -111,7 +117,7 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
             for end in extractedendings:
                 if filename.split(".tar.gz.md5")[0] + end in os.listdir("."):
                     check_extract.append(end)
-                    
+
             check_extract.sort()
             extractedendings.sort()
             if check_extract == extractedendings:
@@ -165,7 +171,7 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
         except KeyboardInterrupt:
             logging.error(
                 "KeyboardInterrupt while working on "
-                + filename, exc_info=True)            
+                + filename, exc_info=True)
             for files in os.listdir(blastdb_dir):
                 if files.endswith(".tmp"):
                     filepath = os.path.join(blastdb_dir, files)
@@ -210,11 +216,11 @@ def extract_archives(dbfile, delete, extractedendings):
 def get_md5files(blastdb_dir, db, BASEURL):
     os.chdir(blastdb_dir)
     # -nc, --no-clobber skip downloads that would download to
-    # existing files (overwriting them) can lead to problems 
+    # existing files (overwriting them) can lead to problems
     # if single md5 files are manually deleted
     command = [
         "wget", "-nv", "-nc", "-r", "--no-parent", "--no-directories",
-        "--tries", "4", "-A", db + ".*.tar.gz.md5", 
+        "--tries", "4", "-A", db + ".*.tar.gz.md5",
         "-X", "FASTA,cloud,v5", BASEURL]
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -254,20 +260,16 @@ def logger(string_to_log):
 def get_DB(mode=False):
     today = time.strftime("%Y_%m_%d", time.localtime())
     if mode == "auto":
-        import json
-        pipe_bin = os.path.abspath(__file__)
-        pipe_dir = pipe_bin.split("bin")[0]
-        tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
         with open(tmp_db_path, 'r') as f:
             for line in f:
                 tmp_db = json.loads(line)
         delete = tmp_db['BLAST_DB']['delete']
         db = tmp_db['BLAST_DB']['db']
-        blastdb_dir = "/home/blastdb"
+        blastdb_dir = "/blastdb"
 
         logging.basicConfig(
             filename=os.path.join(
-                "/", "home", "primerdesign",
+                "/", "primerdesign",
                 "speciesprimer_" + today + ".log"),
             level=logging.DEBUG, format="%(message)s")
 
@@ -281,7 +283,7 @@ def get_DB(mode=False):
                 blastdb_dir = args.dbpath + "/"
         else:
             blastdb_dir = os.getcwd() + "/"
-            
+
         db = args.database
 
         logging.basicConfig(

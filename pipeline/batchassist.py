@@ -8,8 +8,7 @@ from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
 # paths
-pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("bin")[0]
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
 
 class Input:
     def __init__(self):

@@ -29,8 +29,7 @@ from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
 # paths
-pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("bin")[0]
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 errors = []
@@ -168,6 +167,7 @@ class DataCollection():
         self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.ex_dir = os.path.join(
             self.config.path, "excludedassemblies", self.target)
+        self.contiglimit = 500
 
     def get_email_for_Entrez(self):
         if os.path.isfile(tmp_db_path):
@@ -632,6 +632,25 @@ class DataCollection():
                     if not line.strip() == taxid:
                         r.write(line)
 
+    def remove_max_contigs(self):
+        for files in os.listdir(self.genomic_dir):
+            if files.endswith(".fna"):
+                contigcount = 0
+                filepath = os.path.join(self.genomic_dir, files)
+                for line in open(filepath).readlines():
+                    if ">" in line:
+                        contigcount += 1
+                if contigcount >= self.contiglimit:
+                    if self.config.ignore_qc:
+                        pass
+                    else:
+                        msg = (
+                            files + " has more than " + str(self.configlimit)
+                            + " and is removed before annotation")
+                        print(msg)
+                        G.logger(msg)
+                        os.remove(filepath)
+
     def collect(self):
         G.logger("Run: collect data(" + self.target + ")")
         self.prepare_dirs()
@@ -654,6 +673,7 @@ class DataCollection():
                         filepath = os.path.join(self.genomic_dir, files)
                         G.run_subprocess(
                             ["gunzip", filepath], False, True, False, False)
+                        self.remove_max_contigs()
                 os.chdir(self.target_dir)
         else:
             syn = []
@@ -759,37 +779,6 @@ class QualityControl:
                     gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
                     if gene not in self.qc_gene_search:
                         self.qc_gene_search.append(gene)
-
-    def new_count_contigs(self, gff_list, contiglimit):
-        exclude = []
-        for dirs in os.listdir(self.target_dir):
-            if dirs not in systemdirs:
-                path = os.path.join(self.target_dir, dirs)
-                if os.path.isdir(path):
-                    for files in os.listdir(path):
-                        if files.endswith(".fna"):
-                            filepath = os.path.join(path, files)
-                            file = files.split(".fna")[0]
-                            with open(filepath, "r") as f:
-                                records = list(SeqIO.parse(f, "fasta"))
-                                if len(records) > contiglimit:
-                                    exclude.append(file)
-
-        if len(exclude) > 0:
-            for item in exclude:
-                if item + ".gff" in gff_list:
-                    gff_list.remove(item + ".gff")
-                data = [item, "", "", "", "", "Max contigs"]
-                if data not in self.contig_ex:
-                    self.contig_ex.append(data)
-            info = (
-                "skip " + str(len(self.contig_ex))
-                + " Genome(s) with more than " + str(self.contiglimit)
-                + " contigs")
-            print(info)
-            G.logger("> " + info)
-
-        return gff_list
 
     def count_contigs(self, gff_list, contiglimit):
         exclude = []
@@ -1152,19 +1141,15 @@ class QualityControl:
             # write files
             report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
             if len(results) > 0:
-                with open(report, "w") as f:
-                    writer = csv.writer(f)
-                    header = [
-                        "Query", "GI", "DB ID", "Species",
-                        "Target species", "QC status"]
-                    writer.writerow(header)
-                    writer.writerows(results)
+                header = [
+                    "Query", "GI", "DB ID", "Species",
+                    "Target species", "QC status"]
+                G.csv_writer(report, results, header)
             else:
                 error_msg = "No Quality Control results found."
                 print(error_msg)
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
-
 
         def delete_blastreport():
             os.chdir(qc_dir)
@@ -1542,10 +1527,7 @@ class CoreGenes:
                                     newtabledata.append(data_row)
 
         if mode == "normal":
-            with open(self.singlecopy, "w") as f:
-                w = csv.writer(f)
-                for item in newtabledata:
-                    w.writerow(item)
+            G.csv_writer(self.singlecopy, newtabledata)
 
         self.print_gene_stats(all_core, total_count)
         coregenesummary = [
@@ -1576,21 +1558,22 @@ class CoreGenes:
                     locustags.update(
                             {row[1]:{"name": row[0], "seq": row[2]}})
         else:
-            with open(self.ffn_seqs, "w") as out:
-                w = csv.writer(out)
-                for files in os.listdir(self.ffn_dir):
-                    if files.endswith(".ffn"):
-                        filepath = os.path.join(self.ffn_dir, files)
-                        with open(filepath) as f:
-                            records = SeqIO.parse(f, "fasta")
-                            for record in records:
-                                name = files.split(".ffn")[0]
-                                recid = record.id
-                                locus = recid.split(" ")[0]
-                                seq = str(record.seq)
-                                locustags.update(
-                                        {locus: {"name": name, "seq": seq}})
-                                w.writerow([name, locus, seq])
+            ffn_data = []
+            for files in os.listdir(self.ffn_dir):
+                if files.endswith(".ffn"):
+                    filepath = os.path.join(self.ffn_dir, files)
+                    with open(filepath) as f:
+                        records = SeqIO.parse(f, "fasta")
+                        for record in records:
+                            name = files.split(".ffn")[0]
+                            recid = record.id
+                            locus = recid.split(" ")[0]
+                            seq = str(record.seq)
+                            locustags.update(
+                                    {locus: {"name": name, "seq": seq}})
+                            ffn_data.append([name, locus, seq])
+
+            G.csv_writer(self.ffn_seqs, ffn_data)
 
         return locustags
 
@@ -2511,11 +2494,8 @@ class BlastParser:
                             stop = item + overhang
                             inrange.append([key, start, stop])
 
-            with open(filepath, "w") as f:
-                writer = csv.writer(f)
-                header = ["Accession", "Start pos", "Stop pos"]
-                writer.writerow(header)
-                writer.writerows(nonreddata)
+            header = ["Accession", "Start pos", "Stop pos"]
+            G.csv_writer(filepath, nonreddata, header)
 
         return nonreddata
 
@@ -2748,14 +2728,10 @@ class BlastParser:
                 spec = " ".join(uniq[0].split(" ")[1::])
                 results.append([gi, spec, perc, uniq[1]])
 
-        header = ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]
-        with open(output, "w") as w:
-            writer = csv.writer(w)
-            writer.writerow(["Total BLAST hits", "Number of queries"])
-            writer.writerow([total_hits, keycount])
-            writer.writerow(header)
-            for data in results:
-                writer.writerow(data)
+        header = [
+            ["Total BLAST hits", "Number of queries"], [total_hits, keycount],
+            ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]]
+        G.csv_writer(output, results, header)
 
     def run_blastparser(self, conserved_seq_dict):
         if self.mode == "primer":
@@ -2827,7 +2803,7 @@ class PrimerDesign():
         G.logger("Run: run_primer3(" + self.target + ")")
         input_file = os.path.join(self.results_dir, "primer3_input")
         output_file = os.path.join(self.primer_dir, "primer3_output")
-        settings_file = os.path.join(pipe_dir, "p3parameters")
+        settings_file = os.path.join(dict_path, "p3parameters")
         if not os.path.isfile(output_file):
             primer3cmd = [
                 "primer3_core", "-p3_settings_file=" + settings_file,
@@ -3441,18 +3417,19 @@ class PrimerQualityControl:
 
     def write_MFEprimer_results(self, input_list, name):
         outputlist = []
-        with open("MFEprimer_" + name + ".csv", "w") as f:
-            writer = csv.writer(f)
-            for item in input_list:
-                # item[0] is the primerinfo
-                if len(item[0]) > 1:
-                    if not item[0] in outputlist:
-                        outputlist.append(item[0])
-                # item[1] are the results of MFEprimer
-                if len(item[1]) > 1:
-                    for values in item[1]:
-                        val = values.split("\t")
-                        writer.writerow(val)
+        val_list = []
+        for item in input_list:
+            # item[0] is the primerinfo
+            if len(item[0]) > 1:
+                if not item[0] in outputlist:
+                    outputlist.append(item[0])
+            # item[1] are the results of MFEprimer
+            if len(item[1]) > 1:
+                for values in item[1]:
+                    val = values.split("\t")
+                    val_list.append(val)
+
+        G.csv_writer("MFEprimer_" + name + ".csv", val_list)
 
         return outputlist
 
@@ -3584,16 +3561,12 @@ class PrimerQualityControl:
     def mfold_parser(self):
         selected_primer = []
         excluded_primer = []
+        pos_results = []
+        neg_results = []
         info = "Run: mfold_parser(" + self.target + ")\n"
         print(info)
         G.logger(info)
         file_list = self.find_mfold_results()
-        pas = open(os.path.join(self.mfold_dir, "mfold_passed.csv"), "w")
-        pos_results = csv.writer(pas)
-        pos_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
-        fail = open(os.path.join(self.mfold_dir, "mfold_failed.csv"), "w")
-        neg_results = csv.writer(fail)
-        neg_results.writerow(["primer", "structure", "dG", "dH", "dS", "Tm"])
         for mfoldfiles in file_list:
             mfold = self.read_files(mfoldfiles)
 
@@ -3602,11 +3575,11 @@ class PrimerQualityControl:
                 if not (selected is None or passed is None):
                     selected_primer.append(selected)
                     filename, structure, dG, dH, dS, Tm = passed
-                    pos_results.writerow([selected, structure, dG, dH, dS, Tm])
+                    pos_results.append([selected, structure, dG, dH, dS, Tm])
                 else:
                     excluded_primer.append(excluded)
                     filename, structure, dG, dH, dS, Tm = failed
-                    neg_results.writerow([excluded, structure, dG, dH, dS, Tm])
+                    neg_results.append([excluded, structure, dG, dH, dS, Tm])
 
             elif len(mfold) > 1:
                 test = []
@@ -3623,10 +3596,10 @@ class PrimerQualityControl:
                         selected_name, passed, excluded, failed = structure_nr
                         filename, structure, dG, dH, dS, Tm = passed
                         if index == 0:
-                            pos_results.writerow(
+                            pos_results.append(
                                 [selected, structure, dG, dH, dS, Tm])
                         else:
-                            pos_results.writerow(
+                            pos_results.append(
                                 ["", structure, dG, dH, dS, Tm])
                 else:
                     if mfold[0][2] is None:
@@ -3639,25 +3612,29 @@ class PrimerQualityControl:
                         if passed is None:
                             filename, structure, dG, dH, dS, Tm = failed
                             if index == 0:
-                                neg_results.writerow(
+                                neg_results.append(
                                     [excluded, structure, dG, dH, dS, Tm])
                             else:
-                                neg_results.writerow(
+                                neg_results.append(
                                     ["", structure, dG, dH, dS, Tm])
                         if failed is None:
                             filename, structure, dG, dH, dS, Tm = passed
                             if index == 0:
-                                neg_results.writerow(
+                                neg_results.append(
                                     [excluded, structure, dG, dH, dS, Tm])
                             else:
-                                neg_results.writerow(
+                                neg_results.append(
                                     ["", structure, dG, dH, dS, Tm])
 
             else:
                 pass
 
-        pas.close()
-        fail.close()
+        passfile = os.path.join(self.mfold_dir, "mfold_passed.csv")
+        failfile = os.path.join(self.mfold_dir, "mfold_failed.csv")
+        header = ["primer", "structure", "dG", "dH", "dS", "Tm"]
+        G.csv_writer(passfile, pos_results, header)
+        G.csv_writer(failfile, neg_results, header)
+
         ex = str(len(excluded_primer))
         pas = str(len(selected_primer))
         ex_info = ex + " primer pair(s) excluded by mfold"
@@ -3848,12 +3825,8 @@ class PrimerQualityControl:
             filepath = os.path.join(
                 self.dimercheck_dir, "dimercheck_summary.csv")
             if len(dimer_summary) > 0:
-                with open(filepath, "w") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(
-                        ["primer", "fwd-fwd dG", "rev-rev dG", "fwd-rev dG"])
-                    for dimer in dimer_summary:
-                        writer.writerow(dimer)
+                header = ["primer", "fwd-fwd dG", "rev-rev dG", "fwd-rev dG"]
+                G.csv_writer(filepath, dimer_summary, header)
             return choice
 
         choice = run_primerdimer_check()
@@ -3881,11 +3854,8 @@ class PrimerQualityControl:
                     self.results_dir,
                     H.abbrev(self.target) + "_primer.csv")
 
-            with open(file_path, "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(header)
-                for result in results:
-                    writer.writerow(result)
+            G.csv_writer(file_path, results, header)
+
             return results
         else:
             results = []
@@ -4063,61 +4033,57 @@ class Summary:
         G.logger("Run: write_genome_info(" + self.target + ")")
         """write qc infos to csv file"""
         file_name = self.aka + "_qc_sequences.csv"
-        with open(os.path.join(self.summ_dir, file_name), "w") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                "Assembly accession", "Assembly name",
-                "Assembly status", "Strain",
-                "rRNA", "rRNA Blast",
-                "tuf", "tuf Blast",
-                "recA", "recA Blast",
-                "dnaK", "dnaK Blast",
-                "pheS", "pheS Blast"])
-
-            for key in self.g_info_dict:
-                k = self.g_info_dict[key]
-                infos = [
-                    key, k["name"], k['assemblystatus'], k["strain"],
-                    k["rRNA"]["status"], k["rRNA"]["hit"],
-                    k["tuf"]["status"], k["tuf"]["hit"],
-                    k["recA"]["status"], k["recA"]["hit"],
-                    k["dnaK"]["status"], k["dnaK"]["hit"],
-                    k["pheS"]["status"], k["pheS"]["hit"]]
-                writer.writerow(infos)
+        filepath = os.path.join(self.summ_dir, file_name)
+        header = [
+                "Assembly accession", "Assembly name", "Assembly status",
+                "Strain", "rRNA", "rRNA Blast", "tuf", "tuf Blast", "recA",
+                "recA Blast", "dnaK", "dnaK Blast", "pheS", "pheS Blast"]
+        genomeinfo = []
+        for key in self.g_info_dict:
+            k = self.g_info_dict[key]
+            infos = [
+                key, k["name"], k['assemblystatus'], k["strain"],
+                k["rRNA"]["status"], k["rRNA"]["hit"],
+                k["tuf"]["status"], k["tuf"]["hit"],
+                k["recA"]["status"], k["recA"]["hit"],
+                k["dnaK"]["status"], k["dnaK"]["hit"],
+                k["pheS"]["status"], k["pheS"]["hit"]]
+            genomeinfo.append(infos)
+        G.csv_writer(filepath, genomeinfo, header)
 
         file_name = self.aka + "_qc_sequences_details.csv"
-        with open(os.path.join(self.summ_dir, file_name), "w") as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                "Assembly accession", "Assembly name",
-                "Assembly status", "Strain",
-                "rRNA", "rRNA Blast", "Hit GI", "Hit DB_id",
+        filepath = os.path.join(self.summ_dir, file_name)
+        header = [
+                "Assembly accession", "Assembly name", "Assembly status",
+                "Strain", "rRNA", "rRNA Blast", "Hit GI", "Hit DB_id",
                 "tuf", "tuf Blast", "Hit GI", "Hit DB_id",
                 "recA", "recA Blast", "Hit GI", "Hit DB_id",
                 "dnaK", "dnaK Blast", "Hit GI", "Hit DB_id",
-                "pheS", "pheS Blast", "Hit GI", "Hit DB_id"])
-
-            for key in self.g_info_dict:
-                k = self.g_info_dict[key]
-                infos = [
-                    key, k["name"], k['assemblystatus'], k["strain"],
-                    k["rRNA"]["status"], k["rRNA"]["hit"],
-                    k["rRNA"]["GI"], k["rRNA"]["DB_id"],
-                    k["tuf"]["status"], k["tuf"]["hit"],
-                    k["tuf"]["GI"], k["tuf"]["DB_id"],
-                    k["recA"]["status"], k["recA"]["hit"],
-                    k["recA"]["GI"], k["recA"]["DB_id"],
-                    k["dnaK"]["status"], k["dnaK"]["hit"],
-                    k["dnaK"]["GI"], k["dnaK"]["DB_id"],
-                    k["pheS"]["status"], k["pheS"]["hit"],
-                    k["pheS"]["GI"], k["pheS"]["DB_id"]]
-                writer.writerow(infos)
+                "pheS", "pheS Blast", "Hit GI", "Hit DB_id"]
+        detailinfo = []
+        for key in self.g_info_dict:
+            k = self.g_info_dict[key]
+            infos = [
+                key, k["name"], k['assemblystatus'], k["strain"],
+                k["rRNA"]["status"], k["rRNA"]["hit"],
+                k["rRNA"]["GI"], k["rRNA"]["DB_id"],
+                k["tuf"]["status"], k["tuf"]["hit"],
+                k["tuf"]["GI"], k["tuf"]["DB_id"],
+                k["recA"]["status"], k["recA"]["hit"],
+                k["recA"]["GI"], k["recA"]["DB_id"],
+                k["dnaK"]["status"], k["dnaK"]["hit"],
+                k["dnaK"]["GI"], k["dnaK"]["DB_id"],
+                k["pheS"]["status"], k["pheS"]["hit"],
+                k["pheS"]["GI"], k["pheS"]["DB_id"]]
+            detailinfo.append(infos)
+        G.csv_writer(filepath, detailinfo, header)
 
     def write_results(self, total_results):
         today = time.strftime("%Y_%m_%d", time.localtime())
         if not total_results == []:
             G.logger("Run: write_results(" + self.target + ")")
             wrote = []
+            outputlist = []
             header = [
                 "Primer name", "PPC", "Primer penalty", "Gene",
                 "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
@@ -4125,17 +4091,15 @@ class Summary:
                 "Probe seq)", "Probe TM", "Probe penalty",
                 "Amplicon size", "Amplicon TM", "Amplicon sequence",
                 "Template sequence"]
-            path = os.path.join(self.summ_dir, self.aka + "_primer.csv")
-            if os.path.isfile(path):
-                path = os.path.join(
+            filepath = os.path.join(self.summ_dir, self.aka + "_primer.csv")
+            if os.path.isfile(filepath):
+                filepath = os.path.join(
                     self.summ_dir, self.aka + "_primer" + today + ".csv")
-            with open(path, "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(header)
-                for result in total_results:
-                    if result not in wrote:
-                        wrote.append(result)
-                        writer.writerow(result)
+            for result in total_results:
+                if result not in wrote:
+                    wrote.append(result)
+                    outputlist.append(result)
+            G.csv_writer(filepath, outputlist, header)
 
     def copy_pangenomeinfos(self):
         for filename in os.listdir(self.pangenome_dir):
@@ -4384,7 +4348,7 @@ def main(mode=None):
     use_configfile = False
 
     if mode == "auto":
-        os.chdir(os.path.join("/", "home", "primerdesign"))
+        os.chdir(os.path.join("/", "primerdesign"))
         logfile = os.path.join(os.getcwd(), "speciesprimer_" + today + ".log")
         logging.basicConfig(
             filename=logfile, level=logging.DEBUG, format="%(message)s")

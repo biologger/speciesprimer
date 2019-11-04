@@ -9,8 +9,7 @@ import csv
 import concurrent.futures
 from Bio import Entrez
 
-pipe_bin = os.path.abspath(__file__)
-pipe_dir = pipe_bin.split("bin")[0]
+pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 
 class GeneralFunctions:
@@ -163,6 +162,7 @@ class GeneralFunctions:
                     writer.writerow(header)
             writer.writerows(inputlist)
 
+
 class HelperFunctions:
 
     @staticmethod
@@ -187,7 +187,7 @@ class HelperFunctions:
         nontarget_list = []
         genus = target.split("_")[0]
         species = HelperFunctions().subspecies_handler(target, "space")
-        spec_list = os.path.join(pipe_dir, "dictionaries", "species_list.txt")
+        spec_list = os.path.join(dict_path, "species_list.txt")
         with open(spec_list, "r") as species_list:
             for line in species_list.readlines():
                 line = line.strip()

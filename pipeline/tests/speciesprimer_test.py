@@ -9,7 +9,7 @@ Works only in the Docker container!!!
 - Start an interactive terminal in the container
     sudo docker exec -it {Containername} bash
 - Start the test in the container terminal
-    pytest -vv /home/pipeline/tests/speciesprimer_test.py
+    pytest -vv /pipeline/tests/speciesprimer_test.py
 """
 )
 
@@ -23,8 +23,7 @@ import csv
 from Bio import SeqIO
 
 BASE_PATH = os.path.abspath(__file__).split("tests")[0]
-new_path = os.path.join(BASE_PATH, "bin")
-sys.path.append(new_path)
+sys.path.append(BASE_PATH)
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
@@ -37,7 +36,7 @@ confargs = {
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
     "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
     "offline": False,
-    "path": os.path.join("/", "home", "primerdesign", "test"),
+    "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
@@ -142,7 +141,7 @@ def test_auto_run_config():
     from speciesprimer import auto_run
     t = os.path.join(BASE_PATH, "tests", "testfiles", "tmp_config.json")
     # Docker only
-    tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
+    tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
     if os.path.isfile(tmp_path):
         os.remove(tmp_path)
     shutil.copy(t, tmp_path)
@@ -1139,16 +1138,18 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
-#def test_end(config):
-#    def remove_test_files(config):
-#        test = config.path
-#        shutil.rmtree(test)
-#        tmp_path = os.path.join("/", "home", "pipeline", "tmp_config.json")
-#        if os.path.isfile(tmp_path):
-#            os.remove(tmp_path)
-#        os.chdir(BASE_PATH)
-#
-#    remove_test_files(config)
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) == False
+
+    remove_test_files(config)
+
 
 if __name__ == "__main__":
     print(msg)

@@ -89,9 +89,9 @@ The pipeline searches in the config directory for config.json files and continue
  __Example:__
 
  
-* Path to search for configuration files: __/home/primerdesign__
+* Path to search for configuration files: __/primerdesign__
 * Search only configuration files for the selected species: __Lactobacillus curvatus__
-* --> SpeciesPrimer will search for config files in: __/home/primerdesign/Lactobacillus_curvatus/config__
+* --> SpeciesPrimer will search for config files in: __/primerdesign/Lactobacillus_curvatus/config__
 
 
 __Example:__ 
@@ -155,7 +155,7 @@ It could be that the nt database contains a sequence with a wrong species assign
 		* __CONTAINER:__
 
 				# remove the entries of the assemblies you want to keep.
-				$ nano /home/primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
+				$ nano /primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
             	
 		* __Host__:            
 

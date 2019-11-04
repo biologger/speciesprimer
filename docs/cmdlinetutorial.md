@@ -9,6 +9,6 @@ Therefore there is a way to run a container without the local server and the GUI
 
 * This docker run command will override the start of the GUI server (boot.sh)
 
-            $ sudo docker run -v $HOME/blastdb:/home/blastdb \
-            -v $HOME/primerdesign:/home/primerdesign \
+            $ sudo docker run -v $HOME/blastdb:/blastdb \
+            -v $HOME/primerdesign:/primerdesign \
             --name cmdline -it biologger/speciesprimer /bin/bash

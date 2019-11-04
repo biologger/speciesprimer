@@ -20,13 +20,13 @@ class PipeOptions(FlaskForm):
     change = SubmitField("Change")
 
 class StartForm(FlaskForm):
-    search_path = StringField("Path to search for configuration files", default = "/home/primerdesign", validators=[DataRequired()])
+    search_path = StringField("Path to search for configuration files", default = "/primerdesign", validators=[DataRequired()])
     selected_species = FieldList(StringField(""), min_entries=1)
     submit = SubmitField("Search configuration files")
 
 class NewForm(FlaskForm):
     selected_species = FieldList(StringField("", validators=[Length(min=2)]), min_entries=1, validators=[DataRequired()])
-    wd_path = StringField("Path to working directory", default = "/home/primerdesign", validators=[DataRequired()])
+    wd_path = StringField("Path to working directory", default = "/primerdesign", validators=[DataRequired()])
     same_setting = BooleanField('Use the same settings for all targetspecies')
     submit = SubmitField("Settings")
 
@@ -67,7 +67,7 @@ class SettingsForm(FlaskForm):
             "Include genomes that did not pass quality control")
     blastdbv5 = BooleanField("BLAST DB Version 5")
     intermediate = BooleanField("Do not delete intermediate files")
-    change_wd = StringField("Change path of the working directory", default = "/home/primerdesign")
+    change_wd = StringField("Change path of the working directory", default = "/primerdesign")
     submit = SubmitField("Submit settings")
     reset = SubmitField("Reset page")
 
