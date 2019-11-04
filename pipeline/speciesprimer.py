@@ -1270,27 +1270,11 @@ class QualityControl:
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
-        qc_report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
         if os.path.isfile(pan):
             info = "Found Pangenome directory, skip QC " + qc_gene
             G.logger("> " + info)
             print(info)
             return 0
-        elif os.path.isfile(qc_report):
-            info = "Found " + qc_gene + "_QC_report.csv, skip QC " + qc_gene
-            G.logger("> " + info)
-            print(info)
-            passed_list = []
-            with open(qc_report) as f:
-                reader = csv.reader(f)
-                next(reader, None)
-                for row in reader:
-                    if "passed QC" == row[5]:
-                        passed_list.append(row)
-
-            exitcode = self.check_passed_list(passed_list, qc_gene)
-            return exitcode
-
         else:
             print("\nRun: quality_control(" + qc_gene + ")")
             G.logger("Run: quality_control(" + qc_gene + ")")
