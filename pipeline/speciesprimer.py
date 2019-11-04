@@ -206,7 +206,7 @@ class DataCollection():
         Entrez.email = H.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
         syn = self.check_synomyms(taxid, Entrez.email, target)
-        return syn, taxid, Entrez.email
+        return syn, taxid
 
     def prepare_dirs(self):
         G.create_directory(self.target_dir)
@@ -615,7 +615,7 @@ class DataCollection():
             return 0
 
         if not self.config.offline:
-            syn, taxid, email = self.get_taxid(self.target)
+            syn, taxid = self.get_taxid(self.target)
             if not syn == []:
                 if self.config.exception == None:
                     exceptions = []
@@ -1631,11 +1631,11 @@ class CoreGeneSequences:
                     error_msg = "Error: KeyboardInterrupt during Prank MSA run"
                     print(error_msg)
                     G.logger("> " + error_msg)
-                    if os.path.isdir(self.alignment_dir):
-                        msg = "Removing " + self.alignment_dir
+                    if os.path.isdir(self.alignments_dir):
+                        msg = "Removing " + self.alignments_dir
                         print("\n" + msg + "\n")
                         G.logger(msg)
-                        shutil.rmtree(self.alignment_dir)
+                        shutil.rmtree(self.alignments_dir)
                     if os.path.isfile(run_file):
                         msg = "Removing " + run_file
                         print("\n" + msg + "\n")
@@ -4397,8 +4397,8 @@ def main(mode=None):
             logging.error(
                 "KeyboardInterrupt while working on " + target, exc_info=True)
             logging.error(
-                "KeyboardInterrupt during long running processes can have "
-                "severe side effects. We tried to remove the affected files. ")
+                "Warning: KeyboardInterrupt during long running processes can have "
+                "severe side effects.")
             raise
 
     if len(errors) > 0:
