@@ -24,6 +24,7 @@ from Bio import SeqIO
 
 BASE_PATH = os.path.abspath(__file__).split("tests")[0]
 sys.path.append(BASE_PATH)
+dict_path = os.path.join(BASE_PATH, "dictionaries")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
@@ -202,10 +203,61 @@ def test_DataCollection(config):
             return False
 
     def test_get_taxid(target):
+        config.target = "Lactobacillus_wasatchensis"
+        dc = DataCollection(config)
+        syn, taxid = dc.get_taxid(config.target)
+        assert syn == None
+        assert taxid == str(1335616)
+        config.target = "Chlamydia_pneumoniae"
+        dc = DataCollection(config)
+        syn, taxid = dc.get_taxid(config.target)
+        assert syn == ['Chlamydophila_pneumoniae']
+        assert taxid == str(83558)
+        config.target = "Lactobacillus_curvatus"
         syn, taxid = DC.get_taxid(target)
-        assert taxid == '28038'
+        assert taxid == str(28038)
         assert syn == ["Bacterium_curvatum"]
-        return taxid
+
+    def test_create_GI_list():
+        filepath = os.path.join(DC.config_dir, "no_blast.gi")
+        indictpath = os.path.join(dict_path, "no_blast.gi")
+        with open(indictpath, "w") as f:
+            f.write("1231231231")
+        DC.create_GI_list()
+        gi_list = []
+        with open(filepath) as f:
+            for line in f:
+               gi_list.append(line.strip())
+
+        assert gi_list == ["1231231231"]
+
+        newpath = os.path.join(dict_path, "no_blast.gi")
+        defaultpath = os.path.join(dict_path, "default", "no_blast.gi")
+        if os.path.isfile(filepath):
+            shutil.copy(defaultpath, newpath)
+
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+
+    def test_ncbi_download(taxid):
+        DC.get_ncbi_links(taxid, 1)
+        DC.ncbi_download()
+        # clean up
+        filepath= os.path.join(
+            DC.target_dir, "genomic_fna", "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
+        assert os.path.isfile(filepath) == True
+        DC.ncbi_download()
+        # test excluded files
+        excluded_dir = os.path.join(DC.target_dir, "excludedassemblies", config.target)
+        excludedfile = os.path.join(excluded_dir, config.path, "excluded_list.txt")
+        G.create_directory(excluded_dir)
+        with open(excludedfile, "w") as f:
+            f.write("GCF_902362325.1")
+        DC.ncbi_download()
+        fna = os.path.join(config.path, config.target, "genomic_fna")
+        shutil.rmtree(fna)
+        G.create_directory(fna)
+
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
@@ -247,7 +299,8 @@ def test_DataCollection(config):
     DC.prepare_dirs()
     if internet_connection() == True:
         test_get_taxid(config.target)
-        
+        test_ncbi_download(taxid="28038")
+    test_create_GI_list()
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)
     G.create_directory(DC.fna_dir)

@@ -617,7 +617,7 @@ class DataCollection():
 
         if not self.config.offline:
             syn, taxid = self.get_taxid(self.target)
-            if not syn == []:
+            if syn:
                 if self.config.exception == None:
                     exceptions = []
                     for item in syn:
