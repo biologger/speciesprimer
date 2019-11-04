@@ -248,8 +248,8 @@ def test_DataCollection(config):
         assert os.path.isfile(filepath) == True
         DC.ncbi_download()
         # test excluded files
-        excluded_dir = os.path.join(DC.target_dir, "excludedassemblies", config.target)
-        excludedfile = os.path.join(excluded_dir, config.path, "excluded_list.txt")
+        excluded_dir = os.path.join(DC.config.path, "excludedassemblies", DC.config.target)
+        excludedfile = os.path.join(excluded_dir, "excluded_list.txt")
         G.create_directory(excluded_dir)
         with open(excludedfile, "w") as f:
             f.write("GCF_902362325.1")
