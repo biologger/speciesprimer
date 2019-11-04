@@ -97,7 +97,6 @@ def test_DataCollection(config):
             return False
 
     def test_get_taxid(config):
-        email = DC.get_email_for_Entrez()
         taxid, email = DC.get_taxid(config.target)
         assert taxid == '28038'
         return taxid

@@ -190,7 +190,21 @@ def test_DataCollection(config):
     def test_get_email_from_config(config):
         email = H.get_email_for_Entrez()
         assert email == "biologger@protonmail.com"
-        return email
+
+    def internet_connection():
+        from urllib.request import urlopen
+        try:
+            response = urlopen('https://www.google.com/', timeout=5)
+            return True
+        except:
+            print("No internet connection!!! Skip online tests")
+            return False
+
+    def test_get_taxid(target):
+        syn, taxid = DC.get_taxid(target)
+        assert taxid == '28038'
+        assert syn == ["Bacterium curvatum"]
+        return taxid
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
@@ -230,6 +244,9 @@ def test_DataCollection(config):
 
     test_get_email_from_config(config)
     DC.prepare_dirs()
+    if internet_connection == True:
+        test_get_taxid(config.target)
+        
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)
     G.create_directory(DC.fna_dir)
