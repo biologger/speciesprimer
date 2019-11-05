@@ -25,8 +25,9 @@ from Bio import SeqIO
 # /tests
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-#sys.path.append(BASE_PATH)
+sys.path.append(pipe_dir)
 dict_path = os.path.join(pipe_dir, "dictionaries")
+tmpdir = os.path.join("/", "primerdesign", "tmp")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
@@ -140,46 +141,73 @@ def test_CLIconf(config):
     assert config.blastdbv5 == confargs['blastdbv5']
 
 def test_auto_run_config():
-    from speciesprimer import auto_run
-    t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
-    # Docker only
-    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
-    if os.path.isfile(tmp_path):
-        os.remove(tmp_path)
-    shutil.copy(t, tmp_path)
-    targets, conf_from_file, use_configfile = auto_run()
 
-    assert targets == ["Lactobacillus_curvatus"]
-    assert use_configfile == True
-    for target in targets:
-        target = target.capitalize()
-        if use_configfile:
-            (
-                minsize, maxsize, mpprimer, exception, target, path,
-                intermediate, qc_gene, mfold, skip_download,
-                assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, customdb,
-                blastseqs, probe, blastdbv5
-            ) = conf_from_file.get_config(target)
+    def prepare_tmp_db():
+        t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
+        # Docker only
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        shutil.copy(t, tmp_path)
+    def change_tmp_db():
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        with open(tmp_path) as f:
+            for line in f:
+                tmp_dict = json.loads(line)
+        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
+        with open(tmp_path, "w") as f:
+            f.write(json.dumps(tmp_dict))
 
-    assert minsize == confargs['minsize']
-    assert maxsize == confargs['maxsize']
-    assert ignore_qc == confargs['ignore_qc']
-    assert mfethreshold == confargs['mfethreshold']
-    assert target == confargs['target']
-    assert nolist == confargs['nolist']
-    assert skip_tree == confargs['skip_tree']
-    assert blastseqs == confargs['blastseqs']
-    assert mfold == confargs['mfold']
-    assert mpprimer == confargs['mpprimer']
-    assert offline == confargs['offline']
-    assert probe == confargs['probe']
-    assert exception == confargs['exception']
-    assert customdb == confargs['customdb']
-    assert skip_download == confargs['skip_download']
-    assert assemblylevel == confargs['assemblylevel']
-    assert qc_gene == confargs['qc_gene']
-    assert blastdbv5 == confargs['blastdbv5']
+    def run_autorun():
+        from speciesprimer import auto_run
+        from speciesprimer import CLIconf
+        targets, conf_from_file, use_configfile = auto_run()
+        nontargetlist = []
+        assert targets == ["Lactobacillus_curvatus"]
+        assert use_configfile == True
+        for target in targets:
+            target = target.capitalize()
+            if use_configfile:
+                (
+                    minsize, maxsize, mpprimer, exception, target, path,
+                    intermediate, qc_gene, mfold, skip_download,
+                    assemblylevel, skip_tree, nolist,
+                    offline, ignore_qc, mfethreshold, customdb,
+                    blastseqs, probe, blastdbv5
+                ) = conf_from_file.get_config(target)
+
+        assert minsize == confargs['minsize']
+        assert maxsize == confargs['maxsize']
+        assert ignore_qc == confargs['ignore_qc']
+        assert mfethreshold == confargs['mfethreshold']
+        assert target == confargs['target']
+        assert nolist == confargs['nolist']
+        assert skip_tree == confargs['skip_tree']
+        assert blastseqs == confargs['blastseqs']
+        assert mfold == confargs['mfold']
+        assert mpprimer == confargs['mpprimer']
+        assert offline == confargs['offline']
+        assert probe == confargs['probe']
+        assert exception == confargs['exception']
+        assert customdb == confargs['customdb']
+        assert skip_download == confargs['skip_download']
+        assert assemblylevel == confargs['assemblylevel']
+        assert qc_gene == confargs['qc_gene']
+        assert blastdbv5 == confargs['blastdbv5']
+
+        tmpconfig = CLIconf(
+            minsize, maxsize, mpprimer, exception, target, path,
+            intermediate, qc_gene, mfold, skip_download,
+            assemblylevel, nontargetlist, skip_tree,
+            nolist, offline, ignore_qc, mfethreshold, customdb,
+            blastseqs, probe, blastdbv5)
+
+        tmpconfig.save_config()
+
+    prepare_tmp_db()
+    run_autorun()
+    change_tmp_db()
+    run_autorun()
 
 def clean_before_tests(config):
     shutil.rmtree(os.path.join(config.path, config.target))
@@ -337,7 +365,6 @@ def test_DataCollection(config, monkeypatch):
 
 def test_QualityControl(config):
     testdir = os.path.join(BASE_PATH, "testfiles")
-    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
@@ -626,7 +653,6 @@ def test_CoreGenes(config):
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
-    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
@@ -751,7 +777,6 @@ def test_blastprep(config):
     from speciesprimer import BlastPrep
     testconditions = [[100, 50], [500,10], [1000,5], [2000,3], [5000,1]]
     listlengths = [50*[100], 10*[500], 5*[1000], [1667,1667,1666], [5000]]
-    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
@@ -788,7 +813,6 @@ def test_blastprep(config):
 def test_BLASTsettings(config):
     import multiprocessing
     from speciesprimer import Blast
-    tmpdir = os.path.join(BASE_PATH, "tmp")
     bl = Blast(config, tmpdir, "test")
     blastfiles = bl.search_blastfiles(tmpdir)
     assert len(blastfiles) == 5
@@ -880,7 +904,6 @@ def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import BlastPrep
     from speciesprimer import Blast
 
-    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
@@ -1236,6 +1259,8 @@ def test_end(config):
         tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
         os.chdir(BASE_PATH)
         assert os.path.isdir(test) == False
 
