@@ -87,7 +87,10 @@ class Input:
                 "Please specify a path to use as the working directory "
                 "or hit return to use the current working directory:\n")
             if inpath:
-                path = inpath
+                if os.path.isabs(inpath):
+                    path = inpath
+                else:
+                    path = os.path.join(os.getcwd(), inpath)
             else:
                 path = os.getcwd()
             if index == 0:
@@ -399,7 +402,7 @@ class Input:
             print("\n" + target + ":")
             mfold_th = input(
                 "Delta G threshold for secondary structures in PCR products"
-                " at 60 degree Celsius calculated by mfold\ndefault=-3.0)\n> ")
+                " at 60 degree Celsius calculated by mfold\ndefault=-3.0\n> ")
             if mfold_th:
                 if not type(eval(mfold_th)) == float:
                     print("No valid input (float)")
@@ -522,7 +525,6 @@ class Input:
 
     def get_nolist(self, target, index, listlen):
         if "nolist" not in self.config_dict[target].keys():
-#            self.config_dict[target].update({"nolist": False})
             print("\n" + target + ":")
             nolist = input(
                 "Do you want to perform specificity check without the "

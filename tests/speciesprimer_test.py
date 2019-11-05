@@ -22,15 +22,17 @@ import time
 import csv
 from Bio import SeqIO
 
-BASE_PATH = os.path.abspath(__file__).split("tests")[0]
-sys.path.append(BASE_PATH)
-dict_path = os.path.join(BASE_PATH, "dictionaries")
+# /tests
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
+#sys.path.append(BASE_PATH)
+dict_path = os.path.join(pipe_dir, "dictionaries")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 
-testfiles_dir = os.path.join(BASE_PATH, "tests", "testfiles")
-ref_data = os.path.join(BASE_PATH, "tests", "testfiles", "ref")
+testfiles_dir = os.path.join(BASE_PATH, "testfiles")
+ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
@@ -139,9 +141,9 @@ def test_CLIconf(config):
 
 def test_auto_run_config():
     from speciesprimer import auto_run
-    t = os.path.join(BASE_PATH, "tests", "testfiles", "tmp_config.json")
+    t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
     # Docker only
-    tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
     if os.path.isfile(tmp_path):
         os.remove(tmp_path)
     shutil.copy(t, tmp_path)
@@ -251,10 +253,11 @@ def test_DataCollection(config, monkeypatch):
 
     def test_ncbi_download(taxid):
         DC.get_ncbi_links(taxid, 1)
-        DC.ncbi_download()
         filepath= os.path.join(
             DC.target_dir, "genomic_fna", "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
-        assert os.path.isfile(filepath) == True
+        # create the file
+        with open(filepath, "w") as f:
+            f.write(">Mock Genome assembly\nATGTAGATCAGATCAGAGCATCGCAT")
         # will not download the file a second time because it is already extracted
         time.sleep(2)
         DC.ncbi_download()
@@ -285,7 +288,7 @@ def test_DataCollection(config, monkeypatch):
         assert lines[0] == "If you use Prokka in your work, please cite:"
 
     def prepare_prokka(config):
-        testdir = os.path.join(BASE_PATH, "tests", "testfiles")
+        testdir = os.path.join(BASE_PATH, "testfiles")
         targetdir = os.path.join(config.path, config.target)
         fileformat = ["fna", "gff", "ffn"]
         for fo in fileformat:
@@ -333,8 +336,8 @@ def test_DataCollection(config, monkeypatch):
     G.create_directory(DC.fna_dir)
 
 def test_QualityControl(config):
-    testdir = os.path.join(BASE_PATH, "tests", "testfiles")
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    testdir = os.path.join(BASE_PATH, "testfiles")
+    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
@@ -623,7 +626,7 @@ def test_CoreGenes(config):
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
@@ -748,7 +751,7 @@ def test_blastprep(config):
     from speciesprimer import BlastPrep
     testconditions = [[100, 50], [500,10], [1000,5], [2000,3], [5000,1]]
     listlengths = [50*[100], 10*[500], 5*[1000], [1667,1667,1666], [5000]]
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
@@ -785,7 +788,7 @@ def test_blastprep(config):
 def test_BLASTsettings(config):
     import multiprocessing
     from speciesprimer import Blast
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(BASE_PATH, "tmp")
     bl = Blast(config, tmpdir, "test")
     blastfiles = bl.search_blastfiles(tmpdir)
     assert len(blastfiles) == 5
@@ -877,7 +880,7 @@ def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import BlastPrep
     from speciesprimer import Blast
 
-    tmpdir = os.path.join(BASE_PATH, "tests", "tmp")
+    tmpdir = os.path.join(BASE_PATH, "tmp")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
