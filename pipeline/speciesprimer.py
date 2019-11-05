@@ -562,7 +562,7 @@ class DataCollection():
         if len(excluded) > 0:
             info = "Already in excludedassemblies:"
             G.logger("> " + info)
-            G.logger("> " + excluded)
+            G.logger(excluded)
             print("\n" + info)
             print(excluded)
 
