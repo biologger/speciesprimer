@@ -178,14 +178,62 @@ def bad_input(prompt):
     val = prompt_dict[prompt]
     return val
 
+def prepare_testfiles():
+    G.create_directory(os.path.dirname(dbpath))
+    def prepare_tmp_db():
+        t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
+        # Docker only
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        shutil.copy(t, tmp_path)
+
+    def change_tmp_db():
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        with open(tmp_path) as f:
+            for line in f:
+                tmp_dict = json.loads(line)
+        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
+        with open(tmp_path, "w") as f:
+            f.write(json.dumps(tmp_dict))
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        with open(dbpath, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbpath
+
+    def create_customblastdb():
+        cmd = [
+            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+
+    dbinputfiles()
+    create_customblastdb()
+    prepare_tmp_db()
+    change_tmp_db()
+
+
 def test_batchassist(monkeypatch):
     from speciesprimer import Config
     from speciesprimer import CLIconf
-    
+
     test =  os.path.join("/", "primerdesign", "test")
     if os.path.isdir(test):
         shutil.rmtree(test)
-
+    prepare_testfiles()
     monkeypatch.setattr('builtins.input', good_input)
     conf_from_file = Config()
     targets = conf_from_file.get_targets()
@@ -238,48 +286,6 @@ def test_batchassist(monkeypatch):
 
 def test_run(monkeypatch):
 
-    G.create_directory(os.path.dirname(dbpath))
-
-    def prepare_tmp_db():
-        t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
-        # Docker only
-        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        shutil.copy(t, tmp_path)
-
-    def change_tmp_db():
-        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
-        with open(tmp_path) as f:
-            for line in f:
-                tmp_dict = json.loads(line)
-        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
-        with open(tmp_path, "w") as f:
-            f.write(json.dumps(tmp_dict))
-
-    def dbinputfiles():
-        filenames = [
-            "GCF_004088235v1_20191001.fna",
-            "GCF_002224565.1_ASM222456v1_genomic.fna"]
-        with open(dbpath, "w") as f:
-            for filename in filenames:
-                filepath = os.path.join(testfiles_dir, filename)
-                records = SeqIO.parse(filepath, "fasta")
-                for record in records:
-                    if record.id == record.description:
-                        description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
-                        record.description = description
-                    SeqIO.write(record, f, "fasta")
-        return dbpath
-
-    def create_customblastdb():
-        cmd = [
-            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
-            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
-        G.run_subprocess(
-            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
-
     def prepare_files():
         genomic_dir = os.path.join(
                 "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
@@ -307,10 +313,6 @@ def test_run(monkeypatch):
             with open(outpath, "w") as o:
                 SeqIO.write(mockfna, o, "fasta")
 
-    dbinputfiles()
-    create_customblastdb()
-    prepare_tmp_db()
-    change_tmp_db()
     prepare_files()
     os.chdir(os.path.join("/", "primerdesign"))
 
