@@ -698,6 +698,8 @@ class QualityControl:
         self.no_seq = []
         self.double = []
         self.contig_ex = []
+        self.problems = []
+        self.passed = []
 
     def get_excluded_gis(self):
         excluded_gis = []
@@ -935,8 +937,6 @@ class QualityControl:
         G.logger("Run: qc_blast_parser(" + qc_gene + ")")
         xmlblastresults = []
         wrote = []
-        problems = []
-        passed = []
 
         def find_blastresults():
             if os.path.isdir(qc_dir):
@@ -947,6 +947,8 @@ class QualityControl:
                             xmlblastresults.append(filename)
             if len(xmlblastresults) > 0:
                 return True
+
+            return False
 
         def get_blastresults_info(blast_record, index):
             alninfo = str(blast_record.alignments[index])
@@ -1037,7 +1039,7 @@ class QualityControl:
                             success = [
                                 query, gi, db_id, spec,
                                 expected, "passed QC"]
-                            passed.append(success)
+                            self.passed.append(success)
 
                     elif spec in exceptions:
                         if query not in wrote:
@@ -1045,13 +1047,14 @@ class QualityControl:
                             success = [
                                 query, gi, db_id, spec,
                                 expected, "passed QC"]
-                            passed.append(success)
+                            self.passed.append(success)
                     else:
                         if query not in wrote:
                             wrote.append(query)
                             fail = [
                                 query, gi, db_id, spec, expected, "failed QC"]
-                            problems.append(fail)
+                            self.problems.append(fail)
+
             if len(gi_list) > 0:
                 info = "removed GI's in excluded GI list from results"
                 print(info)
@@ -1062,10 +1065,11 @@ class QualityControl:
 
         def write_blastresults():
             results = []
-            for item in passed:
-                results.append(item)
-            if len(problems) > 0:
-                for item in problems:
+            if len(self.passed) > 0:
+                for item in self.passed:
+                    results.append(item)
+            if len(self.problems) > 0:
+                for item in self.problems:
                     results.append(item)
             if len(self.no_seq) > 0:
                 for item in self.no_seq:
@@ -1100,13 +1104,12 @@ class QualityControl:
         def run_blast_parser():
             if find_blastresults():
                 parse_blastresults()
-                write_blastresults()
                 if self.config.intermediate is False:
                     delete_blastreport()
-                return passed
 
-        passed = run_blast_parser()
-        return passed
+        run_blast_parser()
+        write_blastresults()
+        return self.passed
 
     def remove_qc_failures(self, qc_gene):
         G.logger("Run: remove_qc_failures(" + qc_gene + ")")
@@ -1282,12 +1285,14 @@ class QualityControl:
 
             if self.get_qc_seqs(qc_gene) == 0:
                 qc_seqs = self.choose_sequence(qc_gene)
-                use_cores, inputseqs = BlastPrep(
-                        qc_dir, qc_seqs, qc_gene,
-                        self.config.blastseqs).run_blastprep()
-                Blast(
-                    self.config, qc_dir, "quality_control"
-                ).run_blast(qc_gene, use_cores)
+                if len(qc_seqs) > 0:
+                    use_cores, inputseqs = BlastPrep(
+                            qc_dir, qc_seqs, qc_gene,
+                            self.config.blastseqs).run_blastprep()
+                    Blast(
+                        self.config, qc_dir, "quality_control"
+                    ).run_blast(qc_gene, use_cores)
+
                 passed_list = self.qc_blast_parser(qc_gene)
                 exitcode = self.check_passed_list(passed_list, qc_gene)
                 return exitcode
