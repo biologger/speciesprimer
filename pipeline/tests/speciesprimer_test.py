@@ -86,7 +86,6 @@ def compare_ref_files(results_dir, ref_dir):
         refrecords.sort()
 
         for index, item in enumerate(resrecords):
-#            print(item.id, refrecords[index].id)
             assert item[0] == refrecords[index][0]
             assert item[1] == refrecords[index][1]
 
@@ -183,7 +182,7 @@ def test_auto_run_config():
 def clean_before_tests(config):
     shutil.rmtree(os.path.join(config.path, config.target))
 
-def test_DataCollection(config):
+def test_DataCollection(config, monkeypatch):
     clean_before_tests(config)
     from speciesprimer import DataCollection
     DC = DataCollection(config)
@@ -231,32 +230,53 @@ def test_DataCollection(config):
 
         assert gi_list == ["1231231231"]
 
-        newpath = os.path.join(dict_path, "no_blast.gi")
         defaultpath = os.path.join(dict_path, "default", "no_blast.gi")
         if os.path.isfile(filepath):
-            shutil.copy(defaultpath, newpath)
+            shutil.copy(defaultpath, indictpath)
 
         if os.path.isfile(filepath):
             os.remove(filepath)
 
+    def mocked_urlopen_fail(monkeypatch):
+        import urllib.error
+        import urllib.request
+
+        def mocked(url, data):
+            raise urllib.error.HTTPError("bad url", 400, "Bad request", None, None)
+
+        monkeypatch.setattr(urllib.request, "urlopen", mocked)
+
+        with pytest.raises(urllib.error.HTTPError):
+            DC.ncbi_download()
+
     def test_ncbi_download(taxid):
         DC.get_ncbi_links(taxid, 1)
         DC.ncbi_download()
-        # clean up
         filepath= os.path.join(
             DC.target_dir, "genomic_fna", "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
         assert os.path.isfile(filepath) == True
+        # will not download the file a second time because it is already extracted
+        time.sleep(2)
         DC.ncbi_download()
         # test excluded files
         excluded_dir = os.path.join(DC.config.path, "excludedassemblies", DC.config.target)
         excludedfile = os.path.join(excluded_dir, "excluded_list.txt")
         G.create_directory(excluded_dir)
         with open(excludedfile, "w") as f:
-            f.write("GCF_902362325.1")
+            f.write("GCF_902362325v1\n")
+        annotation_dirs, annotated = DC.run_prokka()
+        assert annotation_dirs == []
+        os.remove(filepath)
+        # will not download the file because it is in excluded list
+        time.sleep(2)
         DC.ncbi_download()
+        assert os.path.isfile(filepath) == False
+        shutil.rmtree(excluded_dir)
+        mocked_urlopen_fail(monkeypatch)
         fna = os.path.join(config.path, config.target, "genomic_fna")
         shutil.rmtree(fna)
         G.create_directory(fna)
+        os.chdir(config.path)
 
 
     def test_prokka_is_installed():
@@ -1150,7 +1170,6 @@ def test_PrimerQualityControl_structures(config):
     choice = test_dimercheck()
     total_results = pqc.write_results(choice)
     total_results.sort()
-    print(total_results)
     assert total_results[0] == [
         'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2', 'TACCAAGCAACAACGCCATG',
         59.4, 0.63, 'ACACACACGCTGCCCATTAG', 60.95, 0.99,
