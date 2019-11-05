@@ -115,7 +115,7 @@ targets = (
 def good_input(prompt):
     prompt_dict = {
         start: "n",
-        species: "Lactobacillus curvatus, Lactobacillus curvatus",
+        species: "Lactobacillus curvatus, Lactobacillus helveticus",
         path: "/primerdesign/test",
         skip_tree: "n",
         offline: "n",
@@ -135,7 +135,7 @@ def good_input(prompt):
         blastdbv5: "n",
         intermediate: "y",
         nolist: "n",
-        forall: "y"
+        forall: "n"
     }
     val = prompt_dict[prompt]
     return val
@@ -226,10 +226,10 @@ def prepare_testfiles():
     change_tmp_db()
 
 
-def test_batchassist(monkeypatch):
+def test_batchassist(monkeypatch, caplog):
     from speciesprimer import Config
     from speciesprimer import CLIconf
-
+    caplog.set_level(logging.INFO)
     test =  os.path.join("/", "primerdesign", "test")
     if os.path.isdir(test):
         shutil.rmtree(test)
@@ -337,6 +337,15 @@ def test_run(monkeypatch):
     files.sort()
     ref_files.sort()
     assert files == ref_files
+
+    # open config file and change keep intermedaite files to False
+    # rerun on exisitng files
+    # change also probe option
+    # add excluded gis
+    # test parallel functions non-parallel to get more covered lines
+    # add no list option
+    # include argparser/commandline function?
+    # include errors to provoke an error report (multiple targets)
 
 def test_end():
     def remove_test_files():
