@@ -143,6 +143,16 @@ def good_input(prompt):
 def start_input(prompt):
     prompt_dict = {
         start: "s",
+        targets: "a",
+        species: "Lactobacillus curvatus, Lactobacillus helveticus",
+        path: "/primerdesign/test"
+    }
+    val = prompt_dict[prompt]
+    return val
+
+def start_oneinput(prompt):
+    prompt_dict = {
+        start: "s",
         targets: "s",
         species: "Lactobacillus curvatus",
         path: "/primerdesign/test"
@@ -315,7 +325,7 @@ def test_run(monkeypatch):
 
     prepare_files()
     os.chdir(os.path.join("/", "primerdesign"))
-
+    monkeypatch.setattr('builtins.input', start_oneinput)
     from speciesprimer import main
     main(mode="auto")
     summ_dir = os.path.join(
