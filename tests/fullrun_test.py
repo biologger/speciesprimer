@@ -19,14 +19,20 @@ import shutil
 import pytest
 import json
 import time
-import csv
+import logging
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-#sys.path.append(BASE_PATH.split("tests")[0])
 sys.path.append(pipe_dir)
 dict_path = os.path.join(pipe_dir, "dictionaries")
+tmpdir = os.path.join("/", "primerdesign", "tmp")
+dbpath = os.path.join(tmpdir, "customdb.fas")
+
+#            import traceback
+#            traceback.print_exc()
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
@@ -34,38 +40,6 @@ from basicfunctions import GeneralFunctions as G
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
-confargs = {
-    "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
-    "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
-    "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
-    "offline": False,
-    "path": os.path.join("/", "primerdesign", "test"),
-    "probe": False, "exception": None, "minsize": 70, "skip_download": True,
-    "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-@pytest.fixture
-def config():
-    from speciesprimer import CLIconf
-    args = AttrDict(confargs)
-    nontargetlist = H.create_non_target_list(args.target)
-    config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
-            args.target, args.path, args.intermediate,
-            args.qc_gene, args.mfold, args.skip_download,
-            args.assemblylevel, nontargetlist,
-            args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.blastdbv5)
-
-    config.save_config()
-
-    return config
 
 # prompts
 start = ("Create new config files or start pipeline with previously "
@@ -79,7 +53,7 @@ skip_tree = (
     "troubleshooting.\n(y)es/(n)o, default=(n)\n> ")
 offline = (
     "Work offline with local genome assemblies?"
-    "\n(y)es/(n)o, default=(n)\n> ")    
+    "\n(y)es/(n)o, default=(n)\n> ")
 skip_download = (
     "Skip the download of Genomes from NCBI?"
     "\n(y)es/(n)o, default=(n)\n> ")
@@ -104,13 +78,13 @@ qc_genes = (
     ", default=rRNA\n> ")
 exception = (
     "Primer binding to this non-target species is tolerated.\n"
-    "Provide a species name or hit return to skip:\n> ")                                    
+    "Provide a species name or hit return to skip:\n> ")
 minsize = ("Minimal Amplicon size\ndefault=70\n> ")
 maxsize = ("Maximal amplicon size\ndefault=200\n> ")
 designprobe = (
     "Do you want primer3 to design an internal probe?"
     "[Experimental!]"
-    "\n(y)es/(n)o, default=(n)\n> ")     
+    "\n(y)es/(n)o, default=(n)\n> ")
 mfold_th = (
     "Delta G threshold for secondary structures in PCR products"
     " at 60 degree Celsius calculated by mfold\ndefault=-3.0\n> ")
@@ -131,9 +105,9 @@ nolist = (
     "Do you want to perform specificity check without the "
     "(non-target) species list (for all sequences in the DB)?"
     "\nNot recommended for nt DB! May be used with a custom DB"
-    "\ndefault=(n)\n> ") 
+    "\ndefault=(n)\n> ")
 forall = (
-    "Use this value for all targets?\n(y)es/(n)o, default=(y)\n> ") 
+    "Use this value for all targets?\n(y)es/(n)o, default=(y)\n> ")
 
 targets = (
     "Search for config files for (a)ll or (s)elect targets:\n")
@@ -145,9 +119,9 @@ def good_input(prompt):
         path: "/primerdesign/test",
         skip_tree: "n",
         offline: "n",
-        skip_download: "n",
+        skip_download: "y",
         assemblylevel: "complete",
-        customdb: "",
+        customdb: dbpath,
         maxseqs: "1000",
         qc_genes: "tuf",
         exception: 'Bacterium_curvatum',
@@ -157,7 +131,7 @@ def good_input(prompt):
         mfold_th: "",
         mpprimer_th: "",
         mfeprimer_th: "",
-        ignore_qc: "n",
+        ignore_qc: "y",
         blastdbv5: "n",
         intermediate: "y",
         nolist: "n",
@@ -204,10 +178,14 @@ def bad_input(prompt):
     val = prompt_dict[prompt]
     return val
 
-def test_batchassist(config, monkeypatch):   
+def test_batchassist(monkeypatch):
     from speciesprimer import Config
     from speciesprimer import CLIconf
     
+    test =  os.path.join("/", "primerdesign", "test")
+    if os.path.isdir(test):
+        shutil.rmtree(test)
+
     monkeypatch.setattr('builtins.input', good_input)
     conf_from_file = Config()
     targets = conf_from_file.get_targets()
@@ -227,14 +205,14 @@ def test_batchassist(config, monkeypatch):
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, blastdbv5)
-    
-        assert config.assemblylevel == ["complete"]
+
+        assert config.assemblylevel == ["offline"]
         assert config.blastseqs == 1000
         assert config.exception == 'Bacterium_curvatum'
         assert config.maxsize == 200
-        
+
         config.save_config()
-    
+
     monkeypatch.setattr('builtins.input', start_input)
     conf_from_file = Config()
     for target in targets:
@@ -252,12 +230,122 @@ def test_batchassist(config, monkeypatch):
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, blastdbv5)
-    
-        assert config.assemblylevel == ["complete"]
+
+        assert config.assemblylevel == ["offline"]
         assert config.blastseqs == 1000
         assert config.exception == 'Bacterium_curvatum'
         assert config.maxsize == 200
-    
-    
-    
-    
+
+def test_run(monkeypatch):
+
+    G.create_directory(os.path.dirname(dbpath))
+
+    def prepare_tmp_db():
+        t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
+        # Docker only
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        shutil.copy(t, tmp_path)
+
+    def change_tmp_db():
+        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+        with open(tmp_path) as f:
+            for line in f:
+                tmp_dict = json.loads(line)
+        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
+        with open(tmp_path, "w") as f:
+            f.write(json.dumps(tmp_dict))
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        with open(dbpath, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbpath
+
+    def create_customblastdb():
+        cmd = [
+            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+
+    def prepare_files():
+        genomic_dir = os.path.join(
+                "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
+        if os.path.isdir(genomic_dir):
+            shutil.rmtree(genomic_dir)
+        G.create_directory(genomic_dir)
+        files = ["GCF_001981925v1_20190923.ffn", "GCF_003410375v1_20190923.ffn"]
+        ffn_files_dir = os.path.join(testfiles_dir, "ffn_files")
+
+        for filename in files:
+            filepath = os.path.join(ffn_files_dir, filename)
+            sequences = []
+            with open(filepath) as f:
+                records = list(SeqIO.parse(f, "fasta"))
+            for record in records:
+                seq = str(record.seq)
+                sequences.append(seq)
+            newfilename = ".".join(filename.split(".ffn")[0].split("v")) + "_genomic.fna"
+            outpath = os.path.join(genomic_dir, newfilename)
+            mockfna = SeqRecord(
+                Seq("".join(sequences)),
+                id="MOCK_" + filename.split("_")[1],
+                name="MOCK_" + filename.split("_")[1],
+                description="Lactobacillus curvatus")
+            with open(outpath, "w") as o:
+                SeqIO.write(mockfna, o, "fasta")
+
+    dbinputfiles()
+    create_customblastdb()
+    prepare_tmp_db()
+    change_tmp_db()
+    prepare_files()
+    os.chdir(os.path.join("/", "primerdesign"))
+
+    from speciesprimer import main
+    main(mode="auto")
+    summ_dir = os.path.join(
+                "/", "primerdesign", "test", "Summary", "Lactobacillus_curvatus")
+    files = []
+    for filename in os.listdir(summ_dir):
+        files.append(filename)
+
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    configfile = "config_" + today + ".json"
+    stats = "Lb_curva_pipeline_stats_" + today + ".txt"
+
+    ref_files = [
+        "core_gene_alignment.aln", "Lb_curva_tree.nwk",
+        "Lb_curva_primer.csv", "Lb_curva_qc_sequences_details.csv",
+        "mostcommonhits.csv", "Lb_curva_qc_sequences.csv", configfile,
+        stats]
+
+    files.sort()
+    ref_files.sort()
+    assert files == ref_files
+
+def test_end():
+    def remove_test_files():
+        test =  os.path.join("/", "primerdesign", "test")
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) == False
+
+    remove_test_files()
