@@ -188,6 +188,10 @@ def bad_input(prompt):
     val = prompt_dict[prompt]
     return val
 
+def fail_input(prompt):
+    if prompt:
+        return "q"
+
 def prepare_testfiles():
     G.create_directory(os.path.dirname(dbpath))
     def prepare_tmp_db():
@@ -235,6 +239,11 @@ def prepare_testfiles():
     prepare_tmp_db()
     change_tmp_db()
 
+def test_sys_exit(monkeypatch):
+    from speciesprimer import Config
+    monkeypatch.setattr('builtins.input', fail_input)
+    with pytest.raises(SystemExit):
+        conf_from_file = Config()
 
 def test_batchassist(monkeypatch, caplog):
     from speciesprimer import Config
