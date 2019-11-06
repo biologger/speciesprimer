@@ -77,7 +77,6 @@ class Entrezmail():
         val = prompt_dict[prompt]
         return val
 
-
 def test_Entrez_email(monkeypatch):
     remove_tmp_db()
     monkeypatch.setattr('builtins.input', Entrezmail(False).email_input)
@@ -112,8 +111,18 @@ def test_subsp_abbrev():
     name = H.abbrev(target)
     assert name == "Salmo_enter"
 
+def a_function(inputitem):
+    if inputitem == "lactis subsp. lactis":
+        raise Exception
+    else:
+        return inputitem
+
 def test_run_parallel_exceptions():
-    pass
+    inputlist = [
+            "lactis_subsp_lactis", "lactis subsp. lactis",
+            "enterica", "enterica"]
+    result = G.run_parallel(a_function, inputlist, args=False, verbosity="")
+    assert result == ['lactis_subsp_lactis', 'enterica', 'enterica']
 
 def test_subspecies_handler():
     outcome = [
@@ -130,7 +139,7 @@ def test_subspecies_handler():
 
 def test_check_input_fail(monkeypatch):
     taxid = H.check_input("Lactobacius_curvatus", "biologger@protonmail.com")
-    print(taxid)
+    assert taxid == None
 
 def test_create_non_target_list():
     targetdef = []

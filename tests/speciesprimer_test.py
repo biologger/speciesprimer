@@ -743,7 +743,7 @@ def test_CoreGeneSequences(config):
                 "makeblastdb", "-in", infile, "-parse_seqids", "-title",
                 "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
             G.run_subprocess(
-                cmd, printcmd=False, logcmd=False, printoption=False)
+                cmd, printcmd=False, logcmd=False, printoption=True)
 
         create_customblastdb(config)
         conserved_seq_dict = CGS.run_coregeneanalysis()

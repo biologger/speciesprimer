@@ -295,7 +295,6 @@ def test_batchassist(monkeypatch, caplog):
         assert config.maxsize == 200
 
 def test_run(monkeypatch):
-
     def prepare_files():
         genomic_dir = os.path.join(
                 "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
