@@ -418,7 +418,7 @@ class DataCollection():
 
         for files in os.listdir(self.genomic_dir):
             if files.endswith(".gz"):
-                G.run_subprocess(["gunzip", files], False, True, False, False)
+                G.run_subprocess(["gunzip", files], False, True, False)
         os.chdir(self.target_dir)
 
     def copy_genome_files(self):
@@ -539,7 +539,7 @@ class DataCollection():
                 G.logger(info)
                 print("\n" + info)
                 try:
-                    G.run_subprocess(prokka_cmd, True, True, False, False)
+                    G.run_subprocess(prokka_cmd, True, True, False)
                 except (KeyboardInterrupt, SystemExit):
                     logging.error(
                         "KeyboardInterrupt during annotation", exc_info=True)
@@ -644,7 +644,7 @@ class DataCollection():
                     if files.endswith(".gz"):
                         filepath = os.path.join(self.genomic_dir, files)
                         G.run_subprocess(
-                            ["gunzip", filepath], False, True, False, False)
+                            ["gunzip", filepath], False, True, False)
                         self.remove_max_contigs()
                 os.chdir(self.target_dir)
         else:
@@ -655,7 +655,7 @@ class DataCollection():
                 if files.endswith(".gz"):
                     filepath = os.path.join(self.genomic_dir, files)
                     G.run_subprocess(
-                        ["gunzip", filepath], False, True, False, False)
+                        ["gunzip", filepath], False, True, False)
             os.chdir(self.target_dir)
 
         self.create_GI_list()
@@ -1325,7 +1325,7 @@ class PangenomeAnalysis:
 
         try:
             G.run_shell(
-                roary_cmd, printcmd=True, logcmd=True, log=True, printoption=False)
+                roary_cmd, printcmd=True, logcmd=True, log=True)
         except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt during pan-genome analysis", exc_info=True)
@@ -1346,7 +1346,7 @@ class PangenomeAnalysis:
             try:
                 G.run_shell(
                     treecmd, printcmd=True, logcmd=True,
-                    log=True, printoption=False)
+                    log=True)
             except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during fasttree run", exc_info=True)
@@ -1632,7 +1632,7 @@ class CoreGeneSequences:
             if os.path.isfile(run_file):
                 try:
                     G.run_subprocess(
-                        ["parallel", "-a", run_file], True, True, False, False)
+                        ["parallel", "-a", run_file], True, True, False)
                 except (KeyboardInterrupt, SystemExit):
                     error_msg = "Error: KeyboardInterrupt during Prank MSA run"
                     print(error_msg)
@@ -1720,7 +1720,7 @@ class CoreGeneSequences:
                         + " -name " + seqname + " -auto\n")
             try:
                 G.run_subprocess(
-                    ["parallel", "-a", run_file], True, True, True, False)
+                    ["parallel", "-a", run_file], True, True, False)
             except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during consensus run", exc_info=True)
@@ -2469,8 +2469,7 @@ class BlastParser:
             "blastdbcmd", "-db", db, "-entry", str(accession),
             "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
         while fasta == []:
-            fasta = G.read_shelloutput(
-                seq_cmd, printcmd=False, logcmd=False, printoption=False)
+            fasta = G.read_shelloutput(seq_cmd)
         return fasta
 
     def get_primerBLAST_DBIDS(self, nonred_dict):
@@ -2731,7 +2730,7 @@ class PrimerDesign():
                 "primer3_core", "-p3_settings_file=" + settings_file,
                 "-echo_settings_file", "-output=" + output_file, input_file]
             try:
-                G.run_subprocess(primer3cmd, True, True, False, True)
+                G.run_subprocess(primer3cmd, True, True, True)
             except (KeyboardInterrupt, SystemExit):
                 logging.error(
                     "KeyboardInterrupt during primer3 run", exc_info=True)
@@ -3060,7 +3059,7 @@ class PrimerQualityControl:
         os.chdir(self.primer_qc_dir)
         cmd = "IndexDb.sh " + db_name + " 9"
         try:
-            G.run_shell(cmd, printcmd=True, logcmd=True, log=False, printoption="")
+            G.run_shell(cmd, printcmd=True, logcmd=True, log=False)
         except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt during DB indexing", exc_info=True)
@@ -3252,8 +3251,7 @@ class PrimerQualityControl:
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
         while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
+            result = G.read_shelloutput(cmd)
         os.unlink(primefile.name)
         if len(result) == 2:
             val = result[1].split("\t")
@@ -3287,8 +3285,7 @@ class PrimerQualityControl:
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
         while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
+            result = G.read_shelloutput(cmd)
         os.unlink(primefile.name)
         if not len(result) == 1:
             for index, item in enumerate(result):
@@ -3315,8 +3312,7 @@ class PrimerQualityControl:
             "MFEprimer.py -i " + primefile.name + " -d " + db
             + " -k 9 --tab --ppc 10")
         while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
+            result = G.read_shelloutput(cmd)
         os.unlink(primefile.name)
         for index, item in enumerate(result):
             if index > 0:
@@ -3475,7 +3471,7 @@ class PrimerQualityControl:
             os.chdir(subdir_path)
             mfold_cmd = [
                 "mfold", "SEQ=" + seq_name, "NA=DNA", "T=60", "MG_CONC=0.003"]
-            G.run_subprocess(mfold_cmd, False, True, False, False)
+            G.run_subprocess(mfold_cmd, False, True, False)
             os.chdir(self.mfold_dir)
 
     def mfold_parser(self):
@@ -3735,7 +3731,7 @@ class PrimerQualityControl:
 
                     G.run_shell(
                         dimer_cmd, printcmd=False, logcmd=False,
-                        log=False, printoption=False)
+                        log=False)
 
             dimer_summary = []
             for item in primer_data:

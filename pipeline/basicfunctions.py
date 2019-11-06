@@ -23,7 +23,7 @@ class GeneralFunctions:
 
     @staticmethod
     def run_subprocess(
-            cmd, printcmd=True, logcmd=True, log=True, printoption=True):
+            cmd, printcmd=True, logcmd=True, printoption=True):
         if logcmd:
             GeneralFunctions().logger("Run " + " ".join(cmd))
         if printcmd:
@@ -35,12 +35,8 @@ class GeneralFunctions:
             while True:
                 output = process.stdout.readline().decode().strip()
                 if output:
-                    if log:
-                        logging.log(logging.INFO, output)
                     if printoption:
                         print(output)
-                    elif printoption == "static":
-                        print('\r ' + output, end='')
                 else:
                     break
 
@@ -48,7 +44,7 @@ class GeneralFunctions:
             check_output()
 
     @staticmethod
-    def run_shell(cmd, printcmd=True, logcmd=True, log=True, printoption=True):
+    def run_shell(cmd, printcmd=True, logcmd=True, log=True):
         if logcmd:
             GeneralFunctions().logger("Run " + cmd)
         if printcmd:
@@ -63,10 +59,6 @@ class GeneralFunctions:
                 if output:
                     if log:
                         logging.log(logging.INFO, output)
-                    if printoption:
-                        print(output)
-                    elif printoption == "static":
-                        print('\r ' + output, end='')
                 else:
                     break
 
@@ -74,11 +66,7 @@ class GeneralFunctions:
             check_output()
 
     @staticmethod
-    def read_shelloutput(cmd, printcmd=False, logcmd=True, printoption=False):
-        if logcmd:
-            GeneralFunctions().logger("Run " + cmd)
-        if printcmd:
-            print("Run " + cmd)
+    def read_shelloutput(cmd):
         outputlist = []
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE,
@@ -89,8 +77,6 @@ class GeneralFunctions:
                 output = process.stdout.readline().decode().strip()
                 if output:
                     outputlist.append(output)
-                    if printoption:
-                        print(output)
                 else:
                     break
         while process.poll() is None:
@@ -265,19 +251,19 @@ class HelperFunctions:
                 for line in f:
                     tmp_db = json.loads(line)
             if email:
-                if "@" and "." in email:
+                if "@" in email and "." in email:
                     tmp_db.update({'email': email})
                     with open(tmp_db_path, 'w') as f:
                         f.write(json.dumps(tmp_db))
             try:
                 mail = tmp_db['email']
-                if '@' and '.' in mail:
+                if "@" in email and "." in email:
                     email = mail.strip()
             except KeyError:
                 email = input(
                     "To make use of NCBI's E-utilities, "
                     "Please enter your email address. \n")
-                if "@" and "." in email:
+                if "@" in email and "." in email:
                     with open(tmp_db_path) as f:
                         for line in f:
                             tmp_db = json.loads(line)
@@ -287,7 +273,6 @@ class HelperFunctions:
                 else:
                     print("Not a valid email adress")
                     HelperFunctions().get_email_for_Entrez()
-
         else:
             if email:
                 pass
@@ -295,7 +280,8 @@ class HelperFunctions:
                 email = input(
                     "To make use of NCBI's E-utilities, "
                     "Please enter your email address. \n")
-            if "@" and "." in email:
+
+            if "@" in email and "." in email:
                 tmp_db = {
                     'email': email, 'new_run': {
                         'path': '', 'targets': {},

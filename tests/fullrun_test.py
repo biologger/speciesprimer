@@ -9,7 +9,7 @@ Works only in the Docker container!!!
 - Start an interactive terminal in the container
     sudo docker exec -it {Containername} bash
 - Start the test in the container terminal
-    pytest -vv /pipeline/tests/speciesprimer_test.py
+    pytest -vv /pipeline/tests/fullrun_test.py
 """
 )
 
@@ -228,7 +228,7 @@ def prepare_testfiles():
             "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
             "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
         G.run_subprocess(
-            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+            cmd, printcmd=False, logcmd=False, printoption=False)
 
     dbinputfiles()
     create_customblastdb()

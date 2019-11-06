@@ -312,7 +312,7 @@ def test_DataCollection(config, monkeypatch):
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
-        lines = G.read_shelloutput(cmd, printcmd=False, logcmd=False, printoption=False)
+        lines = G.read_shelloutput(cmd)
         assert lines[0] == "If you use Prokka in your work, please cite:"
 
     def prepare_prokka(config):
@@ -381,7 +381,7 @@ def test_QualityControl(config):
             "makeblastdb", "-in", infile, "-parse_seqids", "-title",
             "mock16SDB", "-dbtype", "nucl", "-out", config.customdb]
         G.run_subprocess(
-            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+            cmd, printcmd=False, logcmd=False, printoption=False)
 
     from speciesprimer import QualityControl
     QC = QualityControl(config)
@@ -603,14 +603,12 @@ def test_QualityControl(config):
 
 def test_roary_is_installed():
     cmd = "roary --w"
-    lines = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
+    lines = G.read_shelloutput(cmd)
     assert lines[1] == "3.12.0"
 
 def test_fasttree_is_installed():
     cmd = "fasttree"
-    lines = G.read_shelloutput(
-        cmd, printcmd=False, logcmd=False, printoption=False)
+    lines = G.read_shelloutput(cmd)
     assert lines[0][0:16] == "FastTree Version"
 
 def test_skip_pangenome_analysis(config):
@@ -744,7 +742,7 @@ def test_CoreGeneSequences(config):
                 "makeblastdb", "-in", infile, "-parse_seqids", "-title",
                 "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
             G.run_subprocess(
-                cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+                cmd, printcmd=False, logcmd=False, printoption=False)
 
         create_customblastdb(config)
         conserved_seq_dict = CGS.run_coregeneanalysis()
@@ -932,7 +930,7 @@ def test_PrimerQualityControl_specificitycheck(config):
             "makeblastdb", "-in", infile, "-parse_seqids", "-title",
             "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
         G.run_subprocess(
-            cmd, printcmd=False, logcmd=False, log=False, printoption=False)
+            cmd, printcmd=False, logcmd=False, printoption=False)
 
     def test_collect_primer(config):
         pqc = PrimerQualityControl(config, {})
