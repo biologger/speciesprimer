@@ -54,10 +54,6 @@ def read_email_from_db():
     else:
         return False
 
-def test_run_parallel_exceptions():
-    pass
-
-
 class Entrezmail():
     def __init__(self, outcome):
         self.repeat = 0
@@ -103,13 +99,26 @@ def test_Entrez_email(monkeypatch):
     change_tmp_db()
     H.get_email_for_Entrez(email="biologger@protonmail.com")
     assert read_email_from_db() == "biologger@protonmail.com"
+    remove_tmp_db()
+
+def test_subsp_abbrev():
+    target = "Lactococcus_lactis_subsp_lactis"
+    name = H.abbrev(target)
+    assert name == "Lc_lacti_lacti"
+    target = "Salmonella_enterica_subsp_enterica"
+    name = H.abbrev(target)
+    assert name == "Salmo_enter_enter"
+    target = "Salmonella_enterica"
+    name = H.abbrev(target)
+    assert name == "Salmo_enter"    
+
+def test_run_parallel_exceptions():
+    pass
 
 def test_subspecies_handler():
     pass
 
-def test_subsp_abbrev():
-    target = "Lactococcus_lactis_subsp_lactis"
-    H.abbrev(target)
+
 
 def test_check_input_fail():
     pass
