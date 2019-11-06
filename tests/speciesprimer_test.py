@@ -272,7 +272,7 @@ def test_DataCollection(config, monkeypatch):
         import urllib.request
 
         def mocked(url, data):
-            raise urllib.error.HTTPError("bad url", 400, "Bad request", None, None)
+            raise urllib.error.HTTPError(url, 400, "Bad request", None, None)
 
         monkeypatch.setattr(urllib.request, "urlopen", mocked)
 
@@ -607,6 +607,7 @@ def test_roary_is_installed():
     assert lines[1] == "3.12.0"
 
 def test_fasttree_is_installed():
+    ### This test will always fail if the pytest -s option is used
     cmd = "fasttree"
     lines = G.read_shelloutput(cmd)
     assert lines[0][0:16] == "FastTree Version"

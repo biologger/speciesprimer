@@ -198,10 +198,9 @@ class HelperFunctions:
                 short = row[1]
                 abbrev.update({species: short})
         if "subsp" in target:
-            splitter = target.split("_")
-            genus = splitter[0]
-            species = splitter[1]
-            sub = splitter[3][0:5]
+            genus = target.split("_")[0]
+            species = target.split("_")[1]
+            sub = target.split("_")[3][0:5]
             spec = species[0:5]
             try:
                 geni = abbrev[genus]
@@ -209,9 +208,8 @@ class HelperFunctions:
                 geni = genus[0:5]
             name = geni+"_"+spec+"_"+sub
         else:
-            splitter = target.split("_")
-            genus = splitter[0]
-            species = splitter[1]
+            genus = target.split("_")[0]
+            species = target.split("_")[1]
             spec = species[0:5]
             try:
                 geni = abbrev[genus]
@@ -257,7 +255,7 @@ class HelperFunctions:
                         f.write(json.dumps(tmp_db))
             try:
                 mail = tmp_db['email']
-                if "@" in email and "." in email:
+                if "@" in mail and "." in mail:
                     email = mail.strip()
             except KeyError:
                 email = input(

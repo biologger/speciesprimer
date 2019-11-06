@@ -32,7 +32,7 @@ def change_tmp_db():
     tmp_dict = {'modus': "continue", "targets": None}
     with open(tmp_path, "w") as f:
         f.write(json.dumps(tmp_dict))
-        
+
 def remove_tmp_db():
     tmp_path = os.path.join(pipe_dir, "tmp_config.json")
     if os.path.isfile(tmp_path):
@@ -71,12 +71,12 @@ class Entrezmail():
             prompt_dict = {user_email: "hfkjdsa@lgfhlghcom"}
             assert read_email_from_db() == self.outcome
             self.repeat +=1
-        else:    
-            prompt_dict = {user_email: "biologger@protonmail.com"} 
+        else:
+            prompt_dict = {user_email: "biologger@protonmail.com"}
             assert read_email_from_db() == self.outcome
         val = prompt_dict[prompt]
-        return val   
-    
+        return val
+
 
 def test_Entrez_email(monkeypatch):
     remove_tmp_db()
@@ -85,7 +85,7 @@ def test_Entrez_email(monkeypatch):
     assert read_email_from_db() == "biologger@protonmail.com"
     remove_tmp_db()
     H.get_email_for_Entrez(email="biologgerprton.com")
-    assert read_email_from_db() == "biologger@protonmail.com"    
+    assert read_email_from_db() == "biologger@protonmail.com"
     remove_tmp_db()
     H.get_email_for_Entrez(email="biologger@protonmail.com")
     assert read_email_from_db() == "biologger@protonmail.com"
@@ -110,18 +110,35 @@ def test_subsp_abbrev():
     assert name == "Salmo_enter_enter"
     target = "Salmonella_enterica"
     name = H.abbrev(target)
-    assert name == "Salmo_enter"    
+    assert name == "Salmo_enter"
 
 def test_run_parallel_exceptions():
     pass
 
 def test_subspecies_handler():
-    pass
+    outcome = [
+            "lactis_subsp_lactis", "lactis subsp. lactis",
+            "enterica", "enterica"]
+    targets = ["Lactococcus_lactis_subsp_lactis", "Salmonella_enterica"]
+    modes = ["underscore", "space"]
+    outnum = 0
+    for target in targets:
+        for mode in modes:
+            species = H.subspecies_handler(target, mode=mode)
+            assert species == outcome[outnum]
+            outnum += 1
 
+def test_check_input_fail(monkeypatch):
+    taxid = H.check_input("Lactobacius_curvatus", "biologger@protonmail.com")
+    print(taxid)
 
-
-def test_check_input_fail():
-    pass
-
-def provoke_create_directory_error():
-    pass
+def test_create_non_target_list():
+    targetdef = []
+    target = "Lactococcus_lactis_subsp_lactis"
+    nontargetlist = H.create_non_target_list(target)
+    for item in nontargetlist:
+        if (
+            item == "Lactococcus lactis subsp. lactis" or
+            item == "Lactococcus lactis subsp lactis"):
+            targetdef.append(item)
+    assert targetdef == []
