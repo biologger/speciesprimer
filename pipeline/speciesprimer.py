@@ -599,7 +599,6 @@ class DataCollection():
                         os.remove(filepath)
 
     def collect(self):
-
         def update_configfile(exception):
             conffile = os.path.join(self.config_dir, "config.json")
             with open(conffile) as f:
@@ -617,6 +616,9 @@ class DataCollection():
 
         if not self.config.offline:
             syn, taxid = self.get_taxid(self.target)
+            if taxid == None:
+                error_msg = "No taxid was found on NCBI check spelling and internet connection"
+                errors.append([self.target, error_msg])
             if syn:
                 if self.config.exception == None:
                     exceptions = []
