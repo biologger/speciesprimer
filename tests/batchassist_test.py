@@ -24,6 +24,8 @@ dbpath = os.path.join(tmpdir, "customdb.fas")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
+from speciesprimer import Config
+from speciesprimer import CLIconf
 
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
@@ -97,8 +99,33 @@ forall = (
 targets = (
     "Search for config files for (a)ll or (s)elect targets:\n")
 
-def alldef_input():
-    pass
+def alldef_input(prompt):
+    prompt_dict = {
+        start: "n",
+        species: "Lactobacillus curvatus",
+        path: "",
+        skip_tree: "",
+        offline: "",
+        skip_download: "",
+        assemblylevel: "",
+        customdb: "",
+        maxseqs: "",
+        qc_gene: "",
+        exception: '',
+        minsize: "",
+        maxsize: "",
+        probe: "",
+        mfold: "",
+        mpprimer: "",
+        mfethreshold: "",
+        ignore_qc: "",
+        blastdbv5: "",
+        intermediate: "",
+        nolist: "",
+        forall: ""
+    }
+    val = prompt_dict[prompt]
+    return val
 
 def nodef_input():
     pass
@@ -225,7 +252,6 @@ def bad_input2(prompt):
     val = prompt_dict[prompt]
     return val
 
-
 def fail_input(prompt):
     if prompt:
         return "q"
@@ -244,10 +270,37 @@ class batchassist_mock():
             self.repeat = 0
         return result
 
+def get_config_from_file(conf_from_file):
+    configfilepaths = []
+    targets = conf_from_file.get_targets()
+    nontargetlist = []
+    for target in targets:
+        (
+            minsize, maxsize, mpprimer, exception, target, path,
+            intermediate, qc_gene, mfold, skip_download,
+            assemblylevel, skip_tree, nolist,
+            offline, ignore_qc, mfethreshold, customdb,
+            blastseqs, probe, blastdbv5
+                ) = conf_from_file.get_config(target)
+
+        config = CLIconf(
+            minsize, maxsize, mpprimer, exception, target, path,
+            intermediate, qc_gene, mfold, skip_download,
+            assemblylevel, nontargetlist, skip_tree,
+            nolist, offline, ignore_qc, mfethreshold, customdb,
+            blastseqs, probe, blastdbv5)
+
+        config.save_config()
+
+        cfilepath = os.path.join(config.path, config.target, "config", "config.json")
+        configfilepaths.append(cfilepath)
+    return configfilepaths
+
+
 def prepare_testfiles():
     G.create_directory(os.path.dirname(dbpath))
     def prepare_tmp_db():
-        t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
+        t = os.path.join(testfiles_dir, "tmp_config.json")
         # Docker only
         tmp_path = os.path.join(pipe_dir, "tmp_config.json")
         if os.path.isfile(tmp_path):
@@ -292,7 +345,6 @@ def prepare_testfiles():
     change_tmp_db()
 
 def test_sys_exit(monkeypatch):
-    from speciesprimer import Config
     monkeypatch.setattr('builtins.input', fail_input)
     with pytest.raises(SystemExit):
         conf_from_file = Config()
@@ -305,8 +357,8 @@ def test_sys_exit(monkeypatch):
 # mock >primer_csv = os.path.join(path, "Summary", target, abbr + "_primer.csv")
 
 def test_batchassist(monkeypatch, caplog):
-    from speciesprimer import Config
-    from speciesprimer import CLIconf
+
+
     caplog.set_level(logging.INFO)
     test =  os.path.join("/", "primerdesign", "test")
     if os.path.isdir(test):
@@ -393,9 +445,17 @@ def test_batchassist(monkeypatch, caplog):
         assert config.exception == 'Bacterium_curvatum'
         assert config.maxsize == 200
 
+def test_default_input(monkeypatch):
+    defaultinputref = os.path.join(testfiles_dir, "default_config.json")
+    with open(defaultinputref) as f:
+        for line in f:
+            defaultinputref_dict = json.loads(line)
+    monkeypatch.setattr('builtins.input', alldef_input)
+
+
+
+
 def test_wrong_input(monkeypatch):
-    from speciesprimer import Config
-    from speciesprimer import CLIconf
     mock = batchassist_mock(good_input, bad_input)
     monkeypatch.setattr('builtins.input', mock.prompt_input)
     conf_from_file = Config()
