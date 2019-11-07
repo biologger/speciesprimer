@@ -9,11 +9,13 @@ from basicfunctions import HelperFunctions as H
 
 # paths
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
+dict_path = os.path.join(pipe_dir, "dictionaries")
 
 class Input:
     def __init__(self):
         self.target_list = []
         self.config_dict = {}
+        self.input_dict = {}
         self.config_paths = []
 
     def gui_runner(self, mode, data):
@@ -101,23 +103,6 @@ class Input:
 
             print("path", path)
 
-    def get_skip_tree(self, target, index, listlen):
-        if "skip_tree" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            skip_tree = input(
-                "Skip the core gene alignment and tree for visualization and "
-                "troubleshooting.\n(y)es/(n)o, default=(n)\n> ")
-            if skip_tree.lower() == ("y" or "yes"):
-                skip_tree = True
-            else:
-                skip_tree = False
-            if index == 0:
-                if not self.value_for_all("skip_tree", skip_tree, listlen):
-                    self.config_dict[target].update({"skip_tree": skip_tree})
-            else:
-                self.config_dict[target].update({"skip_tree": skip_tree})
-            print("skip_tree", skip_tree)
-
     def work_offline(self, target, index, listlen):
         if "offline" not in self.config_dict[target].keys():
             print("\n" + target + ":")
@@ -193,41 +178,6 @@ class Input:
                         {"assemblylevel": assembly_list})
             print("skip_download", skip_download)
 
-    def assemblylevel(self, target, index, listlen):
-        options = [
-            'complete', 'chromosome', 'scaffold', 'contig', 'all', "offline"
-        ]
-        assembly_list = []
-        valid = []
-        if "assemblylevel" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            limit = input(
-                "Limit downloads of Genomes to assembly status\n"
-                "options: complete, chromosome, scaffold, contig, "
-                "all (comma separated), default=all\n> ")
-            if limit:
-                items = list(limit.split(","))
-                for i, item in enumerate(items):
-                    x = item.strip()
-                    assembly_list.insert(i, x)
-                for status in assembly_list:
-                    if status in options:
-                        valid.append(status)
-                    else:
-                        print("\nNo valid assembly status:")
-                        print(status)
-                        return self.assemblylevel(target, index, listlen)
-            else:
-                valid = ['all']
-
-            if index == 0:
-                if not self.value_for_all("assemblylevel", valid, listlen):
-                    self.config_dict[target].update({"assemblylevel": valid})
-            else:
-                self.config_dict[target].update({"assemblylevel": valid})
-            print("assemblylevel:")
-            print(valid)
-
     def get_customdb(self, target, index, listlen):
         if "customdb" not in self.config_dict[target].keys():
             print("\n" + target + ":")
@@ -252,71 +202,7 @@ class Input:
             else:
                 self.config_dict[target].update({"customdb": customdb})
             print("customdb", customdb)
-
-    def get_blastseqs(self, target, index, listlen):
-        options = [100, 500, 1000, 2000, 5000]
-        if "blastseqs" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            maxseqs = input(
-                "Set the number of sequences per BLAST search. "
-                "Decrease the number of sequences if BLAST slows down "
-                "due to low memory."
-                "\noptions = [100, 500, 1000, 2000, 5000]"
-                ", default=1000\n> ")
-            if maxseqs:
-                if type(eval(maxseqs)) == int:
-                    if int(maxseqs) in options:
-                        valid = int(maxseqs)
-                    else:
-                        print("\nNo valid value for blastseqs:")
-                        return self.get_blastseqs(target, index, listlen)
-                else:
-                    print("\nNo valid value for blastseqs:")
-                    return self.get_blastseqs(target, index, listlen)
-            else:
-                valid = 1000
-
-            if index == 0:
-                if not self.value_for_all("blastseqs", valid, listlen):
-                    self.config_dict[target].update({"blastseqs": valid})
-            else:
-                self.config_dict[target].update({"blastseqs": valid})
-
-            print("blastseqs", valid)
-
-    def get_qc_genes(self, target, index, listlen):
-        options = ['rRNA', 'tuf', 'recA', 'dnaK', 'pheS']
-        qc_list = []
-        valid = []
-        if "qc_gene" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            qc_genes = input(
-                "Gene(s) (comma separated) for BLAST in the initial quality "
-                "control step.\noptions: rRNA, tuf, recA, dnaK, pheS"
-                ", default=rRNA\n> ")
-            if qc_genes:
-                items = list(qc_genes.split(","))
-                for i, item in enumerate(items):
-                    x = item.strip()
-                    qc_list.insert(i, x)
-                for gene in qc_list:
-                    if gene in options:
-                        valid.append(gene)
-                    else:
-                        print("\nNo valid gene:")
-                        print(gene)
-                        return self.get_qc_genes(target, index, listlen)
-            else:
-                valid = ["rRNA"]
-
-            if index == 0:
-                if not self.value_for_all("qc_gene", valid, listlen):
-                    self.config_dict[target].update({"qc_gene": valid})
-            else:
-                self.config_dict[target].update({"qc_gene": valid})
-
-            print("qc_gene:")
-            print(valid)
+            return customdb
 
     def get_exception(self, target, index, listlen):
         if "exception" not in self.config_dict[target].keys():
@@ -328,7 +214,7 @@ class Input:
                 exceptions = list(exception.split(","))
                 if len(exceptions) > 1:
                     print("only one species allowed")
-                    self.get_exception(target)
+                    self.get_exception(target, index, listlen)
                 else:
                     if " " in exception:
                         exception = "_".join(exception.split(" "))
@@ -341,211 +227,6 @@ class Input:
             else:
                 self.config_dict[target].update({"exception": exception})
             print("exception", exception)
-
-    def get_minsize(self, target, index, listlen):
-        if "minsize" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            minsize = input("Minimal Amplicon size\ndefault=70\n> ")
-            if minsize:
-                if not type(eval(minsize)) == int:
-                    print("No valid input")
-                    return self.get_minsize(target, index, listlen)
-            else:
-                minsize = 70
-
-            if index == 0:
-                if not self.value_for_all("minsize", int(minsize), listlen):
-                    self.config_dict[target].update({"minsize": int(minsize)})
-            else:
-                self.config_dict[target].update({"minsize": int(minsize)})
-            print("minsize", minsize)
-
-    def get_maxsize(self, target, index, listlen):
-        if "maxsize" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            maxsize = input("Maximal amplicon size\ndefault=200\n> ")
-            if maxsize:
-                if not type(eval(maxsize)) == int:
-                    print("No valid input")
-                    return self.get_maxsize(target, index, listlen)
-            else:
-                maxsize = 200
-            if index == 0:
-                if not self.value_for_all("maxsize", int(maxsize), listlen):
-                    self.config_dict[target].update({"maxsize": int(maxsize)})
-            else:
-                self.config_dict[target].update({"maxsize": int(maxsize)})
-
-            print("maxsize", maxsize)
-
-    def get_designprobe(self, target, index, listlen):
-        if "probe" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            designprobe = input(
-                "Do you want primer3 to design an internal probe?"
-                "[Experimental!]"
-                "\n(y)es/(n)o, default=(n)\n> ")
-            if designprobe.lower() == ("y" or "yes"):
-                designprobe = True
-            else:
-                designprobe = False
-            if index == 0:
-                if not self.value_for_all("probe", designprobe, listlen):
-                    self.config_dict[target].update({"probe": designprobe})
-            else:
-                self.config_dict[target].update({"probe": designprobe})
-
-            print("probe", designprobe)
-
-    def get_mfold(self, target, index, listlen):
-        if "mfold" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            mfold_th = input(
-                "Delta G threshold for secondary structures in PCR products"
-                " at 60 degree Celsius calculated by mfold\ndefault=-3.0\n> ")
-            if mfold_th:
-                if not type(eval(mfold_th)) == float:
-                    print("No valid input (float)")
-                    return self.get_mfold(target, index, listlen)
-            else:
-                mfold_th = -3.0
-
-            if index == 0:
-                if not self.value_for_all("mfold", float(mfold_th), listlen):
-                    self.config_dict[target].update({"mfold": float(mfold_th)})
-            else:
-                self.config_dict[target].update({"mfold": float(mfold_th)})
-            print("mfold", mfold_th)
-
-    def get_mpprimer(self, target, index, listlen):
-        if "mpprimer" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            mpprimer_th = input(
-                "Mpprimer threshold for delta G values calculated by "
-                "MPprimer_dimer_check.pl\ndefault=-3.5\n> ")
-            if mpprimer_th:
-                if not type(eval(mpprimer_th)) == float:
-                    print("No valid input (float)")
-                    return self.get_mpprimer(target, index, listlen)
-            else:
-                mpprimer_th = -3.5
-            if index == 0:
-                if not self.value_for_all(
-                    "mpprimer", float(mpprimer_th), listlen
-                ):
-                    self.config_dict[target].update(
-                        {"mpprimer": float(mpprimer_th)})
-            else:
-                self.config_dict[target].update(
-                    {"mpprimer": float(mpprimer_th)})
-            print("mpprimer", mpprimer_th)
-
-    def get_mfeprimer_threshold(self, target, index, listlen):
-        if "mfethreshold" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            mfeprimer_th = input(
-                "MFEprimer threshold for nontarget sequence PPC "
-                "higher values mean more stringent selection.\ndefault=90\n> ")
-            if mfeprimer_th:
-                if not type(eval(mfeprimer_th)) == int:
-                    print("No valid input (float)")
-                    return self.mfeprimer_threshold(target, index, listlen)
-            else:
-                mfeprimer_th = 90
-            if index == 0:
-                if not self.value_for_all(
-                    "mfethreshold", int(mfeprimer_th), listlen
-                ):
-                    self.config_dict[target].update(
-                        {"mfethreshold": int(mfeprimer_th)})
-            else:
-                self.config_dict[target].update(
-                    {"mfethreshold": int(mfeprimer_th)})
-            print("mfeprimer threshold", mfeprimer_th)
-
-    def no_singleton(self, target, index, listlen):
-        if "singleton" not in self.config_dict[target].keys():
-            self.config_dict[target].update({"singleton": False})
-
-    def ignore_qc(self, target, index, listlen):
-        if "ignore_qc" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            ignore_qc = input(
-                "Do you want to include genomes that did not"
-                " pass quality control?\ndefault=(n)\n> ")
-            if ignore_qc.lower() == ("y" or "yes"):
-                ignore_qc = True
-            else:
-                ignore_qc = False
-            if index == 0:
-                if not self.value_for_all("ignore_qc", ignore_qc, listlen):
-                    self.config_dict[target].update({"ignore_qc": ignore_qc})
-            else:
-                self.config_dict[target].update({"ignore_qc": ignore_qc})
-
-            print("ignore_qc", ignore_qc)
-
-    def use_blastdbv5(self, target, index, listlen):
-        if "blastdbv5" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            blastdbv5 = input(
-                "Do you have the Version 5 of the BLAST DB? \ndefault=(n)\n> ")
-            if blastdbv5.lower() == ("y" or "yes"):
-                blastdbv5 = True
-            else:
-                blastdbv5 = False
-            if index == 0:
-                if not self.value_for_all("blastdbv5", blastdbv5, listlen):
-                    self.config_dict[target].update({"blastdbv5": blastdbv5})
-            else:
-                self.config_dict[target].update({"blastdbv5": blastdbv5})
-
-            print("blastdbv5", blastdbv5)
-
-    def get_intermediate(self, target, index, listlen):
-        if "intermediate" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            intermediate = input(
-                "Do you want to keep intermediate files?\ndefault=(n)\n> ")
-
-            if intermediate.lower() == ("y" or "yes"):
-                intermediate = True
-            else:
-                intermediate = False
-            if index == 0:
-                if not self.value_for_all(
-                    "intermediate", intermediate, listlen
-                ):
-                    self.config_dict[target].update(
-                        {"intermediate": intermediate})
-            else:
-                self.config_dict[target].update({"intermediate": intermediate})
-
-            print("intermediate", intermediate)
-
-    def get_nolist(self, target, index, listlen):
-        if "nolist" not in self.config_dict[target].keys():
-            print("\n" + target + ":")
-            nolist = input(
-                "Do you want to perform specificity check without the "
-                "(non-target) species list (for all sequences in the DB)?"
-                "\nNot recommended for nt DB! May be used with a custom DB"
-                "\ndefault=(n)\n> ")
-
-            if nolist.lower() == ("y" or "yes"):
-                nolist = True
-            else:
-                nolist = False
-            if index == 0:
-                if not self.value_for_all(
-                    "nolist", nolist, listlen
-                ):
-                    self.config_dict[target].update(
-                        {"nolist": nolist})
-            else:
-                self.config_dict[target].update({"nolist": nolist})
-
-            print("nolist", nolist)
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
@@ -573,10 +254,92 @@ class Input:
         with open(config_file, "w") as f:
             f.write(json.dumps(self.config_dict[target]))
 
+    def evaluation(self, userinput, target, index, listlen, key):
+        evaltype = self.input_dict[key]["eval"][0]
+        if evaltype == "boolean":
+            if userinput.lower() == ("y" or "yes"):
+                value = True
+            else:
+                value = False
+        elif evaltype == "number":
+            evalnum = self.input_dict[key]["eval"][1][0]
+            if evalnum == "int":
+                ntype = int
+            else:
+                ntype = float
+            if userinput:
+                try:
+                    value = ntype(userinput)
+                except ValueError:
+                    print("No valid input of type " + evalnum)
+                    return self.get_userinput(target, index, listlen, key)
+            else:
+                value = self.input_dict[key]["eval"][1][1]
+
+        elif evaltype == "option":
+            options = self.input_dict[key]["eval"][1]
+            if userinput:
+                try:
+                    valid = int(userinput)
+                except ValueError:
+                    print("No valid input of type " + int)
+                    return self.get_userinput(target, index, listlen, key)
+                if valid in options:
+                    value = valid
+                else:
+                    print("No valid input, see options")
+                    return self.get_userinput(target, index, listlen, key)
+            else:
+                value = self.input_dict[key]["eval"][1][0]
+        elif evaltype == "options":
+            strippedlist = []
+            value = []
+            options = self.input_dict[key]["eval"][1]
+            if userinput:
+                items = list(userinput.split(","))
+                for i, item in enumerate(items):
+                    x = item.strip()
+                    strippedlist.insert(i, x)
+                for s_item in strippedlist:
+                    if s_item in options:
+                        value.append(s_item)
+                    else:
+                        print("\nNo valid input:")
+                        print(s_item)
+                        return self.get_input(target, index, listlen, key)
+            else:
+                value = [self.input_dict[key]["eval"][1][0]]
+        else:
+            print("problem with input dict")
+        return value
+
+    def get_userinput(self, target, index, listlen, key):
+        if key not in self.config_dict[target].keys():
+            print("\n" + target + ":")
+            userinput = input(self.input_dict[key]["prompt"])
+            newvalue = self.evaluation(userinput, target, index, listlen, key)
+            if index == 0:
+                if not self.value_for_all(key, newvalue, listlen):
+                    self.config_dict[target].update({key: newvalue})
+            else:
+                self.config_dict[target].update({key: newvalue})
+            print(key)
+            print(newvalue)
+
     def main(self):
         targets = self.targetinput()
         while (targets == "help" or targets == "" or targets is None):
             targets = self.helpmessage(targets)
+
+        dictpath = os.path.join(
+                dict_path, "default", "batchassist_inputdict.json")
+        with open(dictpath) as f:
+            for line in f:
+                self.input_dict = json.loads(line)
+        setlist = [
+            "blastseqs", "blastdbv5", "assemblylevel", "qc_gene", "ignore_qc",
+            "skip_tree", "minsize", "maxsize", "probe", "mfold", "mpprimer",
+            "mfethreshold", "intermediate", "nolist"]
 
         self.parse_targets(targets)
         listlen = len(self.target_list)
@@ -584,30 +347,16 @@ class Input:
         for i, target in enumerate(self.target_list):
             self.get_path(target, i, listlen)
             self.work_offline(target, i, listlen)
-            self.get_customdb(target, i, listlen)
-            self.get_blastseqs(target, i, listlen)
-            self.use_blastdbv5(target, i, listlen)
             self.get_skip_download(target, i, listlen)
-            self.assemblylevel(target, i, listlen)
-            self.get_qc_genes(target, i, listlen)
             self.get_exception(target, i, listlen)
-            self.get_skip_tree(target, i, listlen)
-            self.get_minsize(target, i, listlen)
-            self.get_maxsize(target, i, listlen)
-            self.get_designprobe(target, i, listlen)
-            self.get_mfold(target, i, listlen)
-            self.get_mpprimer(target, i, listlen)
-            self.get_mfeprimer_threshold(target, i, listlen)
-            self.no_singleton(target, i, listlen)
-            self.get_intermediate(target, i, listlen)
-            self.ignore_qc(target, i, listlen)
-            self.get_nolist(target, i, listlen)
+            self.get_customdb(target, i, listlen)
+            for item in setlist:
+                self.get_userinput(target, i, listlen, item)
 
         for target in self.target_list:
             self.write_config_file(target)
 
         return self.config_dict
-
 
 class Output:
     def __init__(self):
