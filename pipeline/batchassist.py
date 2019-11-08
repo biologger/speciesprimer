@@ -109,7 +109,7 @@ class Input:
             limit = input(
                 "Work offline with local genome assemblies?"
                 "\n(y)es/(n)o, default=(n)\n> ")
-            if limit.lower() == ("y" or "yes"):
+            if limit.lower() == "y" or limit.lower() == "yes":
                 offline = True
                 skip_download = True
                 assembly_list = ["offline"]
@@ -150,7 +150,7 @@ class Input:
             skip_download = input(
                 "Skip the download of Genomes from NCBI?"
                 "\n(y)es/(n)o, default=(n)\n> ")
-            if skip_download.lower() == ("y" or "yes"):
+            if skip_download.lower() == "y" or skip_download.lower() == "yes":
                 skip_download = True
                 assembly_list = ["offline"]
             else:
@@ -202,37 +202,44 @@ class Input:
             else:
                 self.config_dict[target].update({"customdb": customdb})
             print("customdb", customdb)
-            return customdb
 
     def get_exception(self, target, index, listlen):
         if "exception" not in self.config_dict[target].keys():
             print("\n" + target + ":")
-            exception = input(
+            inexception = input(
                 "Primer binding to this non-target species is tolerated.\n"
                 "Provide a species name or hit return to skip:\n> ")
-            if exception:
-                exceptions = list(exception.split(","))
+            if inexception:
+                exceptions = list(inexception.split(","))
                 if len(exceptions) > 1:
                     print("only one species allowed")
                     self.get_exception(target, index, listlen)
                 else:
-                    if " " in exception:
-                        exception = "_".join(exception.split(" "))
+                    if " " in inexception:
+                        exception = "_".join(inexception.split(" "))
+                    else:
+                        exception = inexception
+
+                    if index == 0:
+                        if not self.value_for_all("exception", exception, listlen):
+                            self.config_dict[target].update({"exception": exception})
+                    else:
+                        self.config_dict[target].update({"exception": exception})
+                    print("exception", exception)
             else:
                 exception = None
-
-            if index == 0:
-                if not self.value_for_all("exception", exception, listlen):
+                if index == 0:
+                    if not self.value_for_all("exception", exception, listlen):
+                        self.config_dict[target].update({"exception": exception})
+                else:
                     self.config_dict[target].update({"exception": exception})
-            else:
-                self.config_dict[target].update({"exception": exception})
-            print("exception", exception)
+                print("exception", exception)
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
             forall = input(
                 "Use this value for all targets?\n(y)es/(n)o, default=(y)\n> ")
-            if forall.lower() == "n":
+            if forall.lower() == "n" or forall.lower() == "no":
                 return False
             else:
                 for target in self.target_list:
@@ -254,10 +261,11 @@ class Input:
         with open(config_file, "w") as f:
             f.write(json.dumps(self.config_dict[target]))
 
-    def evaluation(self, userinput, target, index, listlen, key):
+    def evaluation(self, target, index, listlen, key):
+        userinput = input(self.input_dict[key]["prompt"])
         evaltype = self.input_dict[key]["eval"][0]
         if evaltype == "boolean":
-            if userinput.lower() == ("y" or "yes"):
+            if userinput.lower() == "y" or userinput.lower() == "yes":
                 value = True
             else:
                 value = False
@@ -272,59 +280,58 @@ class Input:
                     value = ntype(userinput)
                 except ValueError:
                     print("No valid input of type " + evalnum)
-                    return self.get_userinput(target, index, listlen, key)
+                    return self.evaluation(target, index, listlen, key)
             else:
                 value = self.input_dict[key]["eval"][1][1]
-
         elif evaltype == "option":
             options = self.input_dict[key]["eval"][1]
             if userinput:
                 try:
                     valid = int(userinput)
                 except ValueError:
-                    print("No valid input of type " + int)
-                    return self.get_userinput(target, index, listlen, key)
+                    print("No valid input of type", int)
+                    return self.evaluation(target, index, listlen, key)
+
                 if valid in options:
                     value = valid
                 else:
-                    print("No valid input, see options")
-                    return self.get_userinput(target, index, listlen, key)
+                    print("No valid input, see options", options)
+                    return self.evaluation(target, index, listlen, key)
             else:
                 value = self.input_dict[key]["eval"][1][0]
         elif evaltype == "options":
             strippedlist = []
-            value = []
             options = self.input_dict[key]["eval"][1]
             if userinput:
                 items = list(userinput.split(","))
                 for i, item in enumerate(items):
                     x = item.strip()
                     strippedlist.insert(i, x)
+                value = []
                 for s_item in strippedlist:
                     if s_item in options:
                         value.append(s_item)
                     else:
                         print("\nNo valid input:")
                         print(s_item)
-                        return self.get_input(target, index, listlen, key)
+                        return self.evaluation(target, index, listlen, key)
             else:
                 value = [self.input_dict[key]["eval"][1][0]]
         else:
-            print("problem with input dict")
+            print("Problem with prompt dict")
+            sys.exit()
         return value
 
     def get_userinput(self, target, index, listlen, key):
         if key not in self.config_dict[target].keys():
             print("\n" + target + ":")
-            userinput = input(self.input_dict[key]["prompt"])
-            newvalue = self.evaluation(userinput, target, index, listlen, key)
+            newvalue = self.evaluation(target, index, listlen, key)
             if index == 0:
                 if not self.value_for_all(key, newvalue, listlen):
                     self.config_dict[target].update({key: newvalue})
             else:
                 self.config_dict[target].update({key: newvalue})
-            print(key)
-            print(newvalue)
+            print(key, newvalue)
 
     def main(self):
         targets = self.targetinput()
@@ -385,11 +392,14 @@ class Output:
             "blastdbv5": False}
 
     def get_path(self):
-        path = input(
+        inpath = input(
                 "Please specify a path to use as the working directory "
                 "or hit return to use the current working directory:\n")
-        if path:
-            pass
+        if inpath:
+            if os.path.isabs(inpath):
+                path = inpath
+            else:
+                path = os.path.join(os.getcwd(), inpath)
         else:
             path = os.getcwd()
         return path
@@ -442,9 +452,9 @@ class Output:
         targets = input(
             "Search for config files for (a)ll or (s)elect targets:\n")
         path = self.get_path()
-        if targets.lower() == ("a" or "all"):
+        if targets.lower() == "a" or targets.lower() == "all":
             self.search_configfiles(path)
-        elif targets.lower() == ("s" or "select"):
+        elif targets.lower() == "s" or targets.lower() == "select":
             targets = Input().targetinput()
             while (targets == "help" or targets == "" or targets is None):
                 targets = Input().helpmessage(targets)
@@ -465,6 +475,7 @@ class Output:
         else:
             print("no valid input: choose (a)ll or (s)elect")
             sys.exit()
+
         for index, target in enumerate(self.targets):
             config_path = self.config_paths[index]
             self.read_config(target, config_path)
@@ -494,7 +505,6 @@ class Output:
             if not config_path == 'None':
                 self.read_config(target, config_path)
         return self.config_dict
-
 
 if __name__ == "__main__":
     Input().initiate()

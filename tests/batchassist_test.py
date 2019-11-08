@@ -29,6 +29,7 @@ from speciesprimer import CLIconf
 
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
+reference_dict = os.path.join(ref_data, "reference_config.json")
 
 # prompts
 start = ("Create new config files or start pipeline with previously "
@@ -55,7 +56,7 @@ customdb = (
     "Specifiy the absolute filepath of the custom database "
     "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
     " to skip, default=None\n> ")
-maxseqs = (
+blastseqs = (
     "Set the number of sequences per BLAST search. "
     "Decrease the number of sequences if BLAST slows down "
     "due to low memory."
@@ -101,154 +102,113 @@ targets = (
 
 def alldef_input(prompt):
     prompt_dict = {
-        start: "n",
-        species: "Lactobacillus curvatus",
-        path: "",
-        skip_tree: "",
-        offline: "",
-        skip_download: "",
-        assemblylevel: "",
-        customdb: "",
-        maxseqs: "",
-        qc_gene: "",
-        exception: '',
-        minsize: "",
-        maxsize: "",
-        probe: "",
-        mfold: "",
-        mpprimer: "",
-        mfethreshold: "",
-        ignore_qc: "",
-        blastdbv5: "",
-        intermediate: "",
-        nolist: "",
-        forall: ""
-    }
+        start: "n", species: "Lactobacillus curvatus", path: "", skip_tree: "",
+        offline: "", skip_download: "", assemblylevel: "", customdb: "",
+        blastseqs: "", qc_gene: "", exception: "", minsize: "", maxsize: "",
+        probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
+        blastdbv5: "", intermediate: "", nolist: "", forall: ""}
     val = prompt_dict[prompt]
     return val
 
-def nodef_input():
-    pass
-
-def good_input(prompt):
+def offline_input(prompt):
     prompt_dict = {
-        start: "n",
-        species: "Lactobacillus curvatus, Lactobacillus helveticus",
-        path: "/primerdesign/test",
-        skip_tree: "n",
-        offline: "n",
-        skip_download: "y",
-        assemblylevel: "complete",
-        customdb: dbpath,
-        maxseqs: "1000",
-        qc_gene: "tuf",
-        exception: 'Bacterium_curvatum',
-        minsize: "70",
-        maxsize: "200",
-        probe: "y",
-        mfold: "",
-        mpprimer: "",
-        mfethreshold: "",
-        ignore_qc: "y",
-        blastdbv5: "n",
-        intermediate: "y",
-        nolist: "n",
-        forall: "n"
-    }
+        start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
+        path: "/primerdesign/test", skip_tree: "",
+        offline: "yes", skip_download: "", assemblylevel: "contig", customdb: "",
+        blastseqs: "", qc_gene: "", exception: "", minsize: "", maxsize: "",
+        probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
+        blastdbv5: "", intermediate: "", nolist: "", forall: "y"}
+    val = prompt_dict[prompt]
+    return val
+
+def offline_input2(prompt):
+    prompt_dict = {
+        start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
+        path: "/primerdesign/test", skip_tree: "", offline: "yes", skip_download: "",
+        assemblylevel: "contig", customdb: "", blastseqs: "", qc_gene: "",
+        exception: "", minsize: "", maxsize: "", probe: "", mfold: "",
+        mpprimer: "", mfethreshold: "", ignore_qc: "", blastdbv5: "",
+        intermediate: "", nolist: "", forall: "n"}
+    val = prompt_dict[prompt]
+    return val
+
+def nodef_input(prompt):
+    prompt_dict = {
+        start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
+        path: "primerdesign/test", skip_tree: "YES", offline: "", skip_download: "y",
+        assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
+        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: "Lactobacillus sunkii",
+        minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5", mpprimer: "-3.0",
+        mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
+        nolist: "y", forall: "n"}
+    val = prompt_dict[prompt]
+    return val
+
+def wrong_input(prompt):
+    prompt_dict = {
+        assemblylevel: "alle", customdb: "customdb.fas",
+        blastseqs: "66", qc_gene: "tufrrna",
+        exception: "Lactobacillus_curvatus, Lactobacillus helveticus",
+        minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
+        mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
+    val = prompt_dict[prompt]
+    return val
+
+def wrong_input2(prompt):
+    prompt_dict = {
+        species: "help", assemblylevel: "alle, complete, contig", customdb: "customdb.fas",
+        blastseqs: "forty", qc_gene: "tufrrna",
+        exception: "Lactobacillus_sunkii",
+        minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
+        mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
+    val = prompt_dict[prompt]
+    return val
+
+def nodef_input2(prompt):
+    prompt_dict = {
+        start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
+        path: "primerdesign/test", skip_tree: "YES", offline: "", skip_download: "y",
+        assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
+        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: "Lactobacillus sunkii",
+        minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5", mpprimer: "-3.0",
+        mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
+        nolist: "y", forall: "y"}
     val = prompt_dict[prompt]
     return val
 
 def start_input(prompt):
-    prompt_dict = {
-        start: "s",
-        targets: "a",
-        path: "/primerdesign/test"
-    }
+    prompt_dict = {start: "s", targets: "a", path: "/primerdesign/test"}
     val = prompt_dict[prompt]
     return val
 
 def fail_startinput(prompt):
-    prompt_dict = {
-        start: "s",
-        targets: "q",
-        path: "/primerdesign/test"
-    }
+    prompt_dict = {start: "s", targets: "q", path: "/primerdesign/test"}
     val = prompt_dict[prompt]
     return val
 
 def start_wronginput(prompt):
+    prompt_dict = {species: "Lactobacillus bifermentans"}
+    val = prompt_dict[prompt]
+    return val
+
+def save_wronginput(prompt):
     prompt_dict = {
-        start: "s",
-        targets: "s",
-        species: "Lactobacillus bifermentans",
-        path: "/primerdesign/test"
-    }
+        start: "s", targets: "s", species: "Lactobacillus curvatus",
+        path: "/primerdesign/test"}
     val = prompt_dict[prompt]
     return val
 
 def start_oneinput(prompt):
     prompt_dict = {
-        start: "s",
-        targets: "s",
-        species: "Lactobacillus curvatus",
-        path: "/primerdesign/test"
-    }
+        start: "s", targets: "s", species: "Lactobacillus curvatus",
+        path: "/primerdesign/test"}
     val = prompt_dict[prompt]
     return val
 
-def bad_input(prompt):
+def start_unknown(prompt):
     prompt_dict = {
-        start: "n",
-        species: "",
-        path: "",
-        skip_tree: "q",
-        offline: "q",
-        skip_download: "q",
-        assemblylevel: "alle",
-        customdb: "customdb.fas",
-        maxseqs: "66",
-        qc_gene: "tufrrna",
-        exception: "Lactobacillus_curvatus, Lactobacillus helveticus",
-        minsize: "50.36",
-        maxsize: "twohundred",
-        probe: "q",
-        mfold: "minusthree",
-        mpprimer: "minusthreepointfive",
-        mfethreshold: "99.9",
-        ignore_qc: "q",
-        blastdbv5: "q",
-        intermediate: "q",
-        nolist: "q",
-        forall: "q"
-    }
-    val = prompt_dict[prompt]
-    return val
-
-def bad_input2(prompt):
-    prompt_dict = {
-        start: "n",
-        species: "help",
-        path: "",
-        skip_tree: "q",
-        offline: "q",
-        skip_download: "q",
-        assemblylevel: "alle",
-        customdb: "customdb.fas",
-        maxseqs: "66",
-        qc_gene: "tufrrna",
-        exception: "Lactobacillus_curvatus, Lactobacillus helveticus",
-        minsize: "50.36",
-        maxsize: "twohundred",
-        probe: "q",
-        mfold: "minusthree",
-        mpprimer: "minusthreepointfive",
-        mfethreshold: "99.9",
-        ignore_qc: "q",
-        blastdbv5: "q",
-        intermediate: "q",
-        nolist: "q",
-        forall: "q"
-    }
+        start: "s", targets: "s", species: "Lactobacillus sunkii",
+        path: "/primerdesign/test"}
     val = prompt_dict[prompt]
     return val
 
@@ -258,22 +218,34 @@ def fail_input(prompt):
 
 class batchassist_mock():
     def __init__(self, good_input, bad_input):
-        self.repeat = 0
         self.good_input = good_input
         self.bad_input = bad_input
+        self.mocked = []
     def prompt_input(self, prompt):
-        if self.repeat == 0:
-            result = self.bad_input(prompt)
-            self.repeat +=1
-        else:
+        if prompt in self.mocked:
             result = self.good_input(prompt)
-            self.repeat = 0
+        else:
+            try:
+                result = self.bad_input(prompt)
+                self.mocked.append(prompt)
+            except KeyError:
+                result = self.good_input(prompt)
         return result
+
+def compare_configfiles(reference, conffile, key):
+    with open(reference) as f:
+        for line in f:
+            refdict = json.loads(line)
+    with open(conffile) as f:
+        for line in f:
+            confdict = json.loads(line)
+    assert refdict[key] == confdict
 
 def get_config_from_file(conf_from_file):
     configfilepaths = []
     targets = conf_from_file.get_targets()
     nontargetlist = []
+    targets.sort()
     for target in targets:
         (
             minsize, maxsize, mpprimer, exception, target, path,
@@ -294,55 +266,10 @@ def get_config_from_file(conf_from_file):
 
         cfilepath = os.path.join(config.path, config.target, "config", "config.json")
         configfilepaths.append(cfilepath)
+
+    print(configfilepaths)
     return configfilepaths
 
-
-def prepare_testfiles():
-    G.create_directory(os.path.dirname(dbpath))
-    def prepare_tmp_db():
-        t = os.path.join(testfiles_dir, "tmp_config.json")
-        # Docker only
-        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        shutil.copy(t, tmp_path)
-
-    def change_tmp_db():
-        tmp_path = os.path.join(pipe_dir, "tmp_config.json")
-        with open(tmp_path) as f:
-            for line in f:
-                tmp_dict = json.loads(line)
-        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
-        with open(tmp_path, "w") as f:
-            f.write(json.dumps(tmp_dict))
-
-    def dbinputfiles():
-        filenames = [
-            "GCF_004088235v1_20191001.fna",
-            "GCF_002224565.1_ASM222456v1_genomic.fna"]
-        with open(dbpath, "w") as f:
-            for filename in filenames:
-                filepath = os.path.join(testfiles_dir, filename)
-                records = SeqIO.parse(filepath, "fasta")
-                for record in records:
-                    if record.id == record.description:
-                        description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
-                        record.description = description
-                    SeqIO.write(record, f, "fasta")
-        return dbpath
-
-    def create_customblastdb():
-        cmd = [
-            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
-            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
-        G.run_subprocess(
-            cmd, printcmd=False, logcmd=False, printoption=False)
-
-    dbinputfiles()
-    create_customblastdb()
-    prepare_tmp_db()
-    change_tmp_db()
 
 def test_sys_exit(monkeypatch):
     monkeypatch.setattr('builtins.input', fail_input)
@@ -353,151 +280,197 @@ def test_sys_exit(monkeypatch):
     with pytest.raises(SystemExit):
         conf_from_file = Config()
 
-
 # mock >primer_csv = os.path.join(path, "Summary", target, abbr + "_primer.csv")
 
-def test_batchassist(monkeypatch, caplog):
-
-
-    caplog.set_level(logging.INFO)
-    test =  os.path.join("/", "primerdesign", "test")
-    if os.path.isdir(test):
-        shutil.rmtree(test)
-    prepare_testfiles()
-    monkeypatch.setattr('builtins.input', good_input)
+def test_default_input(monkeypatch):
+    monkeypatch.setattr('builtins.input', alldef_input)
     conf_from_file = Config()
-    targets = conf_from_file.get_targets()
-    nontargetlist = []
-    for target in targets:
-        (
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5
-                ) = conf_from_file.get_config(target)
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "0")
+    defdir = os.path.join("/", "Lactobacillus_curvatus")
+    if os.path.isdir(defdir):
+        shutil.rmtree(defdir)
 
-        config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
+def test_offline(monkeypatch):
+    monkeypatch.setattr('builtins.input', offline_input)
+    conf_from_file = Config()
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "1")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+    configpath = get_config_from_file(conf_from_file)[1]
+    compare_configfiles(reference_dict, configpath, "2")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+    monkeypatch.setattr('builtins.input', offline_input2)
+    conf_from_file = Config()
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "1")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+    configpath = get_config_from_file(conf_from_file)[1]
+    compare_configfiles(reference_dict, configpath, "2")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
 
-        assert config.assemblylevel == ["offline"]
-        assert config.blastseqs == 1000
-        assert config.exception == 'Bacterium_curvatum'
-        assert config.maxsize == 200
+def test_nodefault(monkeypatch):
+    G.create_directory(tmpdir)
+    dbpath_tmp = os.path.join(tmpdir, "customdb.fas.nsq")
+    with open(dbpath_tmp, "w") as f:
+        f.write(">mockDB")
+    try:
+        monkeypatch.setattr('builtins.input', nodef_input)
+        conf_from_file = Config()
+        configpath = get_config_from_file(conf_from_file)[0]
+        compare_configfiles(reference_dict, configpath, "3")
+        if os.path.isfile(configpath):
+            os.remove(configpath)
+        configpath = get_config_from_file(conf_from_file)[1]
+        compare_configfiles(reference_dict, configpath, "4")
+        if os.path.isfile(configpath):
+            os.remove(configpath)
+        monkeypatch.setattr('builtins.input', nodef_input2)
+        conf_from_file = Config()
+        configpath = get_config_from_file(conf_from_file)[0]
+        compare_configfiles(reference_dict, configpath, "3")
+        configpath = get_config_from_file(conf_from_file)[1]
+        compare_configfiles(reference_dict, configpath, "4")
 
+    finally:
+        if os.path.isfile(dbpath_tmp):
+            os.remove(dbpath_tmp)
 
+def test_start_all(monkeypatch):
     monkeypatch.setattr('builtins.input', start_input)
     conf_from_file = Config()
-    targets = conf_from_file.get_targets()
-    reftarget = ["Lactobacillus_curvatus", "Lactobacillus_helveticus"]
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "3")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+    configpath = get_config_from_file(conf_from_file)[1]
+    compare_configfiles(reference_dict, configpath, "4")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+
+def test_start_unknown(monkeypatch):
+    print("Start unknown")
+    mock = batchassist_mock(start_oneinput, start_unknown)
+    monkeypatch.setattr('builtins.input', mock.prompt_input)
+    conf_from_file = Config()
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "3")
+
+def test_start_wrong(monkeypatch):
+    print("Start wrong")
+    mock = batchassist_mock(save_wronginput, start_wronginput)
+    monkeypatch.setattr('builtins.input', mock.prompt_input)
+    conf_from_file = Config()
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "3")
+    if os.path.isfile(configpath):
+        os.remove(configpath)
+
+def test_not_valid_input(monkeypatch):
+    print("test not valid input")
+    dbpath_tmp = os.path.join(tmpdir, "customdb.fas.nsq")
+    with open(dbpath_tmp, "w") as f:
+        f.write(">mockDB")
+    try:
+        mock = batchassist_mock(nodef_input, wrong_input)
+        monkeypatch.setattr('builtins.input', mock.prompt_input)
+        conf_from_file = Config()
+        configpath = get_config_from_file(conf_from_file)[0]
+        compare_configfiles(reference_dict, configpath, "3")
+        if os.path.isfile(configpath):
+            os.remove(configpath)
+        configpath = get_config_from_file(conf_from_file)[1]
+        compare_configfiles(reference_dict, configpath, "4")
+        if os.path.isfile(configpath):
+            os.remove(configpath)
+        mock = batchassist_mock(nodef_input, wrong_input2)
+        monkeypatch.setattr('builtins.input', mock.prompt_input)
+        conf_from_file = Config()
+        configpath = get_config_from_file(conf_from_file)[0]
+        compare_configfiles(reference_dict, configpath, "3")
+        if os.path.isfile(configpath):
+            os.remove(configpath)
+    finally:
+        if os.path.isfile(dbpath_tmp):
+            os.remove(dbpath_tmp)
+
+def test_incomplete_config(monkeypatch):
+    testfile =  os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus","config", "config.json")
+    incomplete_dict = {"target": "lactobacillus_curvatus", "path": "/primerdesign/test"}
+    with open(testfile, "w") as f:
+        f.write(json.dumps(incomplete_dict))
+    monkeypatch.setattr('builtins.input', start_input)
+    conf_from_file = Config()
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "5")
+
+def prepare_tmp_db():
+    t = os.path.join(testfiles_dir, "tmp_config.json")
+    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+    if os.path.isfile(tmp_path):
+        os.remove(tmp_path)
+    shutil.copy(t, tmp_path)
+
+def remove_tmp_db():
+    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+    if os.path.isfile(tmp_path):
+        os.remove(tmp_path)
+
+def change_tmp_db():
+    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+    tmp_dict = {
+        "new_run":{
+            'modus': "continue", "targets": None, "path": "/primerdesign/test"},
+        "email":"biologger@protonmail.com"}
+    with open(tmp_path, "w") as f:
+        f.write(json.dumps(tmp_dict))
+
+def change_db_again():
+    tmp_path = os.path.join(pipe_dir, "tmp_config.json")
+    tmp_dict = {
+        "new_run":{
+            'modus': "continue", "targets": ["Lactobacillus_curvatus", "Lactobacillus_sunkii"],
+            "path": "/primerdesign/test"},
+        "email":"biologger@protonmail.com"}
+    with open(tmp_path, "w") as f:
+        f.write(json.dumps(tmp_dict))
+
+
+def test_autorun():
+    from speciesprimer import auto_run
+    prepare_tmp_db()
+    targets, conf_from_file, use_configfile = auto_run()
+    assert targets == ["Lactobacillus_curvatus"]
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "6")
+    change_tmp_db()
+    targets, conf_from_file, use_configfile = auto_run()
     targets.sort()
-    reftarget.sort()
-    for i, target in enumerate(targets):
-        (
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5
-                ) = conf_from_file.get_config(target)
+    assert targets == ["Lactobacillus_curvatus", "Lactobacillus_helveticus"]
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "6")
+    change_db_again()
+    targets, conf_from_file, use_configfile = auto_run()
+    assert targets == ["Lactobacillus_curvatus"]
+    configpath = get_config_from_file(conf_from_file)[0]
+    compare_configfiles(reference_dict, configpath, "6")
+    remove_tmp_db()
 
-        config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
+def test_end():
+    def remove_test_files():
+        test =  os.path.join("/", "primerdesign", "test")
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) == False
 
-        assert config.target == reftarget[i]
-        assert config.assemblylevel == ["offline"]
-        assert config.blastseqs == 1000
-        assert config.exception == 'Bacterium_curvatum'
-        assert config.maxsize == 200
-
-
-    monkeypatch.setattr('builtins.input', start_oneinput)
-    conf_from_file = Config()
-    targets = conf_from_file.get_targets()
-
-    for target in targets:
-        (
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5
-                ) = conf_from_file.get_config(target)
-
-        config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
-
-        assert config.target == "Lactobacillus_curvatus"
-        assert config.assemblylevel == ["offline"]
-        assert config.blastseqs == 1000
-        assert config.exception == 'Bacterium_curvatum'
-        assert config.maxsize == 200
-
-def test_default_input(monkeypatch):
-    defaultinputref = os.path.join(testfiles_dir, "default_config.json")
-    with open(defaultinputref) as f:
-        for line in f:
-            defaultinputref_dict = json.loads(line)
-    monkeypatch.setattr('builtins.input', alldef_input)
-
-
-
-
-def test_wrong_input(monkeypatch):
-    mock = batchassist_mock(good_input, bad_input)
-    monkeypatch.setattr('builtins.input', mock.prompt_input)
-    conf_from_file = Config()
-    targets = conf_from_file.get_targets()
-    nontargetlist = []
-    for target in targets:
-        (
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5
-                ) = conf_from_file.get_config(target)
-
-        config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
-
-        config.save_config()
-
-    mock = batchassist_mock(start_wronginput, start_oneinput)
-    monkeypatch.setattr('builtins.input', mock.prompt_input)
-    conf_from_file = Config()
-    targets = conf_from_file.get_targets()
-    nontargetlist = []
-    for target in targets:
-        (
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5
-                ) = conf_from_file.get_config(target)
-
-        config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
-            intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
-
-        config.save_config()
+    remove_test_files()
