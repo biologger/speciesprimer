@@ -6,11 +6,6 @@ import sys
 import shutil
 import pytest
 import json
-import time
-import logging
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
@@ -19,10 +14,6 @@ dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 dbpath = os.path.join(tmpdir, "customdb.fas")
 
-#            import traceback
-#            traceback.print_exc()
-
-from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 from speciesprimer import Config
 from speciesprimer import CLIconf

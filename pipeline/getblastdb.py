@@ -9,9 +9,9 @@ import argparse
 import logging
 import time
 import filecmp
-import subprocess
 import json
 
+from basicfunctions import GeneralFunctions as G
 
 BASEURLnt = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
 BASEURLref = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/'
@@ -221,20 +221,8 @@ def get_md5files(blastdb_dir, db, BASEURL):
     command = [
         "wget", "-nv", "-nc", "-r", "--no-parent", "--no-directories",
         "--tries", "4", "-A", db + ".*.tar.gz.md5",
-        "-X", "FASTA,cloud,v5", BASEURL]
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    def check_output():
-        while True:
-            output = process.stdout.readline().decode().strip()
-            if output:
-                logger(output)
-            else:
-                break
-
-    while process.poll() is None:
-        check_output()
+        "-X", BASEURL+"FASTA," + BASEURL+"cloud," + BASEURL+"v5", BASEURL]
+    G.run_subprocess(command)
 
 
 def get_filelist(blastdb_dir, db):
@@ -265,7 +253,11 @@ def get_DB(mode=False):
                 tmp_db = json.loads(line)
         delete = tmp_db['BLAST_DB']['delete']
         db = tmp_db['BLAST_DB']['db']
-        blastdb_dir = "/blastdb"
+        try:
+            dbdir = tmp_db['BLAST_DB']['path']
+            blastdb_dir = dbdir
+        except KeyError:
+            blastdb_dir = "/blastdb"
 
         logging.basicConfig(
             filename=os.path.join(
@@ -299,13 +291,13 @@ def get_DB(mode=False):
     if db == "nt_v5":
         BASEURL = BASEURLnt
         extractedendings = [
-            ".nhd", ".nhi", ".nhr", ".nin", ".nnd",
-            ".nni", ".nog", ".nsq"]
+            ".nhd", ".nhi", ".nhr", ".nin",
+            ".nnd", ".nni", ".nog", ".nsq"]
     else:
         BASEURL = BASEURLref
         extractedendings = [
-            ".nhr", ".nin", ".nnd",
-            ".nni", ".nog", ".nsd", ".nsi", ".nsq"]
+            ".nhr", ".nin", ".nnd", ".nni",
+            ".nog", ".nsd", ".nsi", ".nsq"]
 
     logger("Start Download of NCBI " + db + " BLAST database")
     get_md5files(blastdb_dir, db, BASEURL)
