@@ -246,6 +246,7 @@ def logger(string_to_log):
 
 
 def get_DB(mode=False):
+    test = False
     today = time.strftime("%Y_%m_%d", time.localtime())
     if mode == "auto":
         with open(tmp_db_path, 'r') as f:
@@ -257,7 +258,12 @@ def get_DB(mode=False):
             dbdir = tmp_db['BLAST_DB']['path']
             blastdb_dir = dbdir
         except KeyError:
-            blastdb_dir = "/blastdb"
+            blastdb_dir = "/blastdb"            
+        try:
+            if tmp_db['BLAST_DB']['test'] == True:
+                test = True
+        except KeyError:
+            pass
 
         logging.basicConfig(
             filename=os.path.join(
@@ -283,10 +289,7 @@ def get_DB(mode=False):
                 blastdb_dir, "blastdb_download_" + today + ".log"),
             level=logging.DEBUG, format="%(message)s")
 
-    try:
-        os.mkdir(os.path.join(blastdb_dir, "md5_files"))
-    except Exception as exc:
-        pass
+    G.create_directory(os.path.join(blastdb_dir, "md5_files"))
 
     if db == "nt_v5":
         BASEURL = BASEURLnt
@@ -300,7 +303,8 @@ def get_DB(mode=False):
             ".nog", ".nsd", ".nsi", ".nsq"]
 
     logger("Start Download of NCBI " + db + " BLAST database")
-    get_md5files(blastdb_dir, db, BASEURL)
+    if not test:
+        get_md5files(blastdb_dir, db, BASEURL)
     filelist = get_filelist(blastdb_dir, db)
     download_from_ftp(filelist, blastdb_dir, delete, BASEURL, extractedendings)
 

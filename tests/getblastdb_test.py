@@ -62,7 +62,8 @@ def create_mock_archives():
             info = line.strip().split("  ")[0][0:-1] + "k  " + line.strip().split("  ")[1]
     with open(chmdfile, "w") as f:
         f.write(info)
-    with open("ref_prok_rep_genomes.nal", "w") as f:
+    nalfile = os.path.join(tmpdir, "ref_prok_rep_genomes.nal")
+    with open(nalfile, "w") as f:
         f.write("")
 
 def md5Checksum(filePath):
@@ -105,7 +106,9 @@ def change_tmp_db():
         "new_run":{
             'modus': "continue", "targets": None, "path": "/primerdesign/test"},
         "email":"biologger@protonmail.com",
-        "BLAST_DB":{"delete": True, "db": "ref_prok_rep_genomes", "path": "/blastdb/tmp"}}
+        "BLAST_DB":{
+            "delete": True, "db": "ref_prok_rep_genomes", 
+            "path": "/blastdb/tmp", "test": True}}
 
     with open(tmp_path, "w") as f:
         f.write(json.dumps(tmp_dict))
