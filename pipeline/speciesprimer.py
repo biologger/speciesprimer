@@ -672,6 +672,7 @@ class DataCollection():
 
         return self.config
 
+
 class QualityControl:
     # dictionary containing the search word for annotated genes in gff files
     # check / update when Prokka version is updated
@@ -4227,8 +4228,7 @@ def commandline():
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.1")
-    args = parser.parse_args()
-    return args
+    return parser
 
 
 def auto_run():
@@ -4266,7 +4266,8 @@ def main(mode=None):
         targets, conf_from_file, use_configfile = auto_run()
 
     else:
-        args = commandline()
+        parser = commandline()
+        args = parser.parse_args()
         logfile = os.path.join(os.getcwd(), "speciesprimer_" + today + ".log")
         logging.basicConfig(
             filename=logfile, level=logging.DEBUG, format="%(message)s")

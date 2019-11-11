@@ -206,8 +206,9 @@ def extract_archives(dbfile, delete, extractedendings):
     if check_extract == extractedendings:
         logger("Extracted " + dbfile)
         if delete is True:
-            logger("Remove archive " + dbfile)
-            os.remove(dbfile)
+            if os.path.isfile(dbfile):
+                logger("Remove archive " + dbfile)
+                os.remove(dbfile)
 
 
 def get_md5files(blastdb_dir, db, BASEURL):
