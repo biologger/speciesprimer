@@ -188,3 +188,6 @@ def test_end():
         assert os.path.isdir(test) == False
 
     remove_test_files()
+
+if __name__ == "__main__":
+    print(msg)

@@ -10,6 +10,7 @@ import logging
 import time
 import filecmp
 import json
+import shutil
 
 from basicfunctions import GeneralFunctions as G
 
@@ -31,13 +32,12 @@ def commandline():
         "-dbpath", "--dbpath", type=str, help="Path to save the DB")
     parser.add_argument(
         "-delete", "--delete", action="store_true", default=False,
-        help="Delete the tar files after extraction to save Harddisk space")
+        help="Delete the tar files after extraction to save Hard Disk space")
     parser.add_argument(
         "-db", "--database", type=str,
         help="Select nt_v5 or ref_prok_rep_genomes", default="nt_v5",
         choices=["nt_v5", "ref_prok_rep_genomes"])
-    args = parser.parse_args()
-    return args
+    return parser
 
 
 def md5Checksum(filePath):
@@ -68,7 +68,7 @@ def check_md5(inputfile):
             logger("Error MD5 checksum not correct")
             logger("File: " + str(filesum))
             logger("Expected: " + str(md5sumcheck))
-            raise
+            raise Exception
 
 
 def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
@@ -81,16 +81,24 @@ def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
         logger("md5Checksum " + filenamecheck)
         filesum = md5Checksum(archivename)
         if filesum == md5sumcheck:
-            logger("No change in " + inputfile + " skip download")
+            logger("Skip download of " + archivename)
             dbfile = check_md5(inputfile)
             extract_archives(dbfile, delete, extractedendings)
         else:
-            os.rename(inputfile, os.path.join("md5_files", inputfile))
+            logger("Problem with " + archivename + " try to download it again")
+            os.remove(archivename)
             url = BASEURL + "/" + archivename
             logger("Downloading..." + archivename)
             wget.download(url, archivename)
-            dbfile = check_md5(inputfile)
-            extract_archives(dbfile, delete, extractedendings)
+            try:
+                dbfile = check_md5(inputfile)
+            except Exception:
+                logger(
+                    "Poblem with " + inputfile +
+                    ". Please run getblastdb again to check if files are missing")
+                if os.path.isfile(inputfile):
+                    os.remove(inputfile)
+            extract_archives(archivename, delete, extractedendings)
 
 
 def compare_md5_files(filename, delete, BASEURL, extractedendings):
@@ -100,7 +108,7 @@ def compare_md5_files(filename, delete, BASEURL, extractedendings):
         os.remove(filename)
     else:
         os.remove(old_file)
-        os.rename(filename, os.path.join("md5_files", filename))
+        shutil.copy(filename, os.path.join("md5_files", filename))
         archivename = filename.split(".md5")[0]
         url = BASEURL + "/" + archivename
         logger("Downloading..." + archivename)
@@ -112,12 +120,12 @@ def compare_md5_files(filename, delete, BASEURL, extractedendings):
 def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
     os.chdir(blastdb_dir)
     for filename in files:
+        archivename = filename.split(".md5")[0]
         check_extract = []
         try:
             for end in extractedendings:
                 if filename.split(".tar.gz.md5")[0] + end in os.listdir("."):
                     check_extract.append(end)
-
             check_extract.sort()
             extractedendings.sort()
             if check_extract == extractedendings:
@@ -128,22 +136,21 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
                     logger(
                         "> Skip download of " + filename
                         + " found extracted files ")
-                    archivename = filename.split(".md5")[0]
                     time.sleep(1)
             else:
-                file_path = os.path.join("md5_files", filename + ".md5")
+                file_path = os.path.join("md5_files", filename)
                 if os.path.isfile(file_path):
                     # maybe only the md5 file was downloaded
-                    if os.path.isfile(filename):
+                    if os.path.isfile(filename) and os.path.isfile(archivename):
                         compare_md5_files(filename, delete, BASEURL, extractedendings)
+                        extract_archives(archivename, delete, extractedendings)
                     else:
-                        url = BASEURL + "/" + filename
-                        logger("> Downloading..." + filename)
-                        wget.download(url, filename)
+                        url = BASEURL + "/" + archivename
+                        logger("> Downloading..." + archivename)
+                        wget.download(url, archivename)
                         dbfile = check_md5(filename)
                         extract_archives(dbfile, delete, extractedendings)
                 else:
-                    archivename = filename.split(".md5")[0]
                     if os.path.isfile(archivename):
                         compare_md5_archive(filename, delete, BASEURL, extractedendings)
                     else:
@@ -154,21 +161,11 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
                         extract_archives(dbfile, delete, extractedendings)
                         os.rename(
                             filename, os.path.join("md5_files", filename))
+
             if os.path.isfile(filename):
                 os.rename(filename, os.path.join("md5_files", filename))
-        except Exception as exc:
-            msg = "> error while working on " + filename + " check logfile"
-            print(msg)
-            print(exc)
-            logger(msg)
-            logging.error("error while working on " + filename, exc_info=True)
-            time.sleep(2)
-            for files in os.listdir(blastdb_dir):
-                if files.endswith(".tmp"):
-                    filepath = os.path.join(blastdb_dir, files)
-                    os.remove(filepath)
 
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt while working on "
                 + filename, exc_info=True)
@@ -273,7 +270,8 @@ def get_DB(mode=False):
             level=logging.DEBUG, format="%(message)s")
 
     else:
-        args = commandline()
+        parser = commandline()
+        args = parser.parse_args()
         delete = args.delete
         if args.dbpath:
             if args.dbpath.endswith("/"):
@@ -297,6 +295,11 @@ def get_DB(mode=False):
         extractedendings = [
             ".nhd", ".nhi", ".nhr", ".nin",
             ".nnd", ".nni", ".nog", ".nsq"]
+    elif test:
+        BASEURL = "file:/blastdb/tmp/mockfiles/download"
+        extractedendings = [
+            ".nhr", ".nin", ".nnd", ".nni",
+            ".nog", ".nsd", ".nsi", ".nsq"]
     else:
         BASEURL = BASEURLref
         extractedendings = [

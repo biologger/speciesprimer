@@ -8,8 +8,9 @@ Works only in the Docker container!!!
     sudo docker start {Containername}
 - Start an interactive terminal in the container
     sudo docker exec -it {Containername} bash
-- Start the test in the container terminal
-    pytest -vv /pipeline/tests/speciesprimer_test.py
+- Start the tests in the container terminal
+    cd /
+    pytest -vv --cov=pipeline /tests/
 """
 )
 
