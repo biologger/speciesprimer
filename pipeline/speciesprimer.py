@@ -3647,12 +3647,6 @@ class PrimerQualityControl:
         G.logger("> " + info)
         G.logger("Run: check_primerdimer(" + self.target + ")")
 
-        def get_primer_name(item, primer_direction):
-            name = (
-                H.abbrev(self.target) + "_" + primer_direction + "_"
-                + "_".join(item[0].split("_")[-4:]))
-            return name
-
         def write_dimercheck_input(item, primer_name, lseq, rseq):
             fwd_name = primer_name + "_F"
             rev_name = primer_name + "_R"
@@ -4128,14 +4122,8 @@ class PipelineStatsCollector():
         self.statfile = os.path.join(
             target_dir, "pipeline_stats_" + today + ".txt")
 
-    def check_file(self, target_dir):
-        if os.path.isfile(self.statfile):
-            return True
-        else:
-            return False
-
     def write_stat(self, info):
-        if self.check_file:
+        if os.path.isfile(self.statfile):
             with open(self.statfile, "a") as f:
                 f.write(info + "\n")
         else:
