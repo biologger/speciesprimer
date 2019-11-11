@@ -24,6 +24,8 @@ reference_dict = os.path.join(ref_data, "reference_config.json")
 
 def create_mock_archives():
     G.create_directory(tmpdir)
+    with open(os.path.join(tmpdir, "ref_prok_rep_genomes.html.tmp"), "w") as f:
+        f.write("mock")
     for i in range(0, 7):
         num = "{:02d}".format(i)
         filestart = "ref_prok_rep_genomes." + num
@@ -113,6 +115,19 @@ def change_tmp_db():
     with open(tmp_path, "w") as f:
         f.write(json.dumps(tmp_dict))
 
+def test_commandline():
+    pass
+
+def test_archiveextract():
+    pass
+
+#def test_getlocal_md5files():
+#    import getblastdb
+#    blastdb_dir = "/blastdb/tmp"
+#    db = "ref_prok_rep_genomes"
+#    BASEURL = "/tests/testfiles/getdbfiles/mockdb.html"
+#    getblastdb.get_md5files(blastdb_dir, db, BASEURL)
+
 def test_getblastdb(monkeypatch):
     create_mock_archives()
     import getblastdb
@@ -124,5 +139,8 @@ def test_getblastdb(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", mocked)
     getblastdb.get_DB(mode="auto")
     remove_tmp_db()
-
+    os.chdir("..")
+    if os.path.isdir(tmpdir):
+        pass
+        shutil.rmtree(tmpdir)
 

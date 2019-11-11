@@ -226,6 +226,7 @@ def get_md5files(blastdb_dir, db, BASEURL):
 
 
 def get_filelist(blastdb_dir, db):
+    os.chdir(blastdb_dir)
     filelist = []
     for filename in os.listdir(blastdb_dir):
         if os.path.isfile(filename):
@@ -258,7 +259,7 @@ def get_DB(mode=False):
             dbdir = tmp_db['BLAST_DB']['path']
             blastdb_dir = dbdir
         except KeyError:
-            blastdb_dir = "/blastdb"            
+            blastdb_dir = "/blastdb"
         try:
             if tmp_db['BLAST_DB']['test'] == True:
                 test = True
