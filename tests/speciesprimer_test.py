@@ -343,13 +343,12 @@ def test_DataCollection(config, monkeypatch):
         assert lines[0] == "If you use Prokka in your work, please cite:"
 
     def prepare_prokka(config):
-        testdir = os.path.join(BASE_PATH, "testfiles")
         targetdir = os.path.join(config.path, config.target)
         fileformat = ["fna", "gff", "ffn"]
         for fo in fileformat:
-            for files in os.listdir(testdir):
+            for files in os.listdir(testfiles_dir):
                 if files.endswith("."+fo):
-                    fromfile = os.path.join(testdir, files)
+                    fromfile = os.path.join(testfiles_dir, files)
                     tofile =  os.path.join(targetdir, fo + "_files", files)
                     shutil.copy(fromfile, tofile)
                     if fo == "fna":
@@ -391,7 +390,7 @@ def test_DataCollection(config, monkeypatch):
     G.create_directory(DC.fna_dir)
 
 def test_QualityControl(config):
-    testdir = os.path.join(BASE_PATH, "testfiles")
+
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
@@ -400,10 +399,8 @@ def test_QualityControl(config):
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
 
-
-
     def create_customblastdb():
-        infile = os.path.join(testdir, "customdb.fas")
+        infile = os.path.join(testfiles_dir, "customdb.fas")
         cmd = [
             "makeblastdb", "-in", infile, "-parse_seqids", "-title",
             "mock16SDB", "-dbtype", "nucl", "-out", config.customdb]
@@ -434,9 +431,9 @@ def test_QualityControl(config):
         fileformat = ["fna", "gff", "ffn"]
         for testcase in testcases:
             for fo in fileformat:
-                for files in os.listdir(testdir):
+                for files in os.listdir(testfiles_dir):
                     if files.endswith(testcases[0] + "."+fo):
-                        fromfile = os.path.join(testdir, files)
+                        fromfile = os.path.join(testfiles_dir, files)
                         if testcase == "duplicate":
                             files = "v2".join(files.split("v1"))
                             tofile = os.path.join(
@@ -874,8 +871,8 @@ def test_BLASTsettings(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 
-def test_blastparser(config):
-    from speciesprimer import BlastParser
+#def test_blastparser(config):
+#    from speciesprimer import BlastParser
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
 #    primer blastparser function
 #    get_primerBLAST_DBIDS(self, nonred_dict)

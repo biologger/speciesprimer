@@ -1,0 +1,3 @@
+Assembly accession,Assembly name,Assembly status,Strain,rRNA,rRNA Blast,tuf,tuf Blast,recA,recA Blast,dnaK,dnaK Blast,pheS,pheS Blast
+GCF_003410375.1,ASM341037v1,Complete Genome,TMW 1.1928,,,QC gene missing,,,,,,,
+GCF_001981925.1,ASM198192v1,Scaffold,RI-198,,,QC gene missing,,,,,,,

@@ -3080,153 +3080,155 @@ class PrimerQualityControl:
             "Run: index_Database(" + db_name + ") time: "
             + str(timedelta(seconds=end)))
 
+    def create_template_db(self, primerinfos):
+        wrote = []
+        file_path = os.path.join(self.primer_qc_dir, "template.sequences")
+        with open(file_path, "w") as f:
+            for nameF, seqF, nameR, seqR, templ_seq in primerinfos:
+                if templ_seq not in wrote:
+                    primername = "_".join(nameF.split("_")[0:-2])
+                    f.write(">" + primername + "\n" + templ_seq + "\n")
+                    wrote.append(templ_seq)
+
+    def get_QC_data(self):
+        qc_data = []
+        if os.path.isdir(self.summ_dir):
+            for files in os.listdir(self.summ_dir):
+                if files.endswith("_qc_sequences.csv"):
+                    file_path = os.path.join(self.summ_dir, files)
+                    with open(file_path) as f:
+                        reader = csv.reader(f)
+                        next(reader, None)
+                        for row in reader:
+                            qc_data.append(row)
+        return qc_data
+
+    def create_assembly_db(self, db_name):
+        # add option to choose a folder for Reference genomes?
+        qc_data = self.get_QC_data()
+
+        remove = []
+        qc_acc = []
+        assembly_dict = {}
+        ref_assembly = []
+        for item in qc_data:
+            accession = item[0]
+            assembly_stat = item[2]
+            rRNA = item[4]
+            tuf = item[6]
+            recA = item[8]
+            dnaK = item[10]
+            pheS = item[12]
+            qc_list = rRNA, tuf, recA, dnaK, pheS
+            assembly_dict.update({accession: assembly_stat})
+
+            if self.config.ignore_qc is True:
+                for qc_gene in qc_list:
+                    if accession not in qc_acc:
+                        qc_acc.append(accession)
+            else:
+                for qc_gene in qc_list:
+                    if "passed QC" == qc_gene:
+                        if accession not in qc_acc:
+                            qc_acc.append(accession)
+                    elif "" == qc_gene:
+                        if accession not in qc_acc:
+                            qc_acc.append(accession)
+                    else:
+                        if accession not in remove:
+                            remove.append(accession)
+        check = set(qc_acc) - set(remove)
+        print(qc_acc, remove)
+        check = list(check)
+        check.sort()
+        for item in check:
+            if len(ref_assembly) < self.referencegenomes:
+                if assembly_dict[item] == "Complete Genome":
+                    if item not in ref_assembly:
+                        ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if assembly_dict[item] == "Chromosome":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if assembly_dict[item] == "Scaffold":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+
+        if len(ref_assembly) < self.referencegenomes:
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if item not in ref_assembly:
+                        ref_assembly.append(item)
+
+        ref_assembly.sort()
+        target_fasta = []
+        for files in os.listdir(self.fna_dir):
+            for item in ref_assembly:
+                acc = "v".join(item.split("."))
+                if acc in files:
+                    if files.endswith(".fna"):
+                        with open(os.path.join(self.fna_dir, files)) as f:
+                            records = SeqIO.parse(f, "fasta")
+                            target_fasta.append(list(records))
+        file_path = os.path.join(self.primer_qc_dir, db_name)
+        with open(file_path, "w") as fas:
+            for item in target_fasta:
+                SeqIO.write(item, fas, "fasta")
+
+    def make_QCDB(self, db_path, db_name, DBNAME, primerinfos=[]):
+        if not os.path.isfile(db_path):
+            msg1 = "create " + DBNAME
+            G.logger("> " + msg1)
+            print("\n" + msg1)
+            if DBNAME == "template DB":
+                self.create_template_db(primerinfos)
+            else:
+                self.create_assembly_db(db_name)            
+            msg2 = "index " + DBNAME
+            G.logger("> " + msg2)
+            print("\n" + msg2)
+            self.index_Database(db_name)
+            msg3 = "Done indexing " + DBNAME
+            G.logger("> " + msg3)
+            print("\n" + msg3)
+
+        infile = os.path.join(self.primer_qc_dir, db_name)
+        if os.stat(infile).st_size == 0:
+            msg = "Problem with " + db_name + " input file is empty"
+            errors.append([self.target, msg])
+            G.logger("> " + msg)
+            print("\n!!!" + msg + "!!!\n")
+            os.remove(infile)
+            dbfiles = [".2bit", ".sqlite3.db", ".uni"]
+            for end in dbfiles:
+                if os.path.isfile(infile + end):
+                    os.remove(infile + end)
+
+    def make_templateDB(self, primerinfos):
+        db_name = "template.sequences"
+        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
+        DBNAME = "template DB"
+        self.make_QCDB(db_path, db_name, DBNAME, primerinfos)
+
+    def make_assemblyDB(self, primerinfos):
+        db_name = H.abbrev(self.target) + ".genomic"
+        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
+        DBNAME = "target genome assembly DB"
+        self.make_QCDB(db_path, db_name, DBNAME)
+
     def prepare_MFEprimer_Dbs(self, primerinfos):
         G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
         G.create_directory(self.primer_qc_dir)
-
-        def create_template_db(primerinfos):
-            wrote = []
-            file_path = os.path.join(self.primer_qc_dir, "template.sequences")
-            with open(file_path, "w") as f:
-                for nameF, seqF, nameR, seqR, templ_seq in primerinfos:
-                    if templ_seq not in wrote:
-                        primername = "_".join(nameF.split("_")[0:-2])
-                        f.write(">" + primername + "\n" + templ_seq + "\n")
-                        wrote.append(templ_seq)
-
-        def get_QC_data():
-            qc_data = []
-            if os.path.isdir(self.summ_dir):
-                for files in os.listdir(self.summ_dir):
-                    if files.endswith("_qc_sequences.csv"):
-                        file_path = os.path.join(self.summ_dir, files)
-                        with open(file_path) as f:
-                            reader = csv.reader(f)
-                            next(reader, None)
-                            for row in reader:
-                                qc_data.append(row)
-            return qc_data
-
-        def create_assembly_db(db_name):
-            # add option to choose a folder for Reference genomes?
-            qc_data = get_QC_data()
-
-            remove = []
-            qc_acc = []
-            assembly_dict = {}
-            ref_assembly = []
-            for item in qc_data:
-                accession = item[0]
-                assembly_stat = item[2]
-                rRNA = item[4]
-                tuf = item[6]
-                recA = item[8]
-                dnaK = item[10]
-                pheS = item[12]
-                qc_list = rRNA, tuf, recA, dnaK, pheS
-                assembly_dict.update({accession: assembly_stat})
-
-                if self.config.ignore_qc is True:
-                    for qc_gene in qc_list:
-                        if accession not in qc_acc:
-                            qc_acc.append(accession)
-                else:
-                    for qc_gene in qc_list:
-                        if "passed QC" == qc_gene:
-                            if accession not in qc_acc:
-                                qc_acc.append(accession)
-                        elif "" == qc_gene:
-                            if accession not in qc_acc:
-                                qc_acc.append(accession)
-                        else:
-                            if accession not in remove:
-                                remove.append(accession)
-
-            check = set(qc_acc) - set(remove)
-            check = list(check)
-            check.sort()
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if assembly_dict[item] == "Complete Genome":
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if assembly_dict[item] == "Chromosome":
-                            if item not in ref_assembly:
-                                ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if assembly_dict[item] == "Scaffold":
-                            if item not in ref_assembly:
-                                ref_assembly.append(item)
-
-            if len(ref_assembly) < self.referencegenomes:
-                for item in check:
-                    if len(ref_assembly) < self.referencegenomes:
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-            ref_assembly.sort()
-            target_fasta = []
-            for files in os.listdir(self.fna_dir):
-                for item in ref_assembly:
-                    acc = "v".join(item.split("."))
-                    if acc in files:
-                        if files.endswith(".fna"):
-                            with open(os.path.join(self.fna_dir, files)) as f:
-                                records = SeqIO.parse(f, "fasta")
-                                target_fasta.append(list(records))
-
-            file_path = os.path.join(self.primer_qc_dir, db_name)
-            with open(file_path, "w") as fas:
-                for item in target_fasta:
-                    SeqIO.write(item, fas, "fasta")
-
-        def make_templateDB():
-            db_name = "template.sequences"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-            if not os.path.isfile(db_path):
-                G.logger("> create template DB")
-                print("\ncreate template DB")
-                create_template_db(primerinfos)
-                G.logger("> index template DB")
-                print("index template DB")
-                self.index_Database(db_name)
-                G.logger("> Done indexing template DB")
-                print("Done indexing template DB")
-            infile = os.path.join(self.primer_qc_dir, db_name)
-            if os.stat(infile).st_size == 0:
-                msg = "Problem with " + db_name
-                + " input file is empty"
-                G.logger("> " + msg)
-                print("\n" + msg)
-
-        def make_assemblyDB():
-            db_name = H.abbrev(self.target) + ".genomic"
-            db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-            if not os.path.isfile(db_path):
-                G.logger("> create target genome assembly DB")
-                print("\ncreate target genome assembly DB")
-                create_assembly_db(db_name)
-                G.logger("> index target genome assembly DB")
-                print("index target genome assembly DB")
-                self.index_Database(db_name)
-                G.logger("> Done indexing genome assembly DB")
-                print("Done indexing genome assembly DB")
-
-            infile = os.path.join(self.primer_qc_dir, db_name)
-            if os.stat(infile).st_size == 0:
-                msg = "Problem with " + db_name + " input file is empty"
-                G.logger("> " + msg)
-                print("\n!!!" + msg + "!!!\n")
-
-        process_make_templateDB = Process(target=make_templateDB)
-        process_make_assemblyDB = Process(target=make_assemblyDB)
+        os.chdir(self.primer_qc_dir)
+        process_make_templateDB = Process(target=self.make_templateDB, args=(primerinfos,))
+        process_make_assemblyDB = Process(target=self.make_assemblyDB, args=(primerinfos,))
         process_make_templateDB.start()
         process_make_assemblyDB.start()
         process_make_templateDB.join()
