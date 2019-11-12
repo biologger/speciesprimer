@@ -120,6 +120,31 @@ def compare_ref_files(results_dir, ref_dir):
         reffiles = os.path.join(ref_dir)
         compare_files(resfiles, reffiles)
 
+def test_commandline():
+    import speciesprimer
+    parser = speciesprimer.commandline()
+    args = parser.parse_args([])
+    assert args.assemblylevel == ['all']
+    assert args.blastdbv5 == False
+    assert args.blastseqs == 1000
+    assert args.customdb == None
+    assert args.email == None
+    assert args.exception == None
+    assert args.ignore_qc == False
+    assert args.intermediate == False
+    assert args.maxsize == 200
+    assert args.mfethreshold == 90
+    assert args.mfold == -3.0
+    assert args.minsize == 70
+    assert args.mpprimer == -3.5
+    assert args.nolist == False
+    assert args.offline == False
+    assert args.path == '/'
+    assert args.probe == False
+    assert args.qc_gene == ['rRNA']
+    assert args.skip_download == False
+    assert args.skip_tree == False
+    assert args.target == None
 
 def test_CLIconf(config):
     assert config.minsize == confargs['minsize']
