@@ -121,6 +121,7 @@ def compare_ref_files(results_dir, ref_dir):
         compare_files(resfiles, reffiles)
 
 def test_commandline():
+    os.chdir("/")
     import speciesprimer
     parser = speciesprimer.commandline()
     args = parser.parse_args([])
