@@ -165,15 +165,15 @@ def test_run(monkeypatch):
     files.sort()
     ref_files.sort()
     assert files == ref_files
-
-    # open config file and change keep intermedaite files to False
-    # rerun on exisitng files
-    # change also probe option
-    # add excluded gis
-    # test parallel functions non-parallel to get more covered lines
-    # add no list option
-    # include argparser/commandline function?
-    # include errors to provoke an error report (multiple targets)
+    # To do:
+    # [ ]open config file and change keep intermedaite files to False
+    # [ ] rerun on exisitng files
+    # [ ] change also probe option
+    # [ ] add excluded gis
+    # [ ] test parallel functions non-parallel to get more covered lines
+    # [ ] add no list option
+    # [ ] include argparser/commandline function?
+    # [ ] include errors to provoke an error report (multiple targets)
 
 def test_end():
     def remove_test_files():
