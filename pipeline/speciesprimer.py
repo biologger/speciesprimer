@@ -40,7 +40,6 @@ systemdirs = [
     "rRNA_control", "recA_control", "tuf_control",
     "dnaK_control", "pheS_control"]
 
-
 Entrez.tool = "SpeciesPrimer pipeline"
 
 
@@ -3138,7 +3137,6 @@ class PrimerQualityControl:
                         if accession not in remove:
                             remove.append(accession)
         check = set(qc_acc) - set(remove)
-        print(qc_acc, remove)
         check = list(check)
         check.sort()
         for item in check:
@@ -4383,6 +4381,8 @@ def main(mode=None):
                 "Error: " + str(time.ctime()))
             print(msg)
             print(exc)
+            import traceback
+            traceback.print_exc()
             G.logger(msg)
             errors.append([target, msg])
             logging.error(

@@ -78,23 +78,21 @@ def pqc(config):
     pqc = PrimerQualityControl(config, primer3dict)
     return pqc
 
-
-# functions run in parallel do not count for line coverage
-# test these functions here
-
-# primerQC
-#MFEprimer_template, MFEprimer_nontarget, MFEprimer_assembly, get_seq_fromDB
-# make_templateDB, make_assemblyDB
-
-
+@pytest.fixture
+def blapar(config):
+    from speciesprimer import BlastParser
+    blapar = BlastParser(config, results="primer")
+    return blapar
 
 def prepare_QC_testfiles(pqc, config):
     targetdir = os.path.join(config.path, config.target)
     fna_dir = os.path.join(targetdir, "fna_files")
-    G.create_directory(fna_dir)
-    G.create_directory(pqc.primer_qc_dir)
     qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences_ignoreqc.csv")
     qc_out = os.path.join(pqc.summ_dir, "Lb_curva_qc_sequences.csv")
+    G.create_directory(fna_dir)
+    G.create_directory(pqc.primer_qc_dir)
+    if os.path.isfile(qc_out):
+        os.remove(qc_out)
     if os.path.isdir(pqc.summ_dir):
         shutil.rmtree(pqc.summ_dir)
     G.create_directory(pqc.summ_dir)
@@ -119,23 +117,22 @@ def prepare_QC_testfiles(pqc, config):
         with open(outpath, "w") as o:
             SeqIO.write(mockfna, o, "fasta")
 
-
 def test_make_DBs(pqc, config):
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
-    tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences") 
+    tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     prepare_QC_testfiles(pqc, config)
     if pqc.collect_primer() == 0:
         primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
         pqc.make_assemblyDB(primer_qc_list)
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == True
-        assert os.path.isfile(tempDB) == True        
-#        # repeat do not write again       
+        assert os.path.isfile(tempDB) == True
+        # repeat do not write again
         pqc.make_assemblyDB(primer_qc_list)
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == True
         assert os.path.isfile(tempDB) == True
-#        # remove empty files
+        # remove empty files
         os.remove(genDB)
         os.remove(tempDB)
         assert os.path.isfile(genDB) == False
@@ -153,11 +150,11 @@ def test_make_DBs(pqc, config):
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == False
         assert os.path.isfile(tempDB) == False
-        
+
 def test_qc_nottrue(pqc, config):
-    confargs["ignore_qc"] == False  
+    confargs["ignore_qc"] == False
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
-    tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences") 
+    tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     primer_qc_list = []
     pqc.make_assemblyDB(primer_qc_list)
     pqc.make_templateDB(primer_qc_list)
@@ -169,8 +166,92 @@ def test_qc_nottrue(pqc, config):
     if os.path.isdir(pqc.summ_dir):
         shutil.rmtree(pqc.summ_dir)
 
+def primerBLAST(pqc, config):
+    from speciesprimer import BlastPrep
+    prepare_QC_testfiles(pqc, config)
+    G.create_directory(pqc.primerblast_dir)
+    prep = BlastPrep(
+    pqc.primerblast_dir, pqc.primerlist,
+    "primer", pqc.config.blastseqs)
+    use_cores, inputseqs = prep.run_blastprep()
+    reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
+    tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
+    shutil.copy(reffile, tofile)
 
-    
+    pqc.call_blastparser.run_blastparser("primer")
+    return inputseqs
+
+def prepare_blastdb(config):
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    G.create_directory(tmpdir)
+    config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
+    config.blastdbv5 = False
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        dbfile = os.path.join(tmpdir, "primer_customdb.fas")
+        with open(dbfile, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbfile
+
+    def create_customblastdb(config, infile):
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+
+    dbfile = dbinputfiles()
+    create_customblastdb(config, dbfile)
+
+def test_get_seq_from_DB(pqc, config, blapar):
+    config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
+    config.blastdbv5 = False
+    fasta_seqs = []
+    primerBLAST(pqc, config)
+    maxsize = 25000
+    part = 0
+    end = (part+1)*maxsize
+    db = config.customdb
+    prepare_blastdb(config)
+    primerBLAST(pqc, config)
+    with open(os.path.join(pqc.primerblast_dir, "nontargethits.json")) as f:
+        for line in f:
+            nonred_dict = json.loads(line)
+    nonreddata = blapar.sort_nontarget_sequences(nonred_dict)
+    data = nonreddata[part*maxsize:end]
+    data.sort()
+    for extract in data:
+        fasta = blapar.get_seq_fromDB(extract, db)
+        fasta_seqs.append(fasta)
+
+    assert fasta_seqs[0][0] == ">NZ_CP020459.1:1005699-1009917 Lactobacillus sakei strain FAM18311 chromosome, complete genome"
+    assert len(fasta_seqs) == 97
+
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) == False
+
+    remove_test_files(config)
 
 if __name__ == "__main__":
     print(msg)
