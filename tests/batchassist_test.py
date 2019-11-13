@@ -465,6 +465,20 @@ def test_autorun():
     compare_configfiles(reference_dict, configpath, "6")
     remove_tmp_db()
 
+def test_shellrun(monkeypatch):
+    conf1 = os.path.join(
+    "/", "primerdesign", "test", "Lactobacillus_curvatus", "config", "config.json")
+    conf2 = os.path.join(
+    "/", "primerdesign", "test", "Lactobacillus_curvatus", "config", "config.json")
+    test =  os.path.join("/", "primerdesign", "test")
+    if os.path.isdir(test):
+        shutil.rmtree(test)
+    monkeypatch.setattr('builtins.input', offline_input)
+    from speciesprimer import main
+    main()
+    assert os.path.isfile(conf1) == True
+    assert os.path.isfile(conf2) == True
+
 def test_end():
     def remove_test_files():
         test =  os.path.join("/", "primerdesign", "test")

@@ -164,9 +164,10 @@ class DataCollection():
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.fna_dir = os.path.join(self.target_dir, "fna_files")
+        self.contiglimit = 500
         self.ex_dir = os.path.join(
             self.config.path, "excludedassemblies", self.target)
-        self.contiglimit = 500
+
 
     def check_synomyms(self, taxid, email, target):
         Entrez.email = email
@@ -310,7 +311,9 @@ class DataCollection():
         if self.config.assemblylevel == ["offline"]:
             msg = "Skip download / Working offline"
             statmsg = "genome assemblies from NCBI: 0 (offline/skip download)"
-        info = str(len(link_list)) + msg
+            info = msg
+        else:
+            info = str(len(link_list)) + " " + msg
         print(info)
         G.logger("> " + info)
         PipelineStatsCollector(self.target_dir).write_stat(statmsg)
@@ -591,8 +594,9 @@ class DataCollection():
                         pass
                     else:
                         msg = (
-                            files + " has more than " + str(self.configlimit)
-                            + " and is removed before annotation")
+                            files + " has more than " + str(self.contiglimit)
+                            + " contigs and will be removed before annotation"
+                            "to include it in the run use the ignore_qc option")
                         print(msg)
                         G.logger(msg)
                         os.remove(filepath)
@@ -624,6 +628,11 @@ class DataCollection():
                     for item in syn:
                         if not item in exceptions:
                             exceptions.append(item)
+                elif isinstance(self.config.exception, list):
+                    exceptions = self.config.exception
+                    for item in syn:
+                        if not item in exceptions:
+                            exceptions.append(item)
                 else:
                     exceptions = [self.config.exception]
                     for item in syn:
@@ -646,7 +655,6 @@ class DataCollection():
                         filepath = os.path.join(self.genomic_dir, files)
                         G.run_subprocess(
                             ["gunzip", filepath], False, True, False)
-                        self.remove_max_contigs()
                 os.chdir(self.target_dir)
         else:
             G.create_directory(self.gff_dir)
@@ -659,6 +667,7 @@ class DataCollection():
                         ["gunzip", filepath], False, True, False)
             os.chdir(self.target_dir)
 
+        self.remove_max_contigs()
         self.create_GI_list()
         annotation_dirs, annotated = self.run_prokka()
         self.copy_genome_files()
@@ -1008,13 +1017,9 @@ class QualityControl:
                     print("\n" + error_msg + "\n")
                     G.logger("> " + error_msg)
                     errors.append([self.target, error_msg])
-                    try:
-                        result_handle.close()
-                        os.remove(file_name)
-                        print("removed " + file_name)
-                    except FileNotFoundError:
-                        pass
-
+                    result_handle.close()
+                    os.remove(file_name)
+                    print("removed " + file_name)
                     raise
 
                 for index, blast_record in enumerate(blast_record_list):
@@ -2225,13 +2230,9 @@ class BlastParser:
             print("\n" + error_msg + "\n")
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
-            try:
-                result_handle.close()
-                os.remove(filename)
-                print("removed " + filename)
-            except FileNotFoundError:
-                pass
-
+            result_handle.close()
+            os.remove(filename)
+            print("removed " + filename)
             raise
 
         return record_list
@@ -3188,7 +3189,7 @@ class PrimerQualityControl:
             if DBNAME == "template DB":
                 self.create_template_db(primerinfos)
             else:
-                self.create_assembly_db(db_name)            
+                self.create_assembly_db(db_name)
             msg2 = "index " + DBNAME
             G.logger("> " + msg2)
             print("\n" + msg2)
@@ -4267,7 +4268,8 @@ def main(mode=None):
 
     else:
         parser = commandline()
-        args = parser.parse_args()
+        # required for testing (ignore pytest arguments)
+        args, unknown = parser.parse_known_args()
         logfile = os.path.join(os.getcwd(), "speciesprimer_" + today + ".log")
         logging.basicConfig(
             filename=logfile, level=logging.DEBUG, format="%(message)s")

@@ -19,7 +19,6 @@ import shutil
 import pytest
 import json
 import time
-import logging
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -31,10 +30,6 @@ dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 dbpath = os.path.join(tmpdir, "customdb.fas")
 
-#            import traceback
-#            traceback.print_exc()
-
-from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
@@ -48,6 +43,12 @@ path = ("Please specify a path to use as the working directory "
             "or hit return to use the current working directory:\n")
 targets = (
     "Search for config files for (a)ll or (s)elect targets:\n")
+
+# full_run paths
+config_dir = os.path.join(
+    "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
+conffile = os.path.join(testfiles_dir, "fullrun_config.json")
+testconfig = os.path.join(config_dir, "config.json")
 
 def prepare_testfiles():
     G.create_directory(os.path.dirname(dbpath))
@@ -106,44 +107,44 @@ def start_oneinput(prompt):
     val = prompt_dict[prompt]
     return val
 
-def test_run(monkeypatch):
-    def prepare_files():
-        genomic_dir = os.path.join(
-                "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
-        if os.path.isdir(genomic_dir):
-            shutil.rmtree(genomic_dir)
-        G.create_directory(genomic_dir)
-        config_dir = os.path.join(
-            "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
-        G.create_directory(config_dir)
-        conffile = os.path.join(testfiles_dir, "fullrun_config.json")
-        testconfig = os.path.join(config_dir, "config.json")
-        shutil.copy(conffile, testconfig)
-        files = ["GCF_001981925v1_20190923.ffn", "GCF_003410375v1_20190923.ffn"]
-        ffn_files_dir = os.path.join(testfiles_dir, "ffn_files")
+def prepare_files():
+    genomic_dir = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
+    if os.path.isdir(genomic_dir):
+        shutil.rmtree(genomic_dir)
+    G.create_directory(genomic_dir)
+    G.create_directory(config_dir)
+    shutil.copy(conffile, testconfig)
+    files = ["GCF_001981925v1_20190923.ffn", "GCF_003410375v1_20190923.ffn"]
+    ffn_files_dir = os.path.join(testfiles_dir, "ffn_files")
 
-        for filename in files:
-            filepath = os.path.join(ffn_files_dir, filename)
-            sequences = []
-            with open(filepath) as f:
-                records = list(SeqIO.parse(f, "fasta"))
-            for record in records:
-                seq = str(record.seq)
-                sequences.append(seq)
-            newfilename = ".".join(filename.split(".ffn")[0].split("v")) + "_genomic.fna"
-            outpath = os.path.join(genomic_dir, newfilename)
-            mockfna = SeqRecord(
-                Seq("".join(sequences)),
-                id="MOCK_" + filename.split("_")[1],
-                name="MOCK_" + filename.split("_")[1],
-                description="Lactobacillus curvatus")
-            with open(outpath, "w") as o:
-                SeqIO.write(mockfna, o, "fasta")
+    for filename in files:
+        filepath = os.path.join(ffn_files_dir, filename)
+        sequences = []
+        with open(filepath) as f:
+            records = list(SeqIO.parse(f, "fasta"))
+        for record in records:
+            seq = str(record.seq)
+            sequences.append(seq)
+        newfilename = ".".join(filename.split(".ffn")[0].split("v")) + "_genomic.fna"
+        outpath = os.path.join(genomic_dir, newfilename)
+        mockfna = SeqRecord(
+            Seq("".join(sequences)),
+            id="MOCK_" + filename.split("_")[1],
+            name="MOCK_" + filename.split("_")[1],
+            description="Lactobacillus curvatus")
+        with open(outpath, "w") as o:
+            SeqIO.write(mockfna, o, "fasta")
+    maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
+    with open(maxcontig, "w") as f:
+        f.write(">GCF_007MOCKv1_file\n")
+        for i in range(0, 500):
+            f.write(">GCF_007MOCKv1_" + str(i) + "\n")
 
+def test_run():
     prepare_testfiles()
     prepare_files()
     os.chdir(os.path.join("/", "primerdesign"))
-    monkeypatch.setattr('builtins.input', start_oneinput)
     from speciesprimer import main
     main(mode="auto")
     summ_dir = os.path.join(
@@ -165,15 +166,41 @@ def test_run(monkeypatch):
     files.sort()
     ref_files.sort()
     assert files == ref_files
+    genomic_dir = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
+    maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
+    # compare primer results
+    assert os.path.isfile(maxcontig) == False
+
     # To do:
-    # [ ]open config file and change keep intermedaite files to False
-    # [ ] rerun on exisitng files
+    # [x] open config file and change keep intermedaite files to False
+    # [x] rerun on exisitng files
     # [ ] change also probe option
     # [ ] add excluded gis
     # [ ] test parallel functions non-parallel to get more covered lines
     # [ ] add no list option
     # [ ] include argparser/commandline function?
     # [ ] include errors to provoke an error report (multiple targets)
+    # [ ] add more sequences to BLASTDB (target_seqs) to test partial, exception and excluded GIs (faster)
+
+def test_remove_intermediate_files(monkeypatch):
+    pandir = os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
+    with open(testconfig) as f:
+        for line in f:
+            confdict = json.loads(line)
+    confdict.update({"intermediate": False})
+    confdict.update({"qc_gene": ["tuf"]})
+    confdict.update({"ignore_qc": True})
+    with open(testconfig, "w") as f:
+        f.write(json.dumps(confdict))
+    if os.path.isdir(pandir):
+        shutil.rmtree(pandir)
+    monkeypatch.setattr('builtins.input', start_oneinput)
+    from speciesprimer import main
+    main()
+    # assert that only two mfold files are present
+
 
 def test_end():
     def remove_test_files():

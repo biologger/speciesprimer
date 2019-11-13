@@ -573,6 +573,17 @@ def test_QualityControl(config):
         else:
             assert passed == []
 
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        corrfile = os.path.join(testfiles_dir, "rRNA_0_results_err.xml")
+        errfile = os.path.join(qc_dir, "rRNA_0_results.xml")
+        if os.path.isfile(errfile):
+            os.remove(errfile)
+        shutil.copy(corrfile, errfile)
+        with pytest.raises(Exception):
+            passed = QC.qc_blast_parser(qc_gene)
+        assert os.path.isfile(errfile) == False
+
+
     def test_remove_qc_failures():
         delete = QC.remove_qc_failures(qc_gene)
         fna_files = os.path.join(QC.ex_dir, "fna_files")
@@ -871,8 +882,23 @@ def test_BLASTsettings(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 
-#def test_blastparser(config):
-#    from speciesprimer import BlastParser
+def test_blastparser(config):
+    corrfile = os.path.join(testfiles_dir, "conserved_0_results_err.xml")
+    from speciesprimer import BlastParser
+    from speciesprimer import CoreGeneSequences
+    blapa = BlastParser(config)
+    nontarg = os.path.join(blapa.blast_dir, "nontargethits.json")
+    errfile = os.path.join(blapa.blast_dir, "conserved_0_results.xml")
+    if os.path.isfile(nontarg):
+        os.remove(nontarg)
+    if os.path.isfile(errfile):
+        os.remove(errfile)
+    shutil.copy(corrfile, errfile)
+    conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
+    with pytest.raises(Exception):
+        blapa.run_blastparser(conserved_seq_dict)
+    assert os.path.isfile(errfile) == False
+
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
 #    primer blastparser function
 #    get_primerBLAST_DBIDS(self, nonred_dict)
