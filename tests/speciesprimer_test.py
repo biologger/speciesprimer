@@ -296,7 +296,7 @@ def test_DataCollection(config, monkeypatch):
 
         config.exception = ['Lactobacillus curvatus', 'Bacterium_curvatum']
         dc = DataCollection(config)
-        syn = ""
+        syn = None
         exceptions = dc.add_synonym_exceptions(syn)
 #        assert exceptions ==
 
@@ -669,17 +669,6 @@ def test_QualityControl(config):
         shutil.rmtree(tmpdir)
     if os.path.isdir(QC.ex_dir):
         shutil.rmtree(QC.ex_dir)
-
-def test_roary_is_installed():
-    cmd = "roary --w"
-    lines = G.read_shelloutput(cmd)
-    assert lines[1] == "3.12.0"
-
-def test_fasttree_is_installed():
-    ### This test will always fail if the pytest -s option is used
-    cmd = "fasttree"
-    lines = G.read_shelloutput(cmd)
-    assert lines[0][0:16] == "FastTree Version"
 
 def test_skip_pangenome_analysis(config):
     from speciesprimer import PangenomeAnalysis

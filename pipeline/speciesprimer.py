@@ -559,7 +559,7 @@ class DataCollection():
                         msg = (
                             files + " has more than " + str(self.contiglimit)
                             + " contigs and will be removed before annotation"
-                            "to include it in the run use the ignore_qc option")
+                            " to include it in the run use the ignore_qc option")
                         print(msg)
                         G.logger(msg)
                         os.remove(filepath)
