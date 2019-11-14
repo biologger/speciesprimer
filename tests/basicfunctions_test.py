@@ -6,6 +6,7 @@ import sys
 import shutil
 import pytest
 import json
+from Bio import Entrez
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
@@ -14,11 +15,11 @@ dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 dbpath = os.path.join(tmpdir, "customdb.fas")
 
-#            import traceback
-#            traceback.print_exc()
-
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
+
+testfiles_dir = os.path.join(BASE_PATH, "testfiles")
+ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
 def prepare_tmp_db():
     t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
@@ -137,9 +138,98 @@ def test_subspecies_handler():
             assert species == outcome[outnum]
             outnum += 1
 
+def test_check_input(monkeypatch):
+    def mock_taxid(db, term):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock01.xml")
+        f = open(mockfile)
+        return f
+    target = "Lactobacillus_curvatus"
+    email = "biologger@protonmail.com"
+    monkeypatch.setattr(Entrez, "esearch", mock_taxid)
+    taxid = H.check_input(target, email)
+    assert taxid == str(28038)
+    
 def test_check_input_fail(monkeypatch):
-    taxid = H.check_input("Lactobacius_curvatus", "biologger@protonmail.com")
+    def mock_taxid(db, term):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock02.xml")
+        f = open(mockfile)
+        return f
+    target = "Lactobacious_curvatus"
+    email = "biologger@protonmail.com"
+    monkeypatch.setattr(Entrez, "esearch", mock_taxid)
+    taxid = H.check_input(target, email)
     assert taxid == None
+    
+def test_check_synomyms(monkeypatch):
+    def mock_syn(db, id):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock01.xml")
+        f = open(mockfile)
+        return f
+    target = "Lactobacillus_curvatus"
+    email = "biologger@protonmail.com"
+    taxid = str(28038)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)
+    assert syn == [
+        'Bacterium curvatum', 'Lactobacillus curvatus subsp. curvatus', 
+        'Lactobacillus sp. N55', 'Lactobacillus sp. N61']
+
+def test_check_synomyms_target_sc(monkeypatch):
+    def mock_syn(db, id):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock04.xml")
+        f = open(mockfile)
+        return f
+    target = "Chlamydophila pneumoniae"
+    email = "biologger@protonmail.com"
+    taxid = str(28038)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)
+    assert syn == ['Chlamydia pneumoniae']
+    target = 'Chlamydia pneumoniae'
+    email = "biologger@protonmail.com"
+    taxid = str(28038)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)
+    assert syn == ["Chlamydophila pneumoniae"]
+
+def test_check_synomyms_none(monkeypatch):
+    def mock_syn(db, id):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock02.xml")
+        f = open(mockfile)
+        return f
+    # not relevant since return is mocked
+    target = "Lactobacillus_curvatus"
+    email = "biologger@protonmail.com"
+    taxid = str(28038)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)
+    assert syn == None
+    
+def test_check_synonyms_nosyn(monkeypatch):
+    def mock_syn(db, id):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock03.xml")
+        f = open(mockfile)
+        return f
+    # not relevant since return is mocked
+    target = "Lactobacillus_wasatchensis"
+    email = "biologger@protonmail.com"
+    taxid = str(1335616)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)  
+    assert syn == ['Lactobacillus sp. WDC04']
+
+def test_check_synonyms_nonesyn(monkeypatch):
+    def mock_syn(db, id):
+        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock05.xml")
+        f = open(mockfile)
+        return f
+    # not relevant since return is mocked
+    target = "Lactobacillus_curvatus"
+    email = "biologger@protonmail.com"
+    taxid = str(28038)
+    monkeypatch.setattr(Entrez, "efetch", mock_syn)
+    syn = H.check_synomyms(taxid, email, target)  
+    assert syn == None
 
 def test_create_non_target_list():
     targetdef = []

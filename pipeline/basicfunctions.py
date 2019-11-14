@@ -188,6 +188,7 @@ class GeneralFunctions:
         print("\n" + msg + "\n")
         GeneralFunctions().logger(msg)
 
+
 class HelperFunctions:
 
     @staticmethod
@@ -255,7 +256,6 @@ class HelperFunctions:
             name = geni+"_"+spec
         return name
 
-
     @staticmethod
     def check_input(target, email):
         GeneralFunctions().logger("Run: check_input()")
@@ -267,7 +267,8 @@ class HelperFunctions:
             if len(taxid) == 1:
                 return taxid[0]
             else:
-                info = "No taxid was found on NCBI"
+                error = taxidresult['ErrorList']
+                info = "No taxid was found on NCBI\nError: " + str(error)
                 print(info)
                 GeneralFunctions().logger("> " + info)
         except OSError:
@@ -278,6 +279,38 @@ class HelperFunctions:
             GeneralFunctions().logger("> " + info)
             time.sleep(2)
             raise
+
+    @staticmethod
+    def check_synomyms(taxid, email, target):
+        Entrez.email = email
+        searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
+        synresult = Entrez.read(searchsyn)
+        scienctificname = synresult[0]['ScientificName']
+        synonym = synresult[0]['OtherNames']['Synonym']
+        includes = synresult[0]['OtherNames']['Includes']
+        synonyms = synonym + includes
+        if synonyms == []:
+            return None
+        else:
+            synwarn = []
+            target_name = " ".join(target.split("_"))
+            if not target_name == scienctificname:
+                synwarn.append(scienctificname)
+            for item in synonyms:
+                if not item == target_name:
+                    synwarn.append(item)
+            if synwarn == []:
+                return None
+            else:
+                info = ("Warning synonyms for this species were found...")
+                info2 = ("Adding synonyms to exception in config.json.")
+                print("\n" + info)
+                print(synwarn)
+                print(info2 + "\n")
+                GeneralFunctions().logger("> " + info)
+                GeneralFunctions().logger(synwarn)
+                GeneralFunctions().logger("> " + info2)
+                return synwarn
 
     @staticmethod
     def get_email_for_Entrez(email=None):
