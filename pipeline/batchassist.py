@@ -215,11 +215,7 @@ class Input:
                     print("only one species allowed")
                     self.get_exception(target, index, listlen)
                 else:
-                    if " " in inexception:
-                        exception = "_".join(inexception.split(" "))
-                    else:
-                        exception = inexception
-
+                    exception = inexception
                     if index == 0:
                         if not self.value_for_all("exception", exception, listlen):
                             self.config_dict[target].update({"exception": exception})

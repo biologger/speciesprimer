@@ -395,7 +395,7 @@ def test_not_valid_input(monkeypatch):
         monkeypatch.setattr('builtins.input', mock.prompt_input)
         conf_from_file = Config()
         configpath = get_config_from_file(conf_from_file)[0]
-        compare_configfiles(reference_dict, configpath, "3")
+        compare_configfiles(reference_dict, configpath, "7")
         if os.path.isfile(configpath):
             os.remove(configpath)
     finally:
