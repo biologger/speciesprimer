@@ -7,6 +7,7 @@ import subprocess
 import os
 import csv
 import json
+import shutil
 import concurrent.futures
 from Bio import Entrez
 
@@ -150,6 +151,42 @@ class GeneralFunctions:
                     writer.writerow(header)
             writer.writerows(inputlist)
 
+    @staticmethod
+    def rollback(stage, fp=None, dp=None, fn=None, search=None):
+        logging.error("KeyboardInterrupt during " + stage, exc_info=True)
+        msg = "No files affected"
+        if dp and fn:
+            fp = os.path.join(dp, fn)
+            if os.path.isfile(fp):
+                os.remove(fp)
+                msg = "Remove " + fp
+        elif dp and fp:
+            if os.path.isdir(dp):
+                shutil.rmtree(dp)
+            else:
+                dp = ""
+            if os.path.isfile(fp):
+                os.remove(fp)
+            else:
+                fp = ""
+            msg = "Remove " + dp + " " + fp
+        elif dp and search:
+            deleted = []
+            for files in os.listdir(dp):
+                if files.startswith(search):
+                    filepath = os.path.join(dp, files)
+                    os.remove(filepath)
+                    deleted.append(files)
+            msg = "Remove " + " ".join(deleted)
+        elif fp:
+            if os.path.isfile(fp):
+                os.remove(fp)
+        else:
+            if os.path.isdir(dp):
+                shutil.rmtree(dp)
+                msg = "Remove " + dp
+        print("\n" + msg + "\n")
+        GeneralFunctions().logger(msg)
 
 class HelperFunctions:
 

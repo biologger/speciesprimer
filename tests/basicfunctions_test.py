@@ -151,3 +151,114 @@ def test_create_non_target_list():
             item == "Lactococcus lactis subsp lactis"):
             targetdef.append(item)
     assert targetdef == []
+
+def test_rollback():
+    testdir = os.path.join("/", "primerdesign", "tests")
+    target_dir = os.path.join(testdir, "Lactobacillus_curvatus")
+    pangenome_dir = os.path.join(target_dir, "Pangenome")
+    results_dir = os.path.join(pangenome_dir, "results")
+    alignments_dir = os.path.join(results_dir, "alignments")
+    consensus_dir = os.path.join(results_dir, "consensus")
+    primer_dir = os.path.join(results_dir, "primer")
+    primer_qc_dir = os.path.join(primer_dir, "primer_QC")
+    blast_dir = os.path.join(results_dir, "blast")
+    primerblast_dir = os.path.join(primer_dir, "primerblast")
+    G.create_directory(primerblast_dir)
+    G.create_directory(alignments_dir)
+    G.create_directory(consensus_dir)
+    G.create_directory(blast_dir)
+    G.create_directory(primer_qc_dir)
+
+    # annotation
+    annotdir = "GCF_902362325v1_20191114"
+    G.create_directory(os.path.join(target_dir, annotdir))
+    outdir = annotdir
+    assert os.path.isdir(os.path.join(target_dir, annotdir)) == True
+    G.rollback("annotation", dp=os.path.join(target_dir, outdir))
+    assert os.path.isdir(os.path.join(target_dir, annotdir)) == False
+    # p3
+    p3_file = os.path.join(primer_dir, "primer3_output")
+    output_file = p3_file
+    with open(p3_file, "w") as f:
+        f.write("PRIMER3MOCK")
+    assert os.path.isfile(p3_file) == True
+    G.rollback("primer3 run", fp=output_file)
+    assert os.path.isfile(p3_file) == False
+    # alignments
+    run_file = os.path.join(results_dir, "run_prank")
+    with open(run_file, "w") as f:
+        f.write("PRANK MSA MOCK")
+    assert os.path.isfile(run_file) == True
+    G.rollback("Prank MSA run", dp=alignments_dir, fp=run_file)
+    assert os.path.isfile(run_file) == False
+    assert os.path.isdir(alignments_dir) == False
+    # consensus
+    run_file = os.path.join(results_dir, "run_consensus")
+    with open(run_file, "w") as f:
+        f.write("CONSAMBIG MOCK")
+    assert os.path.isfile(run_file) == True
+    G.rollback("consensus run", dp=consensus_dir, fp=run_file)
+    assert os.path.isfile(run_file) == False
+    assert os.path.isdir(consensus_dir) == False
+    # dp only
+    run_file = os.path.join(results_dir, "run_consensus")
+    G.create_directory(consensus_dir)
+    assert os.path.isfile(run_file) == False
+    G.rollback("consensus run", dp=consensus_dir, fp=run_file)
+    assert os.path.isfile(run_file) == False
+    assert os.path.isdir(consensus_dir) == False
+    # fp only
+    run_file = os.path.join(results_dir, "run_consensus")
+    with open(run_file, "w") as f:
+        f.write("CONSAMBIG MOCK")
+    G.rollback("consensus run", dp=consensus_dir, fp=run_file)
+    assert os.path.isfile(run_file) == False
+    assert os.path.isdir(consensus_dir) == False
+    # DB extraction
+    filename = "BLASTnontarget0.sequences"
+    filepath = os.path.join(primer_qc_dir, filename)
+    with open(filepath, "w") as f:
+        f.write("DB extract Mock")
+    assert os.path.isfile(filepath) == True
+    G.rollback("DB extraction", fp=filepath)
+    assert os.path.isfile(filepath) == False
+    # blast
+    directory = blast_dir
+    blastfile = "conserved_0_results.xml"
+    filepath = os.path.join(blast_dir, blastfile)
+    with open(filepath, "w") as f:
+        f.write("BLAST MOCK")
+    filename = blastfile
+    assert os.path.isfile(filepath) == True
+    G.rollback("BLAST search", dp=directory, fn=filename)
+    assert os.path.isfile(filepath) == False
+    # primerblast
+    directory = primerblast_dir
+    primerblastfile = "primer_0_results.xml"
+    filepath = os.path.join(primerblast_dir, primerblastfile)
+    with open(filepath, "w") as f:
+        f.write("PRIMERBLAST MOCK")
+    filename = primerblastfile
+    assert os.path.isfile(filepath) == True
+    G.rollback("BLAST search", dp=directory, fn=filename)
+    assert os.path.isfile(filepath) == False
+    # DB indexing
+    dbfiles = [
+        "Lb_curva.genomic", "Lb_curva.genomic.sqlite3.db",
+        "Lb_curva.genomic.uni", "Lb_curva.genomic.2bit"]
+    for files in dbfiles:
+        filepath = os.path.join(primer_qc_dir, files)
+        with open(filepath, "w") as f:
+            f.write(files + " Mock")
+        assert os.path.isfile(filepath) == True
+    db_name = "Lb_curva.genomic"
+    G.rollback("DB indexing", dp=primer_qc_dir, search=db_name)
+    for files in dbfiles:
+        filepath = os.path.join(primer_qc_dir, files)
+        assert os.path.isfile(filepath) == False
+    # pangenome
+    assert os.path.isdir(pangenome_dir) == True
+    G.rollback("pan-genome analysis", dp=pangenome_dir)
+    assert os.path.isdir(pangenome_dir) == False
+
+    shutil.rmtree(testdir)
