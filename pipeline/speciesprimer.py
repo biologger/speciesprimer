@@ -168,45 +168,14 @@ class DataCollection():
         self.ex_dir = os.path.join(
             self.config.path, "excludedassemblies", self.target)
 
-
-    def check_synomyms(self, taxid, email, target):
-        Entrez.email = email
-        searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
-        synresult = Entrez.read(searchsyn)
-        scienctificname = synresult[0]['ScientificName']
-        synonyms = synresult[0]['OtherNames']['Synonym']
-        if synonyms == []:
-            return None
-        else:
-            synwarn = []
-            target_name = " ".join(target.split("_"))
-            if not target_name == scienctificname:
-                synwarn.append(scienctificname)
-            for item in synonyms:
-                if not item == target_name:
-                    exception = '_'.join(item.split(" "))
-                    synwarn.append(exception)
-
-            if synwarn == []:
-                return None
-            else:
-                info = (
-                    "Warning synonyms for this species were found...")
-                info2 = (
-                    "Adding synonyms to exception in config.json.")
-                print("\n" + info)
-                print(synwarn)
-                print(info2 + "\n")
-                G.logger("> " + info)
-                G.logger(synwarn)
-                G.logger("> " + info2)
-                return synwarn
-
     def get_taxid(self, target):
         Entrez.email = H.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
-        syn = self.check_synomyms(taxid, Entrez.email, target)
-        return syn, taxid
+        if taxid:
+            syn = H.check_synomyms(taxid, Entrez.email, target)
+            return syn, taxid
+        else:
+            return None, None
 
     def prepare_dirs(self):
         G.create_directory(self.target_dir)
@@ -595,7 +564,7 @@ class DataCollection():
                         G.logger(msg)
                         os.remove(filepath)
 
-    def collect(self):
+    def add_synonym_exceptions(self, syn):
         def update_configfile(exception):
             conffile = os.path.join(self.config_dir, "config.json")
             with open(conffile) as f:
@@ -605,6 +574,27 @@ class DataCollection():
             with open(conffile, "w") as f:
                 f.write(json.dumps(config_dict))
 
+        if self.config.exception == None:
+            exceptions = []
+            for item in syn:
+                if not item in exceptions:
+                    exceptions.append(item)
+        elif isinstance(self.config.exception, list):
+            exceptions = self.config.exception
+            for item in syn:
+                if not item in exceptions:
+                    exceptions.append(item)
+        else:
+            exceptions = [self.config.exception]
+            for item in syn:
+                if not item in exceptions:
+                    exceptions.append(item)
+
+        update_configfile(exceptions)
+        self.config.exception = exceptions
+        return exceptions
+
+    def collect(self):
         G.logger("Run: collect data(" + self.target + ")")
         self.prepare_dirs()
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
@@ -617,24 +607,7 @@ class DataCollection():
                 error_msg = "No taxid was found on NCBI check spelling and internet connection"
                 errors.append([self.target, error_msg])
             if syn:
-                if self.config.exception == None:
-                    exceptions = []
-                    for item in syn:
-                        if not item in exceptions:
-                            exceptions.append(item)
-                elif isinstance(self.config.exception, list):
-                    exceptions = self.config.exception
-                    for item in syn:
-                        if not item in exceptions:
-                            exceptions.append(item)
-                else:
-                    exceptions = [self.config.exception]
-                    for item in syn:
-                        if not item in exceptions:
-                            exceptions.append(item)
-
-                update_configfile(exceptions)
-                self.config.exception = exceptions
+                self.add_synonym_exceptions(syn)
 
             self.create_taxidlist(taxid)
             self.get_ncbi_links(taxid)

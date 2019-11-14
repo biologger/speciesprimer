@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"  ?>
+<!DOCTYPE eSummaryResult PUBLIC "-//NLM//DTD esummary assembly 20180216//EN" "https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20180216/esummary_assembly.dtd">
+<eSummaryResult>
+
+<DocumentSummarySet status="OK">
+<DbBuild>Build191113-1740.1</DbBuild>
+
+<DocumentSummary uid="4416701">
+	<RsUid>13442058</RsUid>
+	<GbUid>13386898</GbUid>
+	<AssemblyAccession>GCF_902362325.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_902362325.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>902362325</ChainId>
+	<AssemblyName>MGYG-HGUT-00020</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Scaffold</AssemblyStatus>
+	<WGS>CABIVZ01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJEB33885</BioprojectAccn>
+			<BioprojectId>559126</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMEA5849521</BioSampleAccn>
+	<BioSampleId>12518472</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate>MGYG-HGUT-00020</Isolate>
+	</Biosource>
+	<Coverage>10</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>13442048</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/08/24 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/08/27 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/08/22 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/08/28 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/08/22 00:00</SubmissionDate>
+	<LastUpdateDate>2019/08/28 00:00</LastUpdateDate>
+	<SubmitterOrganization>EMG</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_902362325.1</Genbank>
+		<RefSeq>GCF_902362325.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>39114</ContigN50>
+	<ScaffoldN50>42986</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/902/362/325/GCA_902362325.1_MGYG-HGUT-00020</FtpPath_GenBank>
+	<FtpPath_RefSeq>file:///primerdesign/tmp/download/GCF_902362325.1_MGYG-HGUT-00020</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5X9999608859023623259898</SortOrder>
+	<Meta><![CDATA[ <Stats> <Stat category="alt_loci_count" sequence_tag="all">0</Stat> <Stat category="chromosome_count" sequence_tag="all">0</Stat> <Stat category="contig_count" sequence_tag="all">101</Stat> <Stat category="contig_l50" sequence_tag="all">15</Stat> <Stat category="contig_n50" sequence_tag="all">39114</Stat> <Stat category="non_chromosome_replicon_count" sequence_tag="all">0</Stat> <Stat category="replicon_count" sequence_tag="all">0</Stat> <Stat category="scaffold_count" sequence_tag="all">95</Stat> <Stat category="scaffold_count" sequence_tag="placed">0</Stat> <Stat category="scaffold_count" sequence_tag="unlocalized">0</Stat> <Stat category="scaffold_count" sequence_tag="unplaced">95</Stat> <Stat category="scaffold_l50" sequence_tag="all">13</Stat> <Stat category="scaffold_n50" sequence_tag="all">42986</Stat> <Stat category="total_length" sequence_tag="all">1925070</Stat> <Stat category="ungapped_length" sequence_tag="all">1923678</Stat> </Stats> <FtpSites>   <FtpPath type="Assembly_rpt">ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_report.txt</FtpPath>   <FtpPath type="GenBank">ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/902/362/325/GCA_902362325.1_MGYG-HGUT-00020</FtpPath>   <FtpPath type="RefSeq">ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020</FtpPath>   <FtpPath type="Stats_rpt">ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_stats.txt</FtpPath> </FtpSites> <assembly-level>8</assembly-level> <assembly-status>Scaffold</assembly-status> <representative-status>na</representative-status> <submitter-organization>EMG</submitter-organization>    ]]></Meta>
+</DocumentSummary>
+
+</DocumentSummarySet></eSummaryResult>

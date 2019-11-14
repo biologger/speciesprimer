@@ -22,6 +22,7 @@ import json
 import time
 import csv
 from Bio import SeqIO
+from Bio import Entrez
 
 # /tests
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -241,6 +242,15 @@ def clean_before_tests(config):
 
 def test_DataCollection(config, monkeypatch):
     clean_before_tests(config)
+
+    downdir = os.path.join(tmpdir, "download", "GCF_902362325.1_MGYG-HGUT-00020")
+    G.create_directory(downdir)
+    genomefile = os.path.join(
+        testfiles_dir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
+    downfile = os.path.join(downdir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
+    shutil.copy(genomefile, downfile)
+    assert os.path.isfile(downfile)
+    
     from speciesprimer import DataCollection
     DC = DataCollection(config)
 
@@ -248,31 +258,47 @@ def test_DataCollection(config, monkeypatch):
         email = H.get_email_for_Entrez()
         assert email == "biologger@protonmail.com"
 
-    def internet_connection():
-        from urllib.request import urlopen
-        try:
-            response = urlopen('https://www.google.com/', timeout=5)
-            return True
-        except Exception as exc:
-            print("No internet connection!!! Skip online tests")
-            print(exc)
-            return False
+    def test_get_taxid(target, monkeypatch):
+        def mock_taxid(db, term):
+            mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock01.xml")
+            f = open(mockfile)
+            return f
+        def mock_syn(db, id):
+            mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock01.xml")
+            f = open(mockfile)
+            return f
 
-    def test_get_taxid(target):
-        config.target = "Lactobacillus_wasatchensis"
-        dc = DataCollection(config)
-        syn, taxid = dc.get_taxid(config.target)
-        assert syn == None
-        assert taxid == str(1335616)
-        config.target = "Chlamydia_pneumoniae"
-        dc = DataCollection(config)
-        syn, taxid = dc.get_taxid(config.target)
-        assert syn == ['Chlamydophila_pneumoniae']
-        assert taxid == str(83558)
-        config.target = "Lactobacillus_curvatus"
+        monkeypatch.setattr(Entrez, "esearch", mock_taxid)
+        monkeypatch.setattr(Entrez, "efetch", mock_syn)
         syn, taxid = DC.get_taxid(target)
         assert taxid == str(28038)
-        assert syn == ["Bacterium_curvatum"]
+        assert syn == [
+            'Bacterium curvatum', 'Lactobacillus curvatus subsp. curvatus',
+            'Lactobacillus sp. N55', 'Lactobacillus sp. N61']
+
+        # get_taxid fails
+        def mock_taxid(db, term):
+            mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock02.xml")
+            f = open(mockfile)
+            return f
+
+        monkeypatch.setattr(Entrez, "esearch", mock_taxid)
+        syn, taxid = DC.get_taxid(target)
+        assert taxid == None
+
+    def test_syn_exceptions():
+        # standard case
+        config.target = "Lactobacillus_curvatus"
+        config.exception = None
+        dc = DataCollection(config)
+        syn = ['Bacterium_curvatum']
+        exceptions = dc.add_synonym_exceptions(syn)
+
+        config.exception = ['Lactobacillus curvatus', 'Bacterium_curvatum']
+        dc = DataCollection(config)
+        syn = ""
+        exceptions = dc.add_synonym_exceptions(syn)
+#        assert exceptions ==
 
     def test_create_GI_list():
         filepath = os.path.join(DC.config_dir, "no_blast.gi")
@@ -306,13 +332,23 @@ def test_DataCollection(config, monkeypatch):
         with pytest.raises(urllib.error.HTTPError):
             DC.ncbi_download()
 
-    def test_ncbi_download(taxid):
+    def test_ncbi_download(taxid, monkeypatch):
+        def mock_getsummary(db, term, retmax):
+            mockfile = os.path.join(testfiles_dir, "entrezmocks", "getsummarymock.xml")
+            f = open(mockfile)
+            return f
+        def mock_getlinks(db, id, rettype, retmode):
+            mockfile = os.path.join(testfiles_dir, "entrezmocks", "getlinksmock.xml")
+            f = open(mockfile)
+            return f
+        
+        monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
+        monkeypatch.setattr(Entrez, "efetch", mock_getlinks)
+        
         DC.get_ncbi_links(taxid, 1)
+        DC.ncbi_download()
         filepath= os.path.join(
             DC.target_dir, "genomic_fna", "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
-        # create the file
-        with open(filepath, "w") as f:
-            f.write(">Mock Genome assembly\nATGTAGATCAGATCAGAGCATCGCAT")
         # will not download the file a second time because it is already extracted
         time.sleep(2)
         DC.ncbi_download()
@@ -335,7 +371,6 @@ def test_DataCollection(config, monkeypatch):
         shutil.rmtree(fna)
         G.create_directory(fna)
         os.chdir(config.path)
-
 
     def test_prokka_is_installed():
         cmd = "prokka --citation"
@@ -374,9 +409,8 @@ def test_DataCollection(config, monkeypatch):
 
     test_get_email_from_config(config)
     DC.prepare_dirs()
-    if internet_connection() == True:
-        test_get_taxid(config.target)
-        test_ncbi_download(taxid="28038")
+    test_get_taxid(config.target, monkeypatch)
+    test_ncbi_download("28038", monkeypatch)
     test_create_GI_list()
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)

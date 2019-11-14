@@ -176,12 +176,12 @@ def test_run():
     # [x] open config file and change keep intermedaite files to False
     # [x] rerun on exisitng files
     # [ ] change also probe option
-    # [ ] add excluded gis
-    # [ ] test parallel functions non-parallel to get more covered lines
+    # [x] test parallel functions non-parallel to get more covered lines
     # [ ] add no list option
-    # [ ] include argparser/commandline function?
+    # [x] include argparser/commandline function
     # [ ] include errors to provoke an error report (multiple targets)
     # [ ] add more sequences to BLASTDB (target_seqs) to test partial, exception and excluded GIs (faster)
+    # [ ] test G.rollback function
 
 def test_remove_intermediate_files(monkeypatch):
     pandir = os.path.join(
