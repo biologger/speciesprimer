@@ -31,6 +31,7 @@ tmpdir = os.path.join("/", "primerdesign", "tmp")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
+from basicfunctions import ParallelFunctions as P
 from speciesprimer import PrimerQualityControl
 
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
@@ -123,12 +124,12 @@ def test_make_DBs(pqc, config):
     prepare_QC_testfiles(pqc, config)
     if pqc.collect_primer() == 0:
         primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
-        pqc.make_assemblyDB(primer_qc_list)
+        pqc.make_assemblyDB()
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == True
         assert os.path.isfile(tempDB) == True
         # repeat do not write again
-        pqc.make_assemblyDB(primer_qc_list)
+        pqc.make_assemblyDB()
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == True
         assert os.path.isfile(tempDB) == True
@@ -146,7 +147,7 @@ def test_make_DBs(pqc, config):
         qc_out = os.path.join(pqc.summ_dir, "Lb_curva_qc_sequences.csv")
         os.remove(qc_out)
         primer_qc_list = []
-        pqc.make_assemblyDB(primer_qc_list)
+        pqc.make_assemblyDB()
         pqc.make_templateDB(primer_qc_list)
         assert os.path.isfile(genDB) == False
         assert os.path.isfile(tempDB) == False
@@ -156,7 +157,7 @@ def test_qc_nottrue(pqc, config):
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     primer_qc_list = []
-    pqc.make_assemblyDB(primer_qc_list)
+    pqc.make_assemblyDB()
     pqc.make_templateDB(primer_qc_list)
     assert os.path.isfile(genDB) == False
     assert os.path.isfile(tempDB) == False
@@ -177,8 +178,6 @@ def primerBLAST(pqc, config):
     reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
     tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
     shutil.copy(reffile, tofile)
-
-    pqc.call_blastparser.run_blastparser("primer")
     return inputseqs
 
 def prepare_blastdb(config):
@@ -226,6 +225,11 @@ def test_get_seq_from_DB(pqc, config, blapar):
     db = config.customdb
     prepare_blastdb(config)
     primerBLAST(pqc, config)
+
+    filename = "BLASTnontarget0.sequences"
+    filepath = os.path.join(pqc.primer_qc_dir, filename)
+    if os.path.isfile(filepath):
+        os.remove(filepath)
     with open(os.path.join(pqc.primerblast_dir, "nontargethits.json")) as f:
         for line in f:
             nonred_dict = json.loads(line)
@@ -233,11 +237,22 @@ def test_get_seq_from_DB(pqc, config, blapar):
     data = nonreddata[part*maxsize:end]
     data.sort()
     for extract in data:
-        fasta = blapar.get_seq_fromDB(extract, db)
+        fasta = P.get_seq_fromDB(extract, db)
         fasta_seqs.append(fasta)
 
-    assert fasta_seqs[0][0] == ">NZ_CP020459.1:1005699-1009917 Lactobacillus sakei strain FAM18311 chromosome, complete genome"
+    assert fasta_seqs[0][0] == ">NZ_CP020459.1:29608-33608 Lactobacillus sakei strain FAM18311 chromosome, complete genome"
     assert len(fasta_seqs) == 97
+
+def test_parallel(pqc, config, blapar):
+    filename = "BLASTnontarget0.sequences"
+    filepath = os.path.join(pqc.primer_qc_dir, filename)
+    if os.path.isfile(filepath):
+        os.remove(filepath)
+    with open(os.path.join(pqc.primerblast_dir, "nontargethits.json")) as f:
+        for line in f:
+            nonred_dict = json.loads(line)
+    blapar.get_primerBLAST_DBIDS(nonred_dict)
+    assert os.path.isfile(filepath) == True
 
 def test_end(config):
     def remove_test_files(config):

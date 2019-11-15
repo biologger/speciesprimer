@@ -311,7 +311,6 @@ def test_compare_md5_archive():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_compare_md5_files_witharchive():
@@ -330,7 +329,6 @@ def test_compare_md5_files_witharchive():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_compare_md5_archive_changed():
@@ -354,7 +352,6 @@ def test_compare_md5_archive_changed():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_compare_corrupted_md5():
@@ -379,7 +376,6 @@ def test_compare_corrupted_md5():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_compare_md5_files():
@@ -397,7 +393,6 @@ def test_compare_md5_files():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_getblastdb_auto():
@@ -409,7 +404,6 @@ def test_getblastdb_auto():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 def test_badrequest(monkeypatch):
@@ -432,8 +426,8 @@ def test_badrequest(monkeypatch):
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
+    assert os.path.isdir(tmpdir) == False
 
 if __name__ == "__main__":
     print(msg)

@@ -10,6 +10,8 @@ import json
 import shutil
 import concurrent.futures
 from Bio import Entrez
+import tempfile
+from collections import Counter
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
@@ -152,7 +154,7 @@ class GeneralFunctions:
             writer.writerows(inputlist)
 
     @staticmethod
-    def rollback(stage, fp=None, dp=None, fn=None, search=None):
+    def keyexit_rollback(stage, fp=None, dp=None, fn=None, search=None):
         logging.error("KeyboardInterrupt during " + stage, exc_info=True)
         msg = "No files affected"
         if dp and fn:
@@ -281,7 +283,7 @@ class HelperFunctions:
             raise
 
     @staticmethod
-    def check_synomyms(taxid, email, target):
+    def check_species_syn(taxid, email, target):
         Entrez.email = email
         searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
         synresult = Entrez.read(searchsyn)
@@ -364,3 +366,115 @@ class HelperFunctions:
                 HelperFunctions().get_email_for_Entrez()
 
         return email
+
+class ParallelFunctions:
+
+    @staticmethod
+    def get_seq_fromDB(extractdata, db):
+        [accession, start, stop] = extractdata
+        fasta = []
+        seq_cmd = " ".join([
+            "blastdbcmd", "-db", db, "-entry", str(accession),
+            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
+        while fasta == []:
+            fasta = GeneralFunctions().read_shelloutput(seq_cmd)
+        return fasta
+
+    @staticmethod
+    def MFEprimer_template(primerinfo, args):
+        [primer_qc_dir, mfethreshold] = args
+        result = []
+        [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+
+        db = "template.sequences"
+        cmd = (
+            "MFEprimer.py -i " + primefile.name + " -d " + db
+            + " -k 9 --tab --ppc 10")
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        if len(result) == 2:
+            val = result[1].split("\t")
+            pp_F = "_".join(val[1].split("_")[0:-1])
+            pp_R = "_".join(val[2].split("_")[0:-1])
+            p_F = "_".join(val[1].split("_")[0:-2])
+            primername = val[3]
+            ppc = float(val[4])
+            if (
+                pp_F == pp_R and p_F == primername
+                and ppc >= float(mfethreshold)
+            ):
+                ppc_val = ppc - float(mfethreshold)
+                return [[nameF, seqF, nameR, seqR, templ_seq, ppc_val], result]
+            else:
+                return [[None], result]
+        else:
+            return [[None], result]
+
+    @staticmethod
+    def MFEprimer_nontarget(primerinfo, args):
+        [dbfile, primer_qc_dir] = args
+        result = []
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = (
+            "MFEprimer.py -i " + primefile.name + " -d " + dbfile
+            + " -k 9 --tab --ppc 10")
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        if not len(result) == 1:
+            for index, item in enumerate(result):
+                if index > 0:
+                    val = item.split("\t")
+                    result_ppc = float(val[4])
+                    if result_ppc > ppc_val:
+                        return [[None], result]
+
+        return [primerinfo, result]
+
+    @staticmethod
+    def MFEprimer_assembly(primerinfo, args):
+        [primer_qc_dir, db, mfethreshold] = args
+        result = []
+        target_product = []
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = (
+            "MFEprimer.py -i " + primefile.name + " -d " + db
+            + " -k 9 --tab --ppc 10")
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        for index, item in enumerate(result):
+            if index > 0:
+                val = item.split("\t")
+                result_ppc = float(val[4])
+                product_len = int(val[5])
+                targetID = val[3]
+                if result_ppc == ppc_val + mfethreshold:
+                    target_product.append(targetID)
+                elif result_ppc > ppc_val:
+                    return [[None], result]
+        counts = Counter(target_product)
+        for item in counts.keys():
+            if counts[item] == 1:
+                return [primerinfo, result]
+            else:
+                return [[None], result]

@@ -33,6 +33,7 @@ tmpdir = os.path.join("/", "primerdesign", "tmp")
 
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
+from basicfunctions import ParallelFunctions as P
 
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
@@ -182,7 +183,7 @@ def test_auto_run_config():
         with open(tmp_path) as f:
             for line in f:
                 tmp_dict = json.loads(line)
-        tmp_dict["new_run"].update({'modus': "continue", "targets": None})
+        tmp_dict["new_run"].update({'modus': "continue", "targets": "Lactobacillus_curvatus"})
         with open(tmp_path, "w") as f:
             f.write(json.dumps(tmp_dict))
 
@@ -923,9 +924,152 @@ def test_blastparser(config):
         blapa.run_blastparser(conserved_seq_dict)
     assert os.path.isfile(errfile) == False
 
+def prepare_test(config):
+    testdir = os.path.join("/", "primerdesign", "test")
+    target_dir = os.path.join(testdir, "Lactobacillus_curvatus")
+    pangenome_dir = os.path.join(target_dir, "Pangenome")
+    results_dir = os.path.join(pangenome_dir, "results")
+    primer_dir = os.path.join(results_dir, "primer")
+    primerblast_dir = os.path.join(primer_dir, "primerblast")
+    primer_qc_dir = os.path.join(primer_dir, "primer_QC")
+    dbpath = os.path.join(tmpdir, "customdb.fas")
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        with open(dbpath, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+        return dbpath
+
+    def create_customblastdb():
+        cmd = [
+            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+
+    G.create_directory(os.path.dirname(dbpath))
+    dbinputfiles()
+    create_customblastdb()
+
+    from speciesprimer import PrimerQualityControl
+    from speciesprimer import Blast
+    from speciesprimer import BlastPrep
+    G.create_directory(primer_dir)
+
+    config.customdb = dbpath
+    config.blastdbv5 = False
+    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+    with open(reffile) as f:
+        for line in f:
+            primer3dict = json.loads(line)
+    pqc = PrimerQualityControl(config, primer3dict)
+    pqc.collect_primer()
+    G.create_directory(pqc.primerblast_dir)
+    file_path = os.path.join(primerblast_dir, "nontargethits.json")
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+    prep = BlastPrep(
+        pqc.primerblast_dir, pqc.primerlist,
+        "primer", pqc.config.blastseqs)
+    use_cores, inputseqs = prep.run_blastprep()
+
+    Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
+        "primer", use_cores)
+
+    return primer_dir, primerblast_dir, primer_qc_dir
+
+def test_primerblastparser(config):
+    from speciesprimer import BlastParser
+    primer_dir, primerblast_dir, primer_qc_dir = prepare_test(config)
+    if os.path.isdir(primer_qc_dir):
+        shutil.rmtree(primer_qc_dir)
+    file_path = os.path.join(primerblast_dir, "nontargethits.json")
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+    dbpath = os.path.join(tmpdir, "customdb.fas")
+    config.customdb = dbpath
+    config.blastdbv5 = False
+    blapa = BlastParser(config, "primer")
+    align_dict = blapa.blast_parser(blapa.primerblast_dir)
+
+    if not os.path.isfile(file_path):
+        nonred_dict = blapa.remove_redundanthits(align_dict)
+        blapa.write_nontargethits(
+                            blapa.primerblast_dir, nonred_dict,
+                            "json")
+    else:
+        nonred_dict = align_dict
+
+    G.create_directory(blapa.primer_qc_dir)
+    nonreddata = blapa.sort_nontarget_sequences(nonred_dict)
+    assert len(nonreddata) == 97
+    blapa.write_nontarget_sequences(nonreddata)
+    nontarget_seqs = os.path.join(primer_qc_dir, "BLASTnontarget0.sequences")
+    DBIDS = os.path.join(primer_qc_dir, "primerBLAST_DBIDS.csv")
+    assert os.path.isfile(nontarget_seqs) == True
+    assert os.path.isfile(DBIDS) == True
+    count = 0
+    with open(nontarget_seqs) as f:
+        for line in f:
+            if ">" in line:
+                count += 1
+    assert count == 97
+    # skip
+    exitstatus = blapa.get_primerBLAST_DBIDS(nonred_dict)
+    assert exitstatus == 0
+    assert os.path.isfile(nontarget_seqs) == True
+    assert os.path.isfile(DBIDS) == True
+
+def test_primerblastparser_exceptions(config):
+    from speciesprimer import BlastParser
+    primer_dir, primerblast_dir, primer_qc_dir = prepare_test(config)
+    if os.path.isdir(primer_qc_dir):
+        shutil.rmtree(primer_qc_dir)
+    file_path = os.path.join(primerblast_dir, "nontargethits.json")
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+    dbpath = os.path.join(tmpdir, "customdb.fas")
+    config.customdb = dbpath
+    config.blastdbv5 = False
+    config.exception = [
+        'Lactobacillus_sakei', 'Lactobacillus_sakei']
+    blapa = BlastParser(config, "primer")
+    align_dict = blapa.blast_parser(blapa.primerblast_dir)
+
+    if not os.path.isfile(file_path):
+        nonred_dict = blapa.remove_redundanthits(align_dict)
+        blapa.write_nontargethits(
+                            blapa.primerblast_dir, nonred_dict,
+                            "json")
+    else:
+        nonred_dict = align_dict
+
+    G.create_directory(blapa.primer_qc_dir)
+    exitstatus = blapa.get_primerBLAST_DBIDS(nonred_dict)
+    assert exitstatus == 1
+    nonreddata = blapa.sort_nontarget_sequences(nonred_dict)
+    assert len(nonreddata) == 0
+    nontarget_seqs = os.path.join(primer_qc_dir, "BLASTnontarget0.sequences")
+    DBIDS = os.path.join(primer_qc_dir, "primerBLAST_DBIDS.csv")
+    assert os.path.isfile(nontarget_seqs) == False
+    assert os.path.isfile(DBIDS) == False
+
+    if os.path.isdir(os.path.dirname(dbpath)):
+        shutil.rmtree(os.path.dirname(dbpath))
+#    shutil.rmtree(primer_dir)
+
+
+
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
-#    primer blastparser function
-#    get_primerBLAST_DBIDS(self, nonred_dict)
 #    get_alignmentdata(self, alignment)
 
 def test_PrimerDesign(config):
@@ -1015,6 +1159,9 @@ def test_PrimerQualityControl_specificitycheck(config):
         with open(reffile) as f:
             for line in f:
                 primer3dict = json.loads(line)
+        config.exception = [
+            'Bacterium curvatum', 'Lactobacillus curvatus subsp. curvatus',
+            'Lactobacillus sp. N55', 'Lactobacillus sp. N61']
         pqc = PrimerQualityControl(config, primer3dict)
 
 
@@ -1047,7 +1194,6 @@ def test_PrimerQualityControl_specificitycheck(config):
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
         shutil.copy(reffile, tofile)
-
         pqc.call_blastparser.run_blastparser("primer")
 
         if os.path.isdir(tmpdir):
@@ -1123,7 +1269,8 @@ def test_PrimerQualityControl_specificitycheck(config):
         results = []
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
-            result = pqc.MFEprimer_template(primerinfo[0])
+            result = P.MFEprimer_template(
+                    primerinfo[0], [pqc.primer_qc_dir, pqc.mfethreshold])
             results.append(result)
             if outcome[index] == [None]:
                 assert result[0] == outcome[index]
@@ -1157,7 +1304,9 @@ def test_PrimerQualityControl_specificitycheck(config):
         nontarget_lists = []
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
-            result = pqc.MFEprimer_nontarget(check_nontarget[1], pqc.dbinputfiles[0])
+            dbfile = pqc.dbinputfiles[0]
+            result = P.MFEprimer_nontarget(
+                    check_nontarget[1], [dbfile, pqc.primer_qc_dir])
             assert result == ref
             results.append(result)
         nontarget_lists = list(itertools.chain(nontarget_lists, results))
@@ -1175,9 +1324,11 @@ def test_PrimerQualityControl_specificitycheck(config):
             , 17.700000000000003]]
         results = []
         outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
+        dbfile = dbfile = H.abbrev(pqc.target) + ".genomic"
         for index, item in enumerate(ppcth):
-            pqc.mfethreshold = item
-            result = pqc.MFEprimer_assembly(check_assembly[0])
+            result = P.MFEprimer_assembly(
+                    check_assembly[0], [pqc.primer_qc_dir, dbfile, item])
+
             results.append(result)
             if outcome[index] == [None]:
                 assert result[0] == outcome[index]

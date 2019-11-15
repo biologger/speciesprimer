@@ -51,7 +51,6 @@ conffile = os.path.join(testfiles_dir, "fullrun_config.json")
 testconfig = os.path.join(config_dir, "config.json")
 
 def prepare_testfiles():
-    G.create_directory(os.path.dirname(dbpath))
     def prepare_tmp_db():
         t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
         # Docker only
@@ -69,6 +68,7 @@ def prepare_testfiles():
         with open(tmp_path, "w") as f:
             f.write(json.dumps(tmp_dict))
 
+    dbpath = os.path.join(tmpdir, "customdb.fas")
     def dbinputfiles():
         filenames = [
             "GCF_004088235v1_20191001.fna",
@@ -92,6 +92,7 @@ def prepare_testfiles():
         G.run_subprocess(
             cmd, printcmd=False, logcmd=False, printoption=False)
 
+    G.create_directory(os.path.dirname(dbpath))
     dbinputfiles()
     create_customblastdb()
     prepare_tmp_db()
@@ -172,49 +173,39 @@ def test_run():
     # compare primer results
     assert os.path.isfile(maxcontig) == False
 
-    # To do:
-    # [x] open config file and change keep intermedaite files to False
-    # [x] rerun on exisitng files
-    # [ ] change also probe option
-    # [x] test parallel functions non-parallel to get more covered lines
-    # [ ] add no list option
-    # [x] include argparser/commandline function
-    # [ ] include errors to provoke an error report (multiple targets)
-    # [ ] add more sequences to BLASTDB (target_seqs) to test partial, exception and excluded GIs (faster)
-    # [ ] test G.rollback function
 
-def test_remove_intermediate_files(monkeypatch):
-    pandir = os.path.join(
-        "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
-    with open(testconfig) as f:
-        for line in f:
-            confdict = json.loads(line)
-    confdict.update({"intermediate": False})
-    confdict.update({"qc_gene": ["tuf"]})
-    confdict.update({"ignore_qc": True})
-    with open(testconfig, "w") as f:
-        f.write(json.dumps(confdict))
-    if os.path.isdir(pandir):
-        shutil.rmtree(pandir)
-    monkeypatch.setattr('builtins.input', start_oneinput)
-    from speciesprimer import main
-    main()
+#def test_remove_intermediate_files(monkeypatch):
+#    pandir = os.path.join(
+#        "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
+#    with open(testconfig) as f:
+#        for line in f:
+#            confdict = json.loads(line)
+#    confdict.update({"intermediate": False})
+#    confdict.update({"qc_gene": ["tuf"]})
+#    confdict.update({"ignore_qc": True})
+#    with open(testconfig, "w") as f:
+#        f.write(json.dumps(confdict))
+#    if os.path.isdir(pandir):
+#        shutil.rmtree(pandir)
+#    monkeypatch.setattr('builtins.input', start_oneinput)
+#    from speciesprimer import main
+#    main()
     # assert that only two mfold files are present
 
 
-def test_end():
-    def remove_test_files():
-        test =  os.path.join("/", "primerdesign", "test")
-        shutil.rmtree(test)
-        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        if os.path.isdir(tmpdir):
-            shutil.rmtree(tmpdir)
-        os.chdir(BASE_PATH)
-        assert os.path.isdir(test) == False
-
-    remove_test_files()
+#def test_end():
+#    def remove_test_files():
+#        test =  os.path.join("/", "primerdesign", "test")
+#        shutil.rmtree(test)
+#        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+#        if os.path.isfile(tmp_path):
+#            os.remove(tmp_path)
+#        if os.path.isdir(tmpdir):
+#            shutil.rmtree(tmpdir)
+#        os.chdir(BASE_PATH)
+#        assert os.path.isdir(test) == False
+#
+#    remove_test_files()
 
 if __name__ == "__main__":
     print(msg)

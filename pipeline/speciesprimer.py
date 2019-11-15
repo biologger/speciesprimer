@@ -27,6 +27,7 @@ from Bio.Blast import NCBIXML
 from Bio import Entrez
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
+from basicfunctions import ParallelFunctions as P
 
 # paths
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
@@ -172,7 +173,7 @@ class DataCollection():
         Entrez.email = H.get_email_for_Entrez()
         taxid = H.check_input(target, Entrez.email)
         if taxid:
-            syn = H.check_synomyms(taxid, Entrez.email, target)
+            syn = H.check_species_syn(taxid, Entrez.email, target)
             return syn, taxid
         else:
             return None, None
@@ -512,7 +513,7 @@ class DataCollection():
                 try:
                     G.run_subprocess(prokka_cmd, True, True, False)
                 except (KeyboardInterrupt, SystemExit):
-                    G.rollback("annotation", dp=os.path.join(self.target_dir, outdir))
+                    G.keyexit_rollback("annotation", dp=os.path.join(self.target_dir, outdir))
                     raise
 
                 annotation_dirs.append(file_name + "_" + date)
@@ -1303,7 +1304,7 @@ class PangenomeAnalysis:
             G.run_shell(
                 roary_cmd, printcmd=True, logcmd=True, log=True)
         except (KeyboardInterrupt, SystemExit):
-            G.rollback("pan-genome analysis", dp=self.pangenome_dir)
+            G.keyexit_rollback("pan-genome analysis", dp=self.pangenome_dir)
             raise
 
     def run_fasttree(self):
@@ -1318,7 +1319,7 @@ class PangenomeAnalysis:
                     treecmd, printcmd=True, logcmd=True,
                     log=True)
             except (KeyboardInterrupt, SystemExit):
-                G.rollback("fasttree run", dp=self.pangenome_dir, fn=tree)
+                G.keyexit_rollback("fasttree run", dp=self.pangenome_dir, fn=tree)
                 raise
         os.chdir(self.target_dir)
 
@@ -1598,7 +1599,7 @@ class CoreGeneSequences:
                     G.run_subprocess(
                         ["parallel", "-a", run_file], True, True, False)
                 except (KeyboardInterrupt, SystemExit):
-                    G.rollback("Prank MSA run", dp=self.alignments_dir, fp=run_file)
+                    G.keyexit_rollback("Prank MSA run", dp=self.alignments_dir, fp=run_file)
                     raise
 
             with open(coregenes, "w") as f:
@@ -1674,7 +1675,7 @@ class CoreGeneSequences:
                 G.run_subprocess(
                     ["parallel", "-a", run_file], True, True, False)
             except (KeyboardInterrupt, SystemExit):
-                G.rollback("consensus run", dp=self.consensus_dir, fp=run_file)
+                G.keyexit_rollback("consensus run", dp=self.consensus_dir, fp=run_file)
                 raise
 
             records = []
@@ -1946,7 +1947,7 @@ class Blast:
                     try:
                         G.run_subprocess(blast_cmd)
                     except (KeyboardInterrupt, SystemExit):
-                        G.rollback("BLAST search", dp=self.directory, fn=filename)
+                        G.keyexit_rollback("BLAST search", dp=self.directory, fn=filename)
                         raise
 
             duration = time.time() - start
@@ -2186,9 +2187,13 @@ class BlastParser:
         hits = []
         if not self.exception == None:
             exceptions = []
-            for item in self.exception:
-                exception = ' '.join(item.split("_"))
-                exceptions.append(exception)
+            if isinstance(self.exception, list):
+                for item in self.exception:
+                    exception = ' '.join(item.split("_"))
+                    if not exception in exceptions:
+                        exceptions.append(exception)
+            else:
+                exceptions = [self.exception]
         else:
             exceptions = []
         query_start = []
@@ -2338,8 +2343,9 @@ class BlastParser:
                             stop = item + overhang
                             inrange.append([key, start, stop])
 
-            header = ["Accession", "Start pos", "Stop pos"]
-            G.csv_writer(filepath, nonreddata, header)
+            if len(nonreddata) > 0:
+                header = ["Accession", "Start pos", "Stop pos"]
+                G.csv_writer(filepath, nonreddata, header)
 
         return nonreddata
 
@@ -2369,9 +2375,10 @@ class BlastParser:
                 print(info)
                 G.logger(info)
                 print("Start DB extraction")
+                G.logger("Start DB extraction")
                 data = nonreddata[part*maxsize:end]
                 fasta_seqs = G.run_parallel(
-                        self.get_seq_fromDB, data, db)
+                        P.get_seq_fromDB, data, db)
                 try:
                     with open(filepath, "w") as r:
                         for fastainfo in fasta_seqs:
@@ -2380,7 +2387,7 @@ class BlastParser:
                             fastadata = "\n".join(fastainfo) + "\n"
                             r.write(fastadata)
                 except (KeyboardInterrupt, SystemExit):
-                    G.rollback("DB extraction", fp=filepath)
+                    G.keyexit_rollback("DB extraction", fp=filepath)
                     raise
 
             else:
@@ -2391,16 +2398,6 @@ class BlastParser:
             info3 = "Finished writing" + filename
             print(info3)
             G.logger(info3)
-
-    def get_seq_fromDB(self, extractdata, db):
-        [accession, start, stop] = extractdata
-        fasta = []
-        seq_cmd = " ".join([
-            "blastdbcmd", "-db", db, "-entry", str(accession),
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
-        while fasta == []:
-            fasta = G.read_shelloutput(seq_cmd)
-        return fasta
 
     def get_primerBLAST_DBIDS(self, nonred_dict):
         print("\nGet sequence accessions of BLAST hits\n")
@@ -2413,8 +2410,10 @@ class BlastParser:
                 + "Please check the species list and/or BLAST database")
             print(msg)
             G.logger("> " + msg)
-            return
-        self.write_nontarget_sequences(nonreddata)
+            return 1
+        else:
+            self.write_nontarget_sequences(nonreddata)
+            return 0
 
     def remove_redundanthits(self, align_dict):
         nonred_dict = {}
@@ -2597,7 +2596,7 @@ class BlastParser:
             else:
                 nonred_dict = align_dict
 
-            self.get_primerBLAST_DBIDS(nonred_dict)
+            exitstatus = self.get_primerBLAST_DBIDS(nonred_dict)
 
             duration = time.time() - self.start
             G.logger(
@@ -2662,7 +2661,7 @@ class PrimerDesign():
             try:
                 G.run_subprocess(primer3cmd, True, True, True)
             except (KeyboardInterrupt, SystemExit):
-                G.rollback("primer3 run", fp=output_file)
+                G.keyexit_rollback("primer3 run", fp=output_file)
                 raise
         else:
             info = "Skip primerdesign with primer3"
@@ -2973,8 +2972,9 @@ class PrimerQualityControl:
 
         infile = os.path.join(self.primer_qc_dir, inputfiles)
         if os.stat(infile).st_size == 0:
-            msg = "Problem with non-target DB " + inputfiles
-            + " input file is empty"
+            msg = " ".join([
+                "Problem with non-target DB",
+                inputfiles, "input file is empty"])
             G.logger("> " + msg)
             print("\n" + msg)
 
@@ -2985,7 +2985,7 @@ class PrimerQualityControl:
         try:
             G.run_shell(cmd, printcmd=True, logcmd=True, log=False)
         except (KeyboardInterrupt, SystemExit):
-            G.rollback("DB indexing", dp=self.primer_qc_dir, search=db_name)
+            G.keyexit_rollback("DB indexing", dp=self.primer_qc_dir, search=db_name)
             raise
 
         os.chdir(self.primer_dir)
@@ -3095,26 +3095,21 @@ class PrimerQualityControl:
             for item in target_fasta:
                 SeqIO.write(item, fas, "fasta")
 
-    def make_QCDB(self, db_path, db_name, DBNAME, primerinfos=[]):
+    def make_templateDB(self, primerinfos):
+        db_name = "template.sequences"
+        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
         if not os.path.isfile(db_path):
-            msg1 = "create " + DBNAME
-            G.logger("> " + msg1)
-            print("\n" + msg1)
-            if DBNAME == "template DB":
-                self.create_template_db(primerinfos)
-            else:
-                self.create_assembly_db(db_name)
-            msg2 = "index " + DBNAME
-            G.logger("> " + msg2)
-            print("\n" + msg2)
+            G.logger("> create template DB")
+            print("\ncreate template DB")
+            self.create_template_db(primerinfos)
+            G.logger("> index template DB")
+            print("index template DB")
             self.index_Database(db_name)
-            msg3 = "Done indexing " + DBNAME
-            G.logger("> " + msg3)
-            print("\n" + msg3)
-
+            G.logger("> Done indexing template DB")
+            print("Done indexing template DB")
         infile = os.path.join(self.primer_qc_dir, db_name)
         if os.stat(infile).st_size == 0:
-            msg = "Problem with " + db_name + " input file is empty"
+            msg = " ".join(["Problem with", db_name, "input file is empty"])
             errors.append([self.target, msg])
             G.logger("> " + msg)
             print("\n!!!" + msg + "!!!\n")
@@ -3124,24 +3119,36 @@ class PrimerQualityControl:
                 if os.path.isfile(infile + end):
                     os.remove(infile + end)
 
-    def make_templateDB(self, primerinfos):
-        db_name = "template.sequences"
-        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-        DBNAME = "template DB"
-        self.make_QCDB(db_path, db_name, DBNAME, primerinfos)
-
-    def make_assemblyDB(self, primerinfos):
+    def make_assemblyDB(self):
         db_name = H.abbrev(self.target) + ".genomic"
         db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-        DBNAME = "target genome assembly DB"
-        self.make_QCDB(db_path, db_name, DBNAME)
+        if not os.path.isfile(db_path):
+            G.logger("> create target genome assembly DB")
+            print("\ncreate target genome assembly DB")
+            self.create_assembly_db(db_name)
+            G.logger("> index target genome assembly DB")
+            print("index target genome assembly DB")
+            self.index_Database(db_name)
+            G.logger("> Done indexing genome assembly DB")
+            print("Done indexing genome assembly DB")
+
+        infile = os.path.join(self.primer_qc_dir, db_name)
+        if os.stat(infile).st_size == 0:
+            msg = " ".join(["Problem with", db_name, "input file is empty"])
+            errors.append([self.target, msg])
+            G.logger("> " + msg)
+            print("\n!!!" + msg + "!!!\n")
+            os.remove(infile)
+            dbfiles = [".2bit", ".sqlite3.db", ".uni"]
+            for end in dbfiles:
+                if os.path.isfile(infile + end):
+                    os.remove(infile + end)
 
     def prepare_MFEprimer_Dbs(self, primerinfos):
         G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
         G.create_directory(self.primer_qc_dir)
-        os.chdir(self.primer_qc_dir)
         process_make_templateDB = Process(target=self.make_templateDB, args=(primerinfos,))
-        process_make_assemblyDB = Process(target=self.make_assemblyDB, args=(primerinfos,))
+        process_make_assemblyDB = Process(target=self.make_assemblyDB)
         process_make_templateDB.start()
         process_make_assemblyDB.start()
         process_make_templateDB.join()
@@ -3153,101 +3160,6 @@ class PrimerQualityControl:
             pool.apply_async(self.make_nontargetDB, args=(inputfiles,))
             for inputfiles in self.dbinputfiles]
         output = [p.get() for p in results]
-
-    def MFEprimer_template(self, primerinfo):
-        result = []
-        [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-
-        db = "template.sequences"
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
-        while result == []:
-            result = G.read_shelloutput(cmd)
-        os.unlink(primefile.name)
-        if len(result) == 2:
-            val = result[1].split("\t")
-            pp_F = "_".join(val[1].split("_")[0:-1])
-            pp_R = "_".join(val[2].split("_")[0:-1])
-            p_F = "_".join(val[1].split("_")[0:-2])
-            primername = val[3]
-            ppc = float(val[4])
-            if (
-                pp_F == pp_R and p_F == primername
-                and ppc >= float(self.mfethreshold)
-            ):
-                ppc_val = ppc - float(self.mfethreshold)
-                return [[nameF, seqF, nameR, seqR, templ_seq, ppc_val], result]
-            else:
-                return [[None], result]
-        else:
-            return [[None], result]
-
-    def MFEprimer_nontarget(self, primerinfo, inputfiles):
-        result = []
-        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = inputfiles
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
-        while result == []:
-            result = G.read_shelloutput(cmd)
-        os.unlink(primefile.name)
-        if not len(result) == 1:
-            for index, item in enumerate(result):
-                if index > 0:
-                    val = item.split("\t")
-                    result_ppc = float(val[4])
-                    if result_ppc > ppc_val:
-                        return [[None], result]
-
-        return [primerinfo, result]
-
-    def MFEprimer_assembly(self, primerinfo):
-        result = []
-        target_product = []
-        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = H.abbrev(self.target) + ".genomic"
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
-        while result == []:
-            result = G.read_shelloutput(cmd)
-        os.unlink(primefile.name)
-        for index, item in enumerate(result):
-            if index > 0:
-                val = item.split("\t")
-                result_ppc = float(val[4])
-                product_len = int(val[5])
-                targetID = val[3]
-                if result_ppc == ppc_val + self.mfethreshold:
-                    target_product.append(targetID)
-                elif result_ppc > ppc_val:
-                    return [[None], result]
-        counts = Counter(target_product)
-        for item in counts.keys():
-            if counts[item] == 1:
-                return [primerinfo, result]
-            else:
-                return [[None], result]
 
     def write_MFEprimer_results(self, input_list, name):
         outputlist = []
@@ -3282,7 +3194,9 @@ class PrimerQualityControl:
 
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
-        template_list = G.run_parallel(self.MFEprimer_template, primerinfos)
+        template_list = G.run_parallel(
+                P.MFEprimer_template, primerinfos,
+                [self.primer_qc_dir, self.mfethreshold])
         check_nontarget = self.write_MFEprimer_results(
                 template_list, "template")
         msg = " primer pair(s) with good target binding"
@@ -3296,14 +3210,16 @@ class PrimerQualityControl:
         nontarget_lists = []
         print("\nStart MFEprimer with nontarget DB\n")
         G.logger("> Start MFEprimer with nontarget DB")
-        for index, inputfiles in enumerate(self.dbinputfiles):
+        for index, dbfile in enumerate(self.dbinputfiles):
             info_msg = (
                 "nontarget DB " + str(index+1) + "/"
                 + str(len(self.dbinputfiles)))
             print(info_msg)
             G.logger(info_msg)
             nontarget_list = G.run_parallel(
-                self.MFEprimer_nontarget, check_nontarget, inputfiles)
+                P.MFEprimer_nontarget, check_nontarget,
+                [dbfile, self.primer_qc_dir])
+
             nontarget_lists = list(
                 itertools.chain(nontarget_lists, nontarget_list))
 
@@ -3322,7 +3238,11 @@ class PrimerQualityControl:
         print("\nStart MFEprimer with assembly DB\n")
         G.logger("> Start MFEprimer with assembly DB")
 
-        assembly_list = G.run_parallel(self.MFEprimer_assembly, check_assembly)
+        dbfile = H.abbrev(self.target) + ".genomic"
+        assembly_list = G.run_parallel(
+                P.MFEprimer_assembly, check_assembly,
+                [self.primer_qc_dir, dbfile, self.mfethreshold])
+
         check_final = self.write_MFEprimer_results(assembly_list, "assembly")
         msg = " primer pair(s) passed secondary PCR amplicon check\n"
         info3 = str(len(check_final)) + msg
