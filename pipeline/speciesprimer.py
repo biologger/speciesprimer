@@ -573,25 +573,27 @@ class DataCollection():
             config_dict.update({"exception": exception})
             with open(conffile, "w") as f:
                 f.write(json.dumps(config_dict))
-
-        if self.config.exception == None:
-            exceptions = []
-            for item in syn:
-                if not item in exceptions:
-                    exceptions.append(item)
-        elif isinstance(self.config.exception, list):
+        if syn == None:
             exceptions = self.config.exception
-            for item in syn:
-                if not item in exceptions:
-                    exceptions.append(item)
         else:
-            exceptions = [self.config.exception]
-            for item in syn:
-                if not item in exceptions:
-                    exceptions.append(item)
+            if self.config.exception == None:
+                exceptions = []
+                for item in syn:
+                    if not item in exceptions:
+                        exceptions.append(item)
+            elif isinstance(self.config.exception, list):
+                exceptions = self.config.exception
+                for item in syn:
+                    if not item in exceptions:
+                        exceptions.append(item)
+            else:
+                exceptions = [self.config.exception]
+                for item in syn:
+                    if not item in exceptions:
+                        exceptions.append(item)
 
-        update_configfile(exceptions)
-        self.config.exception = exceptions
+            update_configfile(exceptions)
+            self.config.exception = exceptions
         return exceptions
 
     def collect(self):

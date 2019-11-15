@@ -250,7 +250,7 @@ def test_DataCollection(config, monkeypatch):
     downfile = os.path.join(downdir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
     shutil.copy(genomefile, downfile)
     assert os.path.isfile(downfile)
-    
+
     from speciesprimer import DataCollection
     DC = DataCollection(config)
 
@@ -286,19 +286,20 @@ def test_DataCollection(config, monkeypatch):
         syn, taxid = DC.get_taxid(target)
         assert taxid == None
 
-    def test_syn_exceptions():
+
+    def test_syn_exceptions(config):
         # standard case
         config.target = "Lactobacillus_curvatus"
         config.exception = None
         dc = DataCollection(config)
         syn = ['Bacterium_curvatum']
         exceptions = dc.add_synonym_exceptions(syn)
-
+        assert exceptions == ['Lactobacillus curvatus', 'Bacterium_curvatum']
         config.exception = ['Lactobacillus curvatus', 'Bacterium_curvatum']
         dc = DataCollection(config)
         syn = None
         exceptions = dc.add_synonym_exceptions(syn)
-#        assert exceptions ==
+        assert exceptions == ['Lactobacillus curvatus', 'Bacterium_curvatum']
 
     def test_create_GI_list():
         filepath = os.path.join(DC.config_dir, "no_blast.gi")
@@ -341,10 +342,10 @@ def test_DataCollection(config, monkeypatch):
             mockfile = os.path.join(testfiles_dir, "entrezmocks", "getlinksmock.xml")
             f = open(mockfile)
             return f
-        
+
         monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
         monkeypatch.setattr(Entrez, "efetch", mock_getlinks)
-        
+
         DC.get_ncbi_links(taxid, 1)
         DC.ncbi_download()
         filepath= os.path.join(
