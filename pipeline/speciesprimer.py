@@ -300,15 +300,13 @@ class DataCollection():
         # a list of excluded Genomes to keep information
         # after directories are (manually) removed (to save diskspace)
         if os.path.isdir(self.ex_dir):
-            try:
-                filepath = os.path.join(self.ex_dir, "excluded_list.txt")
+            filepath = os.path.join(self.ex_dir, "excluded_list.txt")
+            if os.path.isfile(filepath):
                 with open(filepath, "r") as f:
                     for line in f:
                         line = line.strip()
                         if line not in excluded:
                             excluded.append(line)
-            except FileNotFoundError:
-                pass
 
         def check_files(input_line):
             line = input_line.strip()
@@ -2960,41 +2958,7 @@ class PrimerQualityControl:
 
         return val_list
 
-    def make_nontargetDB(self, inputfiles):
-        db_name = inputfiles
-        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".sqlite3.db")
-        if not os.path.isfile(db_path):
-            G.logger("> Start index non-target DB " + inputfiles)
-            print("\nStart index non-target DB " + inputfiles)
-            self.index_Database(db_name)
-            print("Done indexing non-target DB " + inputfiles)
-            G.logger("> Done indexing non-target DB " + inputfiles)
-
-        infile = os.path.join(self.primer_qc_dir, inputfiles)
-        if os.stat(infile).st_size == 0:
-            msg = " ".join([
-                "Problem with non-target DB",
-                inputfiles, "input file is empty"])
-            G.logger("> " + msg)
-            print("\n" + msg)
-
-    def index_Database(self, db_name):
-        start = time.time()
-        os.chdir(self.primer_qc_dir)
-        cmd = "IndexDb.sh " + db_name + " 9"
-        try:
-            G.run_shell(cmd, printcmd=True, logcmd=True, log=False)
-        except (KeyboardInterrupt, SystemExit):
-            G.keyexit_rollback("DB indexing", dp=self.primer_qc_dir, search=db_name)
-            raise
-
-        os.chdir(self.primer_dir)
-        end = time.time() - start
-        G.logger(
-            "Run: index_Database(" + db_name + ") time: "
-            + str(timedelta(seconds=end)))
-
-    def create_template_db(self, primerinfos):
+    def create_template_db_file(self, primerinfos):
         wrote = []
         file_path = os.path.join(self.primer_qc_dir, "template.sequences")
         with open(file_path, "w") as f:
@@ -3017,7 +2981,7 @@ class PrimerQualityControl:
                             qc_data.append(row)
         return qc_data
 
-    def create_assembly_db(self, db_name):
+    def create_assembly_db_file(self):
         # add option to choose a folder for Reference genomes?
         qc_data = self.get_QC_data()
 
@@ -3090,76 +3054,34 @@ class PrimerQualityControl:
                         with open(os.path.join(self.fna_dir, files)) as f:
                             records = SeqIO.parse(f, "fasta")
                             target_fasta.append(list(records))
+        db_name = H.abbrev(self.target) + ".genomic"
         file_path = os.path.join(self.primer_qc_dir, db_name)
         with open(file_path, "w") as fas:
             for item in target_fasta:
                 SeqIO.write(item, fas, "fasta")
 
-    def make_templateDB(self, primerinfos):
-        db_name = "template.sequences"
-        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-        if not os.path.isfile(db_path):
-            G.logger("> create template DB")
-            print("\ncreate template DB")
-            self.create_template_db(primerinfos)
-            G.logger("> index template DB")
-            print("index template DB")
-            self.index_Database(db_name)
-            G.logger("> Done indexing template DB")
-            print("Done indexing template DB")
-        infile = os.path.join(self.primer_qc_dir, db_name)
-        if os.stat(infile).st_size == 0:
-            msg = " ".join(["Problem with", db_name, "input file is empty"])
-            errors.append([self.target, msg])
-            G.logger("> " + msg)
-            print("\n!!!" + msg + "!!!\n")
-            os.remove(infile)
-            dbfiles = [".2bit", ".sqlite3.db", ".uni"]
-            for end in dbfiles:
-                if os.path.isfile(infile + end):
-                    os.remove(infile + end)
-
-    def make_assemblyDB(self):
-        db_name = H.abbrev(self.target) + ".genomic"
-        db_path = os.path.join(self.primer_qc_dir, db_name + ".sqlite3.db")
-        if not os.path.isfile(db_path):
-            G.logger("> create target genome assembly DB")
-            print("\ncreate target genome assembly DB")
-            self.create_assembly_db(db_name)
-            G.logger("> index target genome assembly DB")
-            print("index target genome assembly DB")
-            self.index_Database(db_name)
-            G.logger("> Done indexing genome assembly DB")
-            print("Done indexing genome assembly DB")
-
-        infile = os.path.join(self.primer_qc_dir, db_name)
-        if os.stat(infile).st_size == 0:
-            msg = " ".join(["Problem with", db_name, "input file is empty"])
-            errors.append([self.target, msg])
-            G.logger("> " + msg)
-            print("\n!!!" + msg + "!!!\n")
-            os.remove(infile)
-            dbfiles = [".2bit", ".sqlite3.db", ".uni"]
-            for end in dbfiles:
-                if os.path.isfile(infile + end):
-                    os.remove(infile + end)
-
     def prepare_MFEprimer_Dbs(self, primerinfos):
         G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
         G.create_directory(self.primer_qc_dir)
-        process_make_templateDB = Process(target=self.make_templateDB, args=(primerinfos,))
-        process_make_assemblyDB = Process(target=self.make_assemblyDB)
-        process_make_templateDB.start()
-        process_make_assemblyDB.start()
-        process_make_templateDB.join()
-        process_make_assemblyDB.join()
-
+        self.create_template_db_file(primerinfos)
+        self.create_assembly_db_file()
+        assemblyfilepath = os.path.join(
+            self.primer_qc_dir,
+            H.abbrev(self.target) + ".genomic")
+        templatefilepath = os.path.join(
+                self.primer_qc_dir, "template.sequences")
+        dblist = [assemblyfilepath, templatefilepath]
+        for db in self.dbinputfiles:
+            dblist.append(db)
         # parallelization try
-        pool = multiprocessing.Pool(processes=4)
+        pool = multiprocessing.Pool()
         results = [
-            pool.apply_async(self.make_nontargetDB, args=(inputfiles,))
-            for inputfiles in self.dbinputfiles]
+            pool.apply_async(P.index_database, args=(inputfilepath,))
+            for inputfilepath in dblist]
         output = [p.get() for p in results]
+        for item in output:
+            if item:
+                errors.append([self.target, item])
 
     def write_MFEprimer_results(self, input_list, name):
         outputlist = []
@@ -3633,7 +3555,8 @@ class PrimerQualityControl:
                     files.startswith("BLASTnontarget")
                     and files.endswith(".sequences")
                 ):
-                    self.dbinputfiles.append(files)
+                    filepath = os.path.join(self.primer_qc_dir, files)
+                    self.dbinputfiles.append(filepath)
 
             self.prepare_MFEprimer_Dbs(primer_qc_list)
 

@@ -12,6 +12,7 @@ import concurrent.futures
 from Bio import Entrez
 import tempfile
 from collections import Counter
+from datetime import timedelta
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
@@ -419,9 +420,10 @@ class ParallelFunctions:
 
     @staticmethod
     def MFEprimer_nontarget(primerinfo, args):
-        [dbfile, primer_qc_dir] = args
         result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        [dbfilepath, primer_qc_dir] = args
+        dbfile = os.path.basename(dbfilepath)
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=primer_qc_dir, prefix="primer",
             suffix=".fa", delete=False
@@ -478,3 +480,38 @@ class ParallelFunctions:
                 return [primerinfo, result]
             else:
                 return [[None], result]
+
+    @staticmethod
+    def index_database(inputfilepath):
+        primer_qc_dir = os.path.dirname(inputfilepath)
+        db_name = os.path.basename(inputfilepath)
+        db_path = inputfilepath + ".sqlite3.db"
+        if os.path.isfile(db_path) == True:
+            msg = " ".join([db_name, "DB already exists"])
+            print(msg)
+            GeneralFunctions().logger(msg)
+            return 0
+        elif os.stat(inputfilepath).st_size == 0:
+            db_name = os.path.basename(inputfilepath)
+            msg = " ".join(["Problem with", db_name, "input file is empty"])
+            GeneralFunctions().logger("> " + msg)
+            print("\n!!!" + msg + "!!!\n")
+            os.remove(inputfilepath)
+            return msg
+        else:
+            GeneralFunctions().logger("> Start index non-target DB " + db_name)
+            print("\nStart index " + db_name)
+            start = time.time()
+            cmd = "IndexDb.sh " + inputfilepath + " 9"
+            try:
+                GeneralFunctions().run_shell(cmd, printcmd=True, logcmd=True, log=False)
+            except (KeyboardInterrupt, SystemExit):
+                GeneralFunctions().keyexit_rollback("DB indexing", dp=primer_qc_dir, search=db_name)
+                raise
+            end = time.time() - start
+            GeneralFunctions().logger(
+                "Run: index_Database(" + db_name + ") time: "
+                + str(timedelta(seconds=end)))
+            print("Done indexing " + db_name)
+            GeneralFunctions().logger("> Done indexing " + db_name)
+            return 0

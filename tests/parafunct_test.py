@@ -124,13 +124,21 @@ def test_make_DBs(pqc, config):
     prepare_QC_testfiles(pqc, config)
     if pqc.collect_primer() == 0:
         primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
-        pqc.make_assemblyDB()
-        pqc.make_templateDB(primer_qc_list)
+        pqc.create_template_db_file(primer_qc_list)
+        pqc.create_assembly_db_file()
+        assemblyfilepath = os.path.join(
+            pqc.primer_qc_dir,
+            H.abbrev(pqc.target) + ".genomic")
+        templatefilepath = os.path.join(
+                pqc.primer_qc_dir, "template.sequences")
+        dblist = [assemblyfilepath, templatefilepath]
+        for dbpath in dblist:
+            P.index_database(dbpath)
         assert os.path.isfile(genDB) == True
         assert os.path.isfile(tempDB) == True
-        # repeat do not write again
-        pqc.make_assemblyDB()
-        pqc.make_templateDB(primer_qc_list)
+        # repeat do not index again
+        for dbpath in dblist:
+            P.index_database(dbpath)
         assert os.path.isfile(genDB) == True
         assert os.path.isfile(tempDB) == True
         # remove empty files
@@ -138,6 +146,7 @@ def test_make_DBs(pqc, config):
         os.remove(tempDB)
         assert os.path.isfile(genDB) == False
         assert os.path.isfile(tempDB) == False
+        print("\n Test this with empty files")
         dbs = [genDB, tempDB]
         dbfiles = [".2bit", ".sqlite3.db", ".uni"]
         for db in dbs:
@@ -147,8 +156,16 @@ def test_make_DBs(pqc, config):
         qc_out = os.path.join(pqc.summ_dir, "Lb_curva_qc_sequences.csv")
         os.remove(qc_out)
         primer_qc_list = []
-        pqc.make_assemblyDB()
-        pqc.make_templateDB(primer_qc_list)
+        pqc.create_template_db_file(primer_qc_list)
+        pqc.create_assembly_db_file()
+        assemblyfilepath = os.path.join(
+            pqc.primer_qc_dir,
+            H.abbrev(pqc.target) + ".genomic")
+        templatefilepath = os.path.join(
+                pqc.primer_qc_dir, "template.sequences")
+        dblist = [assemblyfilepath, templatefilepath]
+        for dbpath in dblist:
+            P.index_database(dbpath)
         assert os.path.isfile(genDB) == False
         assert os.path.isfile(tempDB) == False
 
@@ -157,8 +174,16 @@ def test_qc_nottrue(pqc, config):
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     primer_qc_list = []
-    pqc.make_assemblyDB()
-    pqc.make_templateDB(primer_qc_list)
+    pqc.create_template_db_file(primer_qc_list)
+    pqc.create_assembly_db_file()
+    assemblyfilepath = os.path.join(
+        pqc.primer_qc_dir,
+        H.abbrev(pqc.target) + ".genomic")
+    templatefilepath = os.path.join(
+            pqc.primer_qc_dir, "template.sequences")
+    dblist = [assemblyfilepath, templatefilepath]
+    for dbpath in dblist:
+        P.index_database(dbpath)
     assert os.path.isfile(genDB) == False
     assert os.path.isfile(tempDB) == False
 
@@ -218,7 +243,6 @@ def test_get_seq_from_DB(pqc, config, blapar):
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
     config.blastdbv5 = False
     fasta_seqs = []
-    primerBLAST(pqc, config)
     maxsize = 25000
     part = 0
     end = (part+1)*maxsize

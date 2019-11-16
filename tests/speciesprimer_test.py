@@ -1232,9 +1232,7 @@ def test_PrimerQualityControl_specificitycheck(config):
                 files.startswith("BLASTnontarget")
                 and files.endswith(".sequences")
             ):
-                pqc.dbinputfiles.append(files)
-
-        pqc.make_nontargetDB(pqc.dbinputfiles[0])
+                pqc.dbinputfiles.append(os.path.join(pqc.primer_qc_dir, files))
         qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences.csv")
         if os.path.isdir(pqc.summ_dir):
             shutil.rmtree(pqc.summ_dir)
