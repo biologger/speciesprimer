@@ -108,7 +108,7 @@ def alldef_input(prompt):
     prompt_dict = {
         start: "n", species: "Lactobacillus curvatus", path: "", skip_tree: "",
         offline: "", skip_download: "", assemblylevel: "", customdb: "",
-        blastseqs: "", qc_gene: "", exception: "", minsize: "", maxsize: "",
+        blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
         blastdbv5: "", intermediate: "", nolist: "", forall: ""}
     val = prompt_dict[prompt]
@@ -119,7 +119,7 @@ def offline_input(prompt):
         start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
         path: "/primerdesign/test", skip_tree: "",
         offline: "yes", skip_download: "", assemblylevel: "contig", customdb: "",
-        blastseqs: "", qc_gene: "", exception: "", minsize: "", maxsize: "",
+        blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
         blastdbv5: "", intermediate: "", nolist: "", forall: "y"}
     val = prompt_dict[prompt]
@@ -130,7 +130,7 @@ def offline_input2(prompt):
         start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
         path: "/primerdesign/test", skip_tree: "", offline: "yes", skip_download: "",
         assemblylevel: "contig", customdb: "", blastseqs: "", qc_gene: "",
-        exception: "", minsize: "", maxsize: "", probe: "", mfold: "",
+        exception: [], minsize: "", maxsize: "", probe: "", mfold: "",
         mpprimer: "", mfethreshold: "", ignore_qc: "", blastdbv5: "",
         intermediate: "", nolist: "", forall: "n"}
     val = prompt_dict[prompt]
@@ -141,7 +141,7 @@ def nodef_input(prompt):
         start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
         path: "primerdesign/test", skip_tree: "YES", offline: "", skip_download: "y",
         assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
-        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: "Lactobacillus sunkii",
+        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: ["Lactobacillus sunkii"],
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5", mpprimer: "-3.0",
         mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
         nolist: "y", forall: "n"}
@@ -152,7 +152,7 @@ def wrong_input(prompt):
     prompt_dict = {
         assemblylevel: "alle", customdb: "customdb.fas",
         blastseqs: "66", qc_gene: "tufrrna",
-        exception: "Lactobacillus_curvatus, Lactobacillus helveticus",
+        exception: ["Lactobacillus sunkii"],
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
         mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
     val = prompt_dict[prompt]
@@ -162,7 +162,7 @@ def wrong_input2(prompt):
     prompt_dict = {
         species: "help", assemblylevel: "alle, complete, contig", customdb: "customdb.fas",
         blastseqs: "forty", qc_gene: "tufrrna",
-        exception: "Lactobacillus_sunkii",
+        exception: ["Lactobacillus_sunkii"],
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
         mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
     val = prompt_dict[prompt]
@@ -173,7 +173,7 @@ def nodef_input2(prompt):
         start: "n", species: "Lactobacillus curvatus, Lactobacillus helveticus",
         path: "primerdesign/test", skip_tree: "YES", offline: "", skip_download: "y",
         assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
-        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: "Lactobacillus sunkii",
+        blastseqs: "2000", qc_gene: "pheS, dnaK", exception: ["Lactobacillus sunkii"],
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5", mpprimer: "-3.0",
         mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
         nolist: "y", forall: "y"}

@@ -205,25 +205,23 @@ class Input:
 
     def get_exception(self, target, index, listlen):
         if "exception" not in self.config_dict[target].keys():
+            exception = []
             print("\n" + target + ":")
             inexception = input(
                 "Primer binding to this non-target species is tolerated.\n"
                 "Provide a species name or hit return to skip:\n> ")
             if inexception:
-                exceptions = list(inexception.split(","))
-                if len(exceptions) > 1:
-                    print("only one species allowed")
-                    self.get_exception(target, index, listlen)
-                else:
-                    exception = inexception
-                    if index == 0:
-                        if not self.value_for_all("exception", exception, listlen):
-                            self.config_dict[target].update({"exception": exception})
-                    else:
+                for i, item in enumerate(inexception):
+                    x = item.strip()
+                    x = x.capitalize()
+                    exception.insert(i, x)
+                if index == 0:
+                    if not self.value_for_all("exception", exception, listlen):
                         self.config_dict[target].update({"exception": exception})
-                    print("exception", exception)
+                else:
+                    self.config_dict[target].update({"exception": exception})
+                print("exception", exception)
             else:
-                exception = None
                 if index == 0:
                     if not self.value_for_all("exception", exception, listlen):
                         self.config_dict[target].update({"exception": exception})
@@ -370,7 +368,7 @@ class Output:
             "minsize": 70,
             "maxsize": 200,
             "mpprimer": -3.5,
-            "exception": None,
+            "exception": [],
             "path": os.getcwd(),
             "intermediate": False,
             "qc_gene": ["rRNA"],

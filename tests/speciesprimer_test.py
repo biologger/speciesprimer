@@ -44,7 +44,7 @@ confargs = {
     "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
     "offline": False,
     "path": os.path.join("/", "primerdesign", "test"),
-    "probe": False, "exception": None, "minsize": 70, "skip_download": True,
+    "probe": False, "exception": [], "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
 
@@ -132,7 +132,7 @@ def test_commandline():
     assert args.blastseqs == 1000
     assert args.customdb == None
     assert args.email == None
-    assert args.exception == None
+    assert args.exception == []
     assert args.ignore_qc == False
     assert args.intermediate == False
     assert args.maxsize == 200
@@ -291,7 +291,7 @@ def test_DataCollection(config, monkeypatch):
     def test_syn_exceptions(config):
         # standard case
         config.target = "Lactobacillus_curvatus"
-        config.exception = None
+        config.exception = []
         dc = DataCollection(config)
         syn = ['Bacterium_curvatum']
         exceptions = dc.add_synonym_exceptions(syn)
@@ -421,9 +421,6 @@ def test_DataCollection(config, monkeypatch):
     prepare_prokka(config)
     test_run_prokka()
     remove_prokka_testfiles()
-    G.create_directory(DC.gff_dir)
-    G.create_directory(DC.ffn_dir)
-    G.create_directory(DC.fna_dir)
 
 def test_QualityControl(config):
 
@@ -462,6 +459,12 @@ def test_QualityControl(config):
 
 
     def prepare_QC_testfiles(config):
+        QC = QualityControl(config)
+        G.create_directory(QC.gff_dir)
+        G.create_directory(QC.ffn_dir)
+        G.create_directory(QC.fna_dir)
+        excluded_dir = os.path.join(QC.config.path, "excludedassemblies", QC.config.target)
+        G.create_directory(excluded_dir)
         # GCF_004088235v1_20191001
         testcases = ["004088235v1_20191001", "maxcontigs_date", "noseq_date", "duplicate"]
         fileformat = ["fna", "gff", "ffn"]

@@ -26,13 +26,13 @@
   <div id="input"> 
       <h3>Input settings:</h3>    
       <p>
-        <strong>{{ form.qc_genes.label }}</strong> (--qc_gene)
+        <strong>{{ form.qc_gene.label }}</strong> (--qc_gene)
         <br>    
         Select multiple answers using Ctrl
         <br>
         <br>
-        {{ form.qc_genes(size=5) }} 
-        {% for error in form.qc_genes.errors %}
+        {{ form.qc_gene(size=5) }} 
+        {% for error in form.qc_gene.errors %}
         <span style="color: red;">[{{ error }}]</span>
         {% endfor %}      
       </p>
@@ -61,16 +61,13 @@
       <h3>Troubleshooting settings:</h3>         
       <p>
          {{ form.skip_tree() }} <strong>{{ form.skip_tree.label }}</strong> (--skip_tree)
-      </p>        
+      </p>
       <p>
-        <strong>{{ form.exception.label }}</strong> (--exception)
-        <br>
-        <br>
-        {{ form.exception() }} 
+        <strong>Define one or more bacterial species for which assay target sequence similarity is tolerated (comma separated)</strong> (--exception) {{ form.exception() }} 
         {% for error in form.exception.errors %}
         <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}    
-      </p>
+        {% endfor %}  
+      </p>  
   </div>
 
   <div id="primerdesign">    

@@ -49,11 +49,10 @@ class SettingsForm(FlaskForm):
     nolist = BooleanField(label="Species list is not used and only sequences without blast hits are used for primer design ", default = False)
     
     blastseqs = SelectField("Maximal number of sequences per BLAST search", coerce=int, choices=[(100, "100"), (500, "500"), (1000, "1000"), (2000, "2000"), (5000, "5000")], default=1000)
-    qc_genes = SelectMultipleField(
+    qc_gene = SelectMultipleField(
             "Gene(s) for BLAST search in the initial quality control step",
             choices=[('rRNA', "16S rRNA"), ('tuf', "tuf"), ('recA', "recA"), ('dnaK', "dnaK"), ('pheS', "pheS")], validators=[DataRequired()])
-    exception = StringField(
-        "Primer binding to this non-target species is tolerated", validators=[Optional()])
+    exception = FieldList(StringField(""), min_entries=1)
     minsize = IntegerField("Minimal Amplicon size", default = 70)
     maxsize = IntegerField("Maximal Amplicon size", default = 200)
     designprobe = BooleanField("Pick internal hybridization oligo")

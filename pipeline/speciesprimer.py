@@ -564,36 +564,16 @@ class DataCollection():
                         os.remove(filepath)
 
     def add_synonym_exceptions(self, syn):
-        def update_configfile(exception):
-            conffile = os.path.join(self.config_dir, "config.json")
-            with open(conffile) as f:
-                for line in f:
-                    config_dict = json.loads(line)
-            config_dict.update({"exception": exception})
-            with open(conffile, "w") as f:
-                f.write(json.dumps(config_dict))
-        if syn == None:
-            exceptions = self.config.exception
-        else:
-            if self.config.exception == None:
-                exceptions = []
-                for item in syn:
-                    if not item in exceptions:
-                        exceptions.append(item)
-            elif isinstance(self.config.exception, list):
-                exceptions = self.config.exception
-                for item in syn:
-                    if not item in exceptions:
-                        exceptions.append(item)
-            else:
-                exceptions = [self.config.exception]
-                for item in syn:
-                    if not item in exceptions:
-                        exceptions.append(item)
-
-            update_configfile(exceptions)
-            self.config.exception = exceptions
-        return exceptions
+        for item in syn:
+            if not item in self.config.exception:
+                self.config.exception.append(item)
+        conffile = os.path.join(self.config_dir, "config.json")
+        with open(conffile) as f:
+            for line in f:
+                config_dict = json.loads(line)
+        config_dict.update({"exception": self.config.exception})
+        with open(conffile, "w") as f:
+            f.write(json.dumps(config_dict))
 
     def collect(self):
         G.logger("Run: collect data(" + self.target + ")")
@@ -963,7 +943,7 @@ class QualityControl:
 
         def parse_blastresults():
             exceptions = []
-            if not self.exception == None:
+            if not self.exception == []:
                 for item in self.exception:
                     exception = ' '.join(item.split("_"))
                     exceptions.append(exception)
@@ -2183,17 +2163,13 @@ class BlastParser:
     def parse_blastrecords(self, blast_record):
         align_dict = {}
         hits = []
-        if not self.exception == None:
-            exceptions = []
-            if isinstance(self.exception, list):
-                for item in self.exception:
-                    exception = ' '.join(item.split("_"))
-                    if not exception in exceptions:
-                        exceptions.append(exception)
-            else:
-                exceptions = [self.exception]
-        else:
-            exceptions = []
+        exceptions = []
+        if not self.exception == []:
+            for item in self.exception:
+                exception = ' '.join(item.split("_"))
+                if not exception in exceptions:
+                    exceptions.append(exception)
+
         query_start = []
         query_end = []
         query_length = blast_record.query_length
@@ -3919,7 +3895,7 @@ def commandline():
        "(default = '16S rRNA')")
     # Define an exception
     parser.add_argument(
-       "-x", "--exception", type=str, default=None,
+       "-x", "--exception", nargs="*", type=str, default=[],
        help="Define a bacterial species for which assay target sequence "
        "similarity is tolerated; format: 'Genus_species'")
     # skip_tree option

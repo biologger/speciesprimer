@@ -163,7 +163,7 @@ def check_targets():
 
 def update_db(sub_dict, target, data):
     (
-        qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
+        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
         offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = data
@@ -171,7 +171,7 @@ def update_db(sub_dict, target, data):
             'target': target,
             'minsize': minsize, 'maxsize': maxsize, 'mpprimer': mpprimer,
             'exception': exception, 'path': path, 'intermediate': intermediate,
-            'qc_gene': qc_genes, 'mfold': mfold, 'skip_download': skip_download,
+            'qc_gene': qc_gene, 'mfold': mfold, 'skip_download': skip_download,
             'assemblylevel': assemblylevel, 'skip_tree': skip_tree,
             'nolist': nolist, 'offline': offline, 'ignore_qc': ignore_qc,
             'mfethreshold': mfeprimer_threshold, 'customdb': customdb,
@@ -180,7 +180,7 @@ def update_db(sub_dict, target, data):
 
 def reset_settings(form):
     (
-    form.qc_genes.data, form.ignore_qc.data, form.skip_download.data,
+    form.qc_gene.data, form.ignore_qc.data, form.skip_download.data,
     form.assemblylevel.data, form.skip_tree.data, form.exception.data,
     form.minsize.data, form.maxsize.data, form.designprobe.data,
     form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
@@ -188,7 +188,7 @@ def reset_settings(form):
     form.blastdbv5.data, form.intermediate.data, form.nolist.data
     ) = (
     ["rRNA"], False, False,
-    ["all"], False, None,
+    ["all"], False, [],
     70, 200, False,
     -3.0, -3.5, 90,
     False, None, 1000,
@@ -201,7 +201,7 @@ def load_settings(tmp_db):
         target = key
     settings = tmp_db['new_run']['targets'][target]
     (
-    qc_genes, ignore_qc,skip_download,
+    qc_gene, ignore_qc,skip_download,
     assemblylevel, skip_tree, exception,
     minsize, maxsize, designprobe,
     mfold,mpprimer, mfeprimer_threshold,
@@ -218,7 +218,7 @@ def load_settings(tmp_db):
     )
 
     data = {
-        "targets": target, "qc_genes": qc_genes, "ignore_qc": ignore_qc, "skip_download": skip_download,
+        "targets": target, "qc_gene": qc_gene, "ignore_qc": ignore_qc, "skip_download": skip_download,
         "assemblylevel": assemblylevel, "skip_tree": skip_tree, "exception": exception,
         "minsize": minsize, "maxsize": maxsize, "designprobe": designprobe,
         "mfold": mfold, "mpprimer": mpprimer, "mfeprimer_threshold": mfeprimer_threshold,
@@ -229,11 +229,11 @@ def load_settings(tmp_db):
 
 def get_settings(form):
     (
-        qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
+        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
         offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
     ) = (
-        form.qc_genes.data, form.ignore_qc.data,form.skip_download.data,
+        form.qc_gene.data, form.ignore_qc.data,form.skip_download.data,
         form.assemblylevel.data, form.skip_tree.data, form.exception.data,
         form.minsize.data, form.maxsize.data, form.designprobe.data,
         form.mfold.data,form.mpprimer.data, form.mfeprimer_threshold.data,
@@ -246,16 +246,14 @@ def get_settings(form):
         assemblylevel = ['offline']
     if skip_download:
         assemblylevel = ['offline']
-    if exception == '':
-        exception = None
+    if exception == [""]:
+        exception = []
     if customdb == "":
         customdb = None
-    elif exception is not None:
-        exception = '_'.join(exception.strip(' ').split(' '))
     if 'all' in assemblylevel:
         assemblylevel = ['all']
     return (
-        qc_genes, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
+        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
         minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
         offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist)
 
