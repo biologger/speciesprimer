@@ -510,20 +510,41 @@ def test_autorun():
 
 
 def test_shellrun(monkeypatch):
-    conf1 = os.path.join(
-        "/", "primerdesign", "test", "Lactobacillus_curvatus",
-        "config", "config.json")
-    conf2 = os.path.join(
-        "/", "primerdesign", "test", "Lactobacillus_helveticus",
-        "config", "config.json")
-    test = os.path.join("/", "primerdesign", "test")
-    if os.path.isdir(test):
-        shutil.rmtree(test)
-    monkeypatch.setattr('builtins.input', offline_input)
-    from speciesprimer import main
-    main()
-    assert os.path.isfile(conf1) is True
-    assert os.path.isfile(conf2) is True
+    nt_nal = os.path.join("/", "blastdb", "nt.nal")
+    if os.path.isfile(nt_nal):
+        conf1 = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_curvatus",
+            "config", "config.json")
+        conf2 = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_helveticus",
+            "config", "config.json")
+        test = os.path.join("/", "primerdesign", "test")
+        if os.path.isdir(test):
+            shutil.rmtree(test)
+        monkeypatch.setattr('builtins.input', offline_input)
+        from speciesprimer import main
+        main()
+        assert os.path.isfile(conf1) is True
+        assert os.path.isfile(conf2) is True
+    else:
+        with open(nt_nal, "w") as f:
+            f.write("nt mock")
+
+        conf1 = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_curvatus",
+            "config", "config.json")
+        conf2 = os.path.join(
+            "/", "primerdesign", "test", "Lactobacillus_helveticus",
+            "config", "config.json")
+        test = os.path.join("/", "primerdesign", "test")
+        if os.path.isdir(test):
+            shutil.rmtree(test)
+        monkeypatch.setattr('builtins.input', offline_input)
+        from speciesprimer import main
+        main()
+        assert os.path.isfile(conf1) is True
+        assert os.path.isfile(conf2) is True
+        os.remove(nt_nal)
 
 
 def test_end():
