@@ -188,10 +188,12 @@ class Input:
                 "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
                 " to skip, default=None\n> ")
             if type(customdb) == str and len(customdb) > 0:
-                if os.path.isfile(customdb + ".nsq"):
-                    customdb = customdb
-                elif os.path.isfile(
-                        os.path.join("/", "blastdb", customdb + ".nal")
+                if (
+                    os.path.isfile(customdb + ".nsq") is True or
+                    os.path.isfile(customdb + ".nal") is True or
+                    os.path.isfile(
+                        os.path.join(
+                                "/", "blastdb", customdb + ".nal")) is True
                 ):
                     customdb = customdb
                 else:

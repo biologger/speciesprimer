@@ -366,6 +366,28 @@ def test_DataCollection(config, monkeypatch):
         # because it is already extracted
         time.sleep(2)
         DC.ncbi_download()
+        # prep annotated files
+        os.remove(filepath)
+        dirs = [DC.gff_dir, DC.ffn_dir, DC.fna_dir]
+        for direct in dirs:
+            G.create_directory(direct)
+        mockname = "GCF_902362325v1_2019118"
+        endings = ["fna", "gff", "ffn"]
+        for end in endings:
+            filepath = os.path.join(
+                    DC.target_dir, end + "_files", mockname + "." + end)
+            with open(filepath, "w") as f:
+                f.write("Mock " + mockname + "." + end)
+        # No download since annotated files are present
+        DC.ncbi_download()
+        annotation_dirs, annotated = DC.run_prokka()
+        assert annotation_dirs == []
+        assert annotated == []
+        assert os.path.isfile(filepath + ".gz") is False
+        for direct in dirs:
+            shutil.rmtree(direct)
+        for direct in dirs:
+            G.create_directory(direct)
         # test excluded files
         excluded_dir = os.path.join(
                 DC.config.path, "excludedassemblies", DC.config.target)
@@ -375,7 +397,6 @@ def test_DataCollection(config, monkeypatch):
             f.write("GCF_902362325v1\n")
         annotation_dirs, annotated = DC.run_prokka()
         assert annotation_dirs == []
-        os.remove(filepath)
         # will not download the file because it is in excluded list
         time.sleep(2)
         DC.ncbi_download()
@@ -636,6 +657,38 @@ def test_QualityControl(config):
             passed = QC.qc_blast_parser(qc_gene)
         assert os.path.isfile(errfile) is False
 
+    def qc_blast_fail(qc_gene):
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        if os.path.isdir(qc_dir):
+            shutil.rmtree(qc_dir)
+        G.create_directory(qc_dir)
+        QC.config.customdb = "/tmp/not_a_db.fas"
+        from speciesprimer import Blast
+        from speciesprimer import BlastPrep
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        use_cores, inputseqs = BlastPrep(
+                        qc_dir, qc_seqs, qc_gene,
+                        QC.config.blastseqs).run_blastprep()
+        Blast(
+            QC.config, qc_dir, "quality_control"
+            ).run_blast(qc_gene, use_cores)
+
+        QC.config.customdb = os.path.join(tmpdir, "customdb.fas")
+
+    def test_qc_blast_parser_fail():
+        passed = QC.qc_blast_parser(qc_gene)
+        from speciesprimer import errors
+        assert passed ==[]
+        assert errors[-1] == [
+            'Lactobacillus_curvatus',
+            'A problem with the BLAST results file rRNA_0_results.xml was '
+            'detected. Trying to remove the file. '
+            'Please check if the file was removed and start the run again']
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        if os.path.isdir(qc_dir):
+            shutil.rmtree(qc_dir)
+        G.create_directory(qc_dir)
+
     def test_remove_qc_failures():
         delete = QC.remove_qc_failures(qc_gene)
         fna_files = os.path.join(QC.ex_dir, "fna_files")
@@ -671,6 +724,10 @@ def test_QualityControl(config):
     test_qc_blast_parser()
     if os.path.isdir(QC.ex_dir):
         shutil.rmtree(QC.ex_dir)
+
+    qc_blast_fail(qc_gene)
+    test_qc_blast_parser_fail()
+
     # Remove Fake species by GI
     QC = QualityControl(config)
     prepare_QC_testfiles(config)

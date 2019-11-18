@@ -1984,22 +1984,19 @@ class BlastParser:
             nuc_ident = hsp.identities
 
             identity = False
-            if self.config.customdb is not None:
-                if len(alignment.title.split("|")) == 3:
-                    di = [1, 1, -1]
-                elif len(alignment.title.split("|")) > 3:
-                    di = [1, 3, -1]
-                else:
-                    error_msg = (
-                        "Data is missing in the custom BLAST DB. At least "
-                        "a unique sequence identifier and the species name "
-                        "is required for each entry")
-
-                    print("\n" + error_msg + "\n")
-                    G.logger("> " + error_msg)
-                    errors.append([self.target, error_msg])
-            else:
+            if len(alignment.title.split("|")) == 3:
+                di = [1, 1, -1]
+            elif len(alignment.title.split("|")) > 3:
                 di = [1, 3, -1]
+            else:
+                error_msg = (
+                    "Data is missing in the custom BLAST DB. At least "
+                    "a unique sequence identifier and the species name "
+                    "is required for each entry")
+
+                print("\n" + error_msg + "\n")
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
 
             gi = alignment.title.split("|")[di[0]].strip()
             db_id = alignment.title.split("|")[di[1]].strip()
@@ -4072,6 +4069,8 @@ def main(mode=None):
         today = time.strftime("%Y_%m_%d", time.localtime())
         G.logger("> Start log: " + target + " " + today)
         G.logger(config.__dict__)
+
+        H.BLASTDB_check(config)
 
         try:
             print("\nStart searching primer for " + target)

@@ -369,6 +369,29 @@ class HelperFunctions:
 
         return email
 
+    @staticmethod
+    def BLASTDB_check(config):
+        if config.customdb:
+            DBname = config.customdb
+        elif config.blastdbv5:
+            DBname = "nt_v5"
+        else:
+            DBname = "nt"
+        if (
+            os.path.isfile(DBname + ".nsq") is True or
+            os.path.isfile(DBname + ".nal") is True or
+            os.path.isfile(
+                os.path.join("/", "blastdb", DBname + ".nal")) is True
+        ):
+            return 0
+        else:
+            msg = "No BLAST DB was found " + DBname
+            raise BlastDBError(msg)
+
+
+class BlastDBError(Exception):
+    pass
+
 
 class ParallelFunctions:
 

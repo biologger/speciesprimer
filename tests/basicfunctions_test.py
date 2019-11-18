@@ -31,6 +31,19 @@ testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def test_BLASTDB_check():
+    confargs = {"blastdbv5": False, "customdb": "/blastdb/not_a_DB.fas"}
+    config = AttrDict(confargs)
+    with pytest.raises(Exception):
+        H.BLASTDB_check(config)
+
+
 def prepare_tmp_db():
     t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
     tmp_path = os.path.join(pipe_dir, "tmp_config.json")

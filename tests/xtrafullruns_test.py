@@ -148,12 +148,7 @@ def prepare_files():
             f.write(">GCF_007MOCKv1_" + str(i) + "\n")
 
 
-def test_run():
-    prepare_testfiles()
-    prepare_files()
-    os.chdir(os.path.join("/", "primerdesign"))
-    from speciesprimer import main
-    main(mode="auto")
+def assert_ref_files(nolist=False):
     summ_dir = os.path.join(
                 "/", "primerdesign", "test",
                 "Summary", "Lactobacillus_curvatus")
@@ -171,49 +166,91 @@ def test_run():
         "mostcommonhits.csv", "Lb_curva_qc_sequences.csv", configfile,
         stats]
 
+    if nolist:
+        ref_files.append("potential_specieslist.txt")
+
     files.sort()
     ref_files.sort()
     assert files == ref_files
+
+def test_run(monkeypatch):
+    prepare_testfiles()
+    prepare_files()
+    os.chdir(os.path.join("/", "primerdesign"))
+    from speciesprimer import main
+    main(mode="auto")
+
+
     genomic_dir = os.path.join(
             "/", "primerdesign", "test",
             "Lactobacillus_curvatus", "genomic_fna")
     maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
     # compare primer results
     assert os.path.isfile(maxcontig) is False
+    assert_ref_files()
+    # will not run again
+    monkeypatch.setattr('builtins.input', start_oneinput)
+    from speciesprimer import main
+    main()
+    summ_dir = os.path.join(
+                "/", "primerdesign", "test",
+                "Summary", "Lactobacillus_curvatus")
+    if os.path.isdir(summ_dir):
+        shutil.rmtree(summ_dir)
+
+def test_rerun(monkeypatch):
+    pandir = os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
+    with open(testconfig) as f:
+        for line in f:
+            confdict = json.loads(line)
+    confdict.update({"qc_gene": ["tuf"]})
+    confdict.update({"ignore_qc": True})
+    with open(testconfig, "w") as f:
+        f.write(json.dumps(confdict))
+    if os.path.isdir(pandir):
+        shutil.rmtree(pandir)
+    monkeypatch.setattr('builtins.input', start_oneinput)
+    from speciesprimer import main
+    main()
+    mfold_dir = os.path.join(pandir, "results", "primer", "mfold")
+    mfoldfiles = os.listdir(mfold_dir)
+    mfoldfiles.sort()
+    assert mfoldfiles == [
+            "mfold_failed.csv", "mfold_passed.csv"]
+    assert_ref_files()
+    summ_dir = os.path.join(
+                "/", "primerdesign", "test",
+                "Summary", "Lactobacillus_curvatus")
+    if os.path.isdir(summ_dir):
+        shutil.rmtree(summ_dir)
+
+def test_repeat_primerQC(monkeypatch):
+    with open(testconfig) as f:
+        for line in f:
+            confdict = json.loads(line)
+    confdict.update({"nolist": True})
+    with open(testconfig, "w") as f:
+        f.write(json.dumps(confdict))
+    monkeypatch.setattr('builtins.input', start_oneinput)
+    from speciesprimer import main
+    main()
+    assert_ref_files(nolist=True)
 
 
-#def test_remove_intermediate_files(monkeypatch):
-#    pandir = os.path.join(
-#        "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
-#    with open(testconfig) as f:
-#        for line in f:
-#            confdict = json.loads(line)
-#    confdict.update({"intermediate": False})
-#    confdict.update({"qc_gene": ["tuf"]})
-#    confdict.update({"ignore_qc": True})
-#    with open(testconfig, "w") as f:
-#        f.write(json.dumps(confdict))
-#    if os.path.isdir(pandir):
-#        shutil.rmtree(pandir)
-#    monkeypatch.setattr('builtins.input', start_oneinput)
-#    from speciesprimer import main
-#    main()
-    # assert that only two mfold files are present
+def test_end():
+    def remove_test_files():
+        test =  os.path.join("/", "primerdesign", "test")
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) is False
 
-
-#def test_end():
-#    def remove_test_files():
-#        test =  os.path.join("/", "primerdesign", "test")
-#        shutil.rmtree(test)
-#        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
-#        if os.path.isfile(tmp_path):
-#            os.remove(tmp_path)
-#        if os.path.isdir(tmpdir):
-#            shutil.rmtree(tmpdir)
-#        os.chdir(BASE_PATH)
-#        assert os.path.isdir(test) is False
-#
-#    remove_test_files()
+    remove_test_files()
 
 if __name__ == "__main__":
     print(msg)

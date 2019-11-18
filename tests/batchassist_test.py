@@ -372,7 +372,7 @@ def test_nodefault(monkeypatch):
 
     finally:
         if os.path.isfile(dbpath_tmp):
-            os.remove(dbpath_tmp)    
+            os.remove(dbpath_tmp)
 
 
 def test_start_all(monkeypatch):
