@@ -11,6 +11,7 @@ from basicfunctions import HelperFunctions as H
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 
+
 class Input:
     def __init__(self):
         self.target_list = []
@@ -217,14 +218,16 @@ class Input:
                     exception.insert(i, x)
                 if index == 0:
                     if not self.value_for_all("exception", exception, listlen):
-                        self.config_dict[target].update({"exception": exception})
+                        self.config_dict[target].update(
+                                                    {"exception": exception})
                 else:
                     self.config_dict[target].update({"exception": exception})
                 print("exception", exception)
             else:
                 if index == 0:
                     if not self.value_for_all("exception", exception, listlen):
-                        self.config_dict[target].update({"exception": exception})
+                        self.config_dict[target].update(
+                                                    {"exception": exception})
                 else:
                     self.config_dict[target].update({"exception": exception})
                 print("exception", exception)
@@ -358,6 +361,7 @@ class Input:
             self.write_config_file(target)
 
         return self.config_dict
+
 
 class Output:
     def __init__(self):
@@ -499,6 +503,7 @@ class Output:
             if not config_path == 'None':
                 self.read_config(target, config_path)
         return self.config_dict
+
 
 if __name__ == "__main__":
     Input().initiate()

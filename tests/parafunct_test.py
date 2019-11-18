@@ -1,39 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-msg = (
-"""
-Works only in the Docker container!!!
-- Start the container
-    sudo docker start {Containername}
-- Start an interactive terminal in the container
-    sudo docker exec -it {Containername} bash
-- Start the tests in the container terminal
-    cd /
-    pytest -vv --cov=pipeline /tests/
-"""
-)
-
 import os
-import sys
 import json
 import shutil
 import pytest
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-# /tests
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-sys.path.append(pipe_dir)
-dict_path = os.path.join(pipe_dir, "dictionaries")
-tmpdir = os.path.join("/", "primerdesign", "tmp")
-
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import ParallelFunctions as P
 from speciesprimer import PrimerQualityControl
 
+
+msg = (
+    """
+    Works only in the Docker container!!!
+    - Start the container
+        sudo docker start {Containername}
+    - Start an interactive terminal in the container
+        sudo docker exec -it {Containername} bash
+    - Start the tests in the container terminal
+        cd /
+        pytest -vv --cov=pipeline /tests/
+    """
+    )
+
+
+# /tests
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
+dict_path = os.path.join(pipe_dir, "dictionaries")
+tmpdir = os.path.join("/", "primerdesign", "tmp")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
@@ -45,12 +44,15 @@ confargs = {
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["tuf"],
-    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
+    "blastdbv5": False, "intermediate": True,
+    "nontargetlist": ["Lactobacillus sakei"]}
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
 
 @pytest.fixture
 def config():
@@ -70,6 +72,7 @@ def config():
 
     return config
 
+
 @pytest.fixture
 def pqc(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -79,11 +82,13 @@ def pqc(config):
     pqc = PrimerQualityControl(config, primer3dict)
     return pqc
 
+
 @pytest.fixture
 def blapar(config):
     from speciesprimer import BlastParser
     blapar = BlastParser(config, results="primer")
     return blapar
+
 
 def prepare_QC_testfiles(pqc, config):
     targetdir = os.path.join(config.path, config.target)
@@ -118,6 +123,7 @@ def prepare_QC_testfiles(pqc, config):
         with open(outpath, "w") as o:
             SeqIO.write(mockfna, o, "fasta")
 
+
 def test_make_DBs(pqc, config):
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
@@ -134,18 +140,18 @@ def test_make_DBs(pqc, config):
         dblist = [assemblyfilepath, templatefilepath]
         for dbpath in dblist:
             P.index_database(dbpath)
-        assert os.path.isfile(genDB) == True
-        assert os.path.isfile(tempDB) == True
+        assert os.path.isfile(genDB) is True
+        assert os.path.isfile(tempDB) is True
         # repeat do not index again
         for dbpath in dblist:
             P.index_database(dbpath)
-        assert os.path.isfile(genDB) == True
-        assert os.path.isfile(tempDB) == True
+        assert os.path.isfile(genDB) is True
+        assert os.path.isfile(tempDB) is True
         # remove empty files
         os.remove(genDB)
         os.remove(tempDB)
-        assert os.path.isfile(genDB) == False
-        assert os.path.isfile(tempDB) == False
+        assert os.path.isfile(genDB) is False
+        assert os.path.isfile(tempDB) is False
         print("\n Test this with empty files")
         dbs = [genDB, tempDB]
         dbfiles = [".2bit", ".sqlite3.db", ".uni"]
@@ -166,11 +172,12 @@ def test_make_DBs(pqc, config):
         dblist = [assemblyfilepath, templatefilepath]
         for dbpath in dblist:
             P.index_database(dbpath)
-        assert os.path.isfile(genDB) == False
-        assert os.path.isfile(tempDB) == False
+        assert os.path.isfile(genDB) is False
+        assert os.path.isfile(tempDB) is False
+
 
 def test_qc_nottrue(pqc, config):
-    confargs["ignore_qc"] == False
+    confargs["ignore_qc"] is False
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     primer_qc_list = []
@@ -184,26 +191,28 @@ def test_qc_nottrue(pqc, config):
     dblist = [assemblyfilepath, templatefilepath]
     for dbpath in dblist:
         P.index_database(dbpath)
-    assert os.path.isfile(genDB) == False
-    assert os.path.isfile(tempDB) == False
+    assert os.path.isfile(genDB) is False
+    assert os.path.isfile(tempDB) is False
 
     os.chdir(pipe_dir)
     shutil.rmtree(config.path)
     if os.path.isdir(pqc.summ_dir):
         shutil.rmtree(pqc.summ_dir)
 
+
 def primerBLAST(pqc, config):
     from speciesprimer import BlastPrep
     prepare_QC_testfiles(pqc, config)
     G.create_directory(pqc.primerblast_dir)
     prep = BlastPrep(
-    pqc.primerblast_dir, pqc.primerlist,
-    "primer", pqc.config.blastseqs)
+        pqc.primerblast_dir, pqc.primerlist,
+        "primer", pqc.config.blastseqs)
     use_cores, inputseqs = prep.run_blastprep()
     reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
     tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
     shutil.copy(reffile, tofile)
     return inputseqs
+
 
 def prepare_blastdb(config):
     if os.path.isdir(tmpdir):
@@ -224,7 +233,8 @@ def prepare_blastdb(config):
                 for record in records:
                     if record.id == record.description:
                         description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                            record.id +
+                            " Lactobacillus curvatus strain SRCM103465")
                         record.description = description
                     SeqIO.write(record, f, "fasta")
         return dbfile
@@ -238,6 +248,7 @@ def prepare_blastdb(config):
 
     dbfile = dbinputfiles()
     create_customblastdb(config, dbfile)
+
 
 def test_get_seq_from_DB(pqc, config, blapar):
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
@@ -264,8 +275,11 @@ def test_get_seq_from_DB(pqc, config, blapar):
         fasta = P.get_seq_fromDB(extract, db)
         fasta_seqs.append(fasta)
 
-    assert fasta_seqs[0][0] == ">NZ_CP020459.1:29608-33608 Lactobacillus sakei strain FAM18311 chromosome, complete genome"
+    assert fasta_seqs[0][0] == (
+        ">NZ_CP020459.1:29608-33608 Lactobacillus sakei strain FAM18311 "
+        "chromosome, complete genome")
     assert len(fasta_seqs) == 97
+
 
 def test_parallel(pqc, config, blapar):
     filename = "BLASTnontarget0.sequences"
@@ -276,7 +290,8 @@ def test_parallel(pqc, config, blapar):
         for line in f:
             nonred_dict = json.loads(line)
     blapar.get_primerBLAST_DBIDS(nonred_dict)
-    assert os.path.isfile(filepath) == True
+    assert os.path.isfile(filepath) is True
+
 
 def test_end(config):
     def remove_test_files(config):
@@ -288,9 +303,10 @@ def test_end(config):
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
         os.chdir(BASE_PATH)
-        assert os.path.isdir(test) == False
+        assert os.path.isdir(test) is False
 
     remove_test_files(config)
+
 
 if __name__ == "__main__":
     print(msg)

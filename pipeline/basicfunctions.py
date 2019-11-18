@@ -18,6 +18,7 @@ pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 
+
 class GeneralFunctions:
     @staticmethod
     def logger(string_to_log):
@@ -368,6 +369,7 @@ class HelperFunctions:
 
         return email
 
+
 class ParallelFunctions:
 
     @staticmethod
@@ -486,7 +488,7 @@ class ParallelFunctions:
         primer_qc_dir = os.path.dirname(inputfilepath)
         db_name = os.path.basename(inputfilepath)
         db_path = inputfilepath + ".sqlite3.db"
-        if os.path.isfile(db_path) == True:
+        if os.path.isfile(db_path) is True:
             msg = " ".join([db_name, "DB already exists"])
             print(msg)
             GeneralFunctions().logger(msg)
@@ -504,9 +506,11 @@ class ParallelFunctions:
             start = time.time()
             cmd = "IndexDb.sh " + inputfilepath + " 9"
             try:
-                GeneralFunctions().run_shell(cmd, printcmd=True, logcmd=True, log=False)
+                GeneralFunctions().run_shell(
+                        cmd, printcmd=True, logcmd=True, log=False)
             except (KeyboardInterrupt, SystemExit):
-                GeneralFunctions().keyexit_rollback("DB indexing", dp=primer_qc_dir, search=db_name)
+                GeneralFunctions().keyexit_rollback(
+                        "DB indexing", dp=primer_qc_dir, search=db_name)
                 raise
             end = time.time() - start
             GeneralFunctions().logger(

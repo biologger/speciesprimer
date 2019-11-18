@@ -94,8 +94,8 @@ def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
                 dbfile = check_md5(inputfile)
             except Exception:
                 logger(
-                    "Poblem with " + inputfile +
-                    ". Please run getblastdb again to check if files are missing")
+                    "Problem with " + inputfile + ". Please run getblastdb"
+                    "  again to check if files are missing")
                 if os.path.isfile(inputfile):
                     os.remove(inputfile)
             extract_archives(archivename, delete, extractedendings)
@@ -131,7 +131,8 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
             if check_extract == extractedendings:
                 logger("Found extracted files, checking md5 file")
                 if os.path.isfile(os.path.join("md5_files", filename)):
-                    compare_md5_files(filename, delete, BASEURL, extractedendings)
+                    compare_md5_files(
+                            filename, delete, BASEURL, extractedendings)
                 else:
                     logger(
                         "> Skip download of " + filename
@@ -140,9 +141,12 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
             else:
                 file_path = os.path.join("md5_files", filename)
                 if os.path.isfile(file_path):
-                    # maybe only the md5 file was downloaded
-                    if os.path.isfile(filename) and os.path.isfile(archivename):
-                        compare_md5_files(filename, delete, BASEURL, extractedendings)
+                    if (
+                        os.path.isfile(filename) and
+                        os.path.isfile(archivename)
+                    ):
+                        compare_md5_files(
+                                filename, delete, BASEURL, extractedendings)
                         extract_archives(archivename, delete, extractedendings)
                     else:
                         url = BASEURL + "/" + archivename
@@ -152,7 +156,8 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
                         extract_archives(dbfile, delete, extractedendings)
                 else:
                     if os.path.isfile(archivename):
-                        compare_md5_archive(filename, delete, BASEURL, extractedendings)
+                        compare_md5_archive(
+                                filename, delete, BASEURL, extractedendings)
                     else:
                         url = BASEURL + "/" + archivename
                         logger("> Downloading..." + archivename)
@@ -259,7 +264,7 @@ def get_DB(mode=False):
         except KeyError:
             blastdb_dir = "/blastdb"
         try:
-            if tmp_db['BLAST_DB']['test'] == True:
+            if tmp_db['BLAST_DB']['test'] is True:
                 test = True
         except KeyError:
             pass

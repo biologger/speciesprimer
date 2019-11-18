@@ -1,20 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-msg = (
-"""
-Works only in the Docker container!!!
-- Start the container
-    sudo docker start {Containername}
-- Start an interactive terminal in the container
-    sudo docker exec -it {Containername} bash
-- Start the test in the container terminal
-    pytest -vv /pipeline/tests/fullrun_test.py
-"""
-)
-
 import os
-import sys
 import shutil
 import pytest
 import json
@@ -22,33 +9,47 @@ import time
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from basicfunctions import GeneralFunctions as G
+
+msg = (
+    """
+    Works only in the Docker container!!!
+    - Start the container
+        sudo docker start {Containername}
+    - Start an interactive terminal in the container
+        sudo docker exec -it {Containername} bash
+    - Start the test in the container terminal
+        pytest -vv /pipeline/tests/fullrun_test.py
+    """
+)
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-sys.path.append(pipe_dir)
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 dbpath = os.path.join(tmpdir, "customdb.fas")
 
-from basicfunctions import GeneralFunctions as G
-
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
-start = ("Create new config files or start pipeline with previously "
+start = (
+        "Create new config files or start pipeline with previously "
         "generated files?\ntype (n)ew or (s)tart:\n")
-species = ("Please specify target species (comma separated) "
+species = (
+        "Please specify target species (comma separated) "
         "or type help for format examples: \n")
-path = ("Please specify a path to use as the working directory "
-            "or hit return to use the current working directory:\n")
+path = (
+        "Please specify a path to use as the working directory "
+        "or hit return to use the current working directory:\n")
 targets = (
-    "Search for config files for (a)ll or (s)elect targets:\n")
+        "Search for config files for (a)ll or (s)elect targets:\n")
 
 # full_run paths
 config_dir = os.path.join(
     "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
 conffile = os.path.join(testfiles_dir, "fullrun_config.json")
 testconfig = os.path.join(config_dir, "config.json")
+
 
 def prepare_testfiles():
     def prepare_tmp_db():
@@ -68,7 +69,6 @@ def prepare_testfiles():
         with open(tmp_path, "w") as f:
             f.write(json.dumps(tmp_dict))
 
-    dbpath = os.path.join(tmpdir, "customdb.fas")
     def dbinputfiles():
         filenames = [
             "GCF_004088235v1_20191001.fna",
@@ -80,7 +80,8 @@ def prepare_testfiles():
                 for record in records:
                     if record.id == record.description:
                         description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                            record.id +
+                            " Lactobacillus curvatus strain SRCM103465")
                         record.description = description
                     SeqIO.write(record, f, "fasta")
         return dbpath
@@ -98,6 +99,7 @@ def prepare_testfiles():
     prepare_tmp_db()
     change_tmp_db()
 
+
 def start_oneinput(prompt):
     prompt_dict = {
         start: "s",
@@ -108,9 +110,11 @@ def start_oneinput(prompt):
     val = prompt_dict[prompt]
     return val
 
+
 def prepare_files():
     genomic_dir = os.path.join(
-            "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
+            "/", "primerdesign", "test",
+            "Lactobacillus_curvatus", "genomic_fna")
     if os.path.isdir(genomic_dir):
         shutil.rmtree(genomic_dir)
     G.create_directory(genomic_dir)
@@ -127,7 +131,8 @@ def prepare_files():
         for record in records:
             seq = str(record.seq)
             sequences.append(seq)
-        newfilename = ".".join(filename.split(".ffn")[0].split("v")) + "_genomic.fna"
+        newfilename = ".".join(
+                filename.split(".ffn")[0].split("v")) + "_genomic.fna"
         outpath = os.path.join(genomic_dir, newfilename)
         mockfna = SeqRecord(
             Seq("".join(sequences)),
@@ -142,6 +147,7 @@ def prepare_files():
         for i in range(0, 500):
             f.write(">GCF_007MOCKv1_" + str(i) + "\n")
 
+
 def test_run():
     prepare_testfiles()
     prepare_files()
@@ -149,7 +155,8 @@ def test_run():
     from speciesprimer import main
     main(mode="auto")
     summ_dir = os.path.join(
-                "/", "primerdesign", "test", "Summary", "Lactobacillus_curvatus")
+                "/", "primerdesign", "test",
+                "Summary", "Lactobacillus_curvatus")
     files = []
     for filename in os.listdir(summ_dir):
         files.append(filename)
@@ -168,10 +175,11 @@ def test_run():
     ref_files.sort()
     assert files == ref_files
     genomic_dir = os.path.join(
-            "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
+            "/", "primerdesign", "test",
+            "Lactobacillus_curvatus", "genomic_fna")
     maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
     # compare primer results
-    assert os.path.isfile(maxcontig) == False
+    assert os.path.isfile(maxcontig) is False
 
 
 #def test_remove_intermediate_files(monkeypatch):
@@ -203,7 +211,7 @@ def test_run():
 #        if os.path.isdir(tmpdir):
 #            shutil.rmtree(tmpdir)
 #        os.chdir(BASE_PATH)
-#        assert os.path.isdir(test) == False
+#        assert os.path.isdir(test) is False
 #
 #    remove_test_files()
 

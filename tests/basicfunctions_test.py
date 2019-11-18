@@ -1,38 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-msg = (
-"""
-Works only in the Docker container!!!
-- Start the container
-    sudo docker start {Containername}
-- Start an interactive terminal in the container
-    sudo docker exec -it {Containername} bash
-- Start the tests in the container terminal
-    cd /
-    pytest -vv --cov=pipeline /tests/
-"""
-)
-
 import os
-import sys
 import shutil
 import pytest
 import json
 from Bio import Entrez
-
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-sys.path.append(pipe_dir)
-dict_path = os.path.join(pipe_dir, "dictionaries")
-tmpdir = os.path.join("/", "primerdesign", "tmp")
-dbpath = os.path.join(tmpdir, "customdb.fas")
-
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 
+msg = (
+    """
+    Works only in the Docker container!!!
+    - Start the container
+        sudo docker start {Containername}
+    - Start an interactive terminal in the container
+        sudo docker exec -it {Containername} bash
+    - Start the tests in the container terminal
+        cd /
+        pytest -vv --cov=pipeline /tests/
+    """
+    )
+
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
+dict_path = os.path.join(pipe_dir, "dictionaries")
+tmpdir = os.path.join("/", "primerdesign", "tmp")
+dbpath = os.path.join(tmpdir, "customdb.fas")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
+
 
 def prepare_tmp_db():
     t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
@@ -41,16 +38,19 @@ def prepare_tmp_db():
         os.remove(tmp_path)
     shutil.copy(t, tmp_path)
 
+
 def change_tmp_db():
     tmp_path = os.path.join(pipe_dir, "tmp_config.json")
     tmp_dict = {'modus': "continue", "targets": None}
     with open(tmp_path, "w") as f:
         f.write(json.dumps(tmp_dict))
 
+
 def remove_tmp_db():
     tmp_path = os.path.join(pipe_dir, "tmp_config.json")
     if os.path.isfile(tmp_path):
         os.remove(tmp_path)
+
 
 def read_email_from_db():
     tmp_path = os.path.join(pipe_dir, "tmp_config.json")
@@ -68,6 +68,7 @@ def read_email_from_db():
     else:
         return False
 
+
 class Entrezmail():
     def __init__(self, outcome):
         self.repeat = 0
@@ -80,16 +81,17 @@ class Entrezmail():
         if self.repeat == 0:
             prompt_dict = {user_email: "hfkjdsalgfhlgh.com"}
             assert read_email_from_db() == self.outcome
-            self.repeat +=1
+            self.repeat += 1
         elif self.repeat < 2:
             prompt_dict = {user_email: "hfkjdsa@lgfhlghcom"}
             assert read_email_from_db() == self.outcome
-            self.repeat +=1
+            self.repeat += 1
         else:
             prompt_dict = {user_email: "biologger@protonmail.com"}
             assert read_email_from_db() == self.outcome
         val = prompt_dict[prompt]
         return val
+
 
 def test_Entrez_email(monkeypatch):
     remove_tmp_db()
@@ -114,6 +116,7 @@ def test_Entrez_email(monkeypatch):
     assert read_email_from_db() == "biologger@protonmail.com"
     remove_tmp_db()
 
+
 def test_subsp_abbrev():
     target = "Lactococcus_lactis_subsp_lactis"
     name = H.abbrev(target)
@@ -125,11 +128,13 @@ def test_subsp_abbrev():
     name = H.abbrev(target)
     assert name == "Salmo_enter"
 
+
 def a_function(inputitem):
     if inputitem == "lactis subsp. lactis":
         raise Exception
     else:
         return inputitem
+
 
 def test_run_parallel_exceptions():
     inputlist = [
@@ -137,6 +142,7 @@ def test_run_parallel_exceptions():
             "enterica", "enterica"]
     result = G.run_parallel(a_function, inputlist, args=False, verbosity="")
     assert result == ['lactis_subsp_lactis', 'enterica', 'enterica']
+
 
 def test_subspecies_handler():
     outcome = [
@@ -151,9 +157,11 @@ def test_subspecies_handler():
             assert species == outcome[outnum]
             outnum += 1
 
+
 def test_check_input(monkeypatch):
     def mock_taxid(db, term):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock01.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "esearchmock01.xml")
         f = open(mockfile)
         return f
     target = "Lactobacillus_curvatus"
@@ -161,21 +169,25 @@ def test_check_input(monkeypatch):
     monkeypatch.setattr(Entrez, "esearch", mock_taxid)
     taxid = H.check_input(target, email)
     assert taxid == str(28038)
-    
+
+
 def test_check_input_fail(monkeypatch):
     def mock_taxid(db, term):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock02.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "esearchmock02.xml")
         f = open(mockfile)
         return f
     target = "Lactobacious_curvatus"
     email = "biologger@protonmail.com"
     monkeypatch.setattr(Entrez, "esearch", mock_taxid)
     taxid = H.check_input(target, email)
-    assert taxid == None
-    
+    assert taxid is None
+
+
 def test_check_species_syn(monkeypatch):
     def mock_syn(db, id):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock01.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock01.xml")
         f = open(mockfile)
         return f
     target = "Lactobacillus_curvatus"
@@ -184,12 +196,14 @@ def test_check_species_syn(monkeypatch):
     monkeypatch.setattr(Entrez, "efetch", mock_syn)
     syn = H.check_species_syn(taxid, email, target)
     assert syn == [
-        'Bacterium curvatum', 'Lactobacillus curvatus subsp. curvatus', 
+        'Bacterium curvatum', 'Lactobacillus curvatus subsp. curvatus',
         'Lactobacillus sp. N55', 'Lactobacillus sp. N61']
+
 
 def test_check_species_syn_target_sc(monkeypatch):
     def mock_syn(db, id):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock04.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock04.xml")
         f = open(mockfile)
         return f
     target = "Chlamydophila pneumoniae"
@@ -205,9 +219,11 @@ def test_check_species_syn_target_sc(monkeypatch):
     syn = H.check_species_syn(taxid, email, target)
     assert syn == ["Chlamydophila pneumoniae"]
 
+
 def test_check_species_syn_none(monkeypatch):
     def mock_syn(db, id):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock02.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock02.xml")
         f = open(mockfile)
         return f
     # not relevant since return is mocked
@@ -216,11 +232,13 @@ def test_check_species_syn_none(monkeypatch):
     taxid = str(28038)
     monkeypatch.setattr(Entrez, "efetch", mock_syn)
     syn = H.check_species_syn(taxid, email, target)
-    assert syn == None
-    
+    assert syn is None
+
+
 def test_check_synonyms_nosyn(monkeypatch):
     def mock_syn(db, id):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock03.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock03.xml")
         f = open(mockfile)
         return f
     # not relevant since return is mocked
@@ -228,12 +246,14 @@ def test_check_synonyms_nosyn(monkeypatch):
     email = "biologger@protonmail.com"
     taxid = str(1335616)
     monkeypatch.setattr(Entrez, "efetch", mock_syn)
-    syn = H.check_species_syn(taxid, email, target)  
+    syn = H.check_species_syn(taxid, email, target)
     assert syn == ['Lactobacillus sp. WDC04']
+
 
 def test_check_synonyms_nonesyn(monkeypatch):
     def mock_syn(db, id):
-        mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock05.xml")
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock05.xml")
         f = open(mockfile)
         return f
     # not relevant since return is mocked
@@ -241,8 +261,9 @@ def test_check_synonyms_nonesyn(monkeypatch):
     email = "biologger@protonmail.com"
     taxid = str(28038)
     monkeypatch.setattr(Entrez, "efetch", mock_syn)
-    syn = H.check_species_syn(taxid, email, target)  
-    assert syn == None
+    syn = H.check_species_syn(taxid, email, target)
+    assert syn is None
+
 
 def test_create_non_target_list():
     targetdef = []
@@ -251,9 +272,11 @@ def test_create_non_target_list():
     for item in nontargetlist:
         if (
             item == "Lactococcus lactis subsp. lactis" or
-            item == "Lactococcus lactis subsp lactis"):
+            item == "Lactococcus lactis subsp lactis"
+        ):
             targetdef.append(item)
     assert targetdef == []
+
 
 def test_rollback():
     testdir = os.path.join("/", "primerdesign", "test")
@@ -276,55 +299,55 @@ def test_rollback():
     annotdir = "GCF_902362325v1_20191114"
     G.create_directory(os.path.join(target_dir, annotdir))
     outdir = annotdir
-    assert os.path.isdir(os.path.join(target_dir, annotdir)) == True
+    assert os.path.isdir(os.path.join(target_dir, annotdir)) is True
     G.keyexit_rollback("annotation", dp=os.path.join(target_dir, outdir))
-    assert os.path.isdir(os.path.join(target_dir, annotdir)) == False
+    assert os.path.isdir(os.path.join(target_dir, annotdir)) is False
     # p3
     p3_file = os.path.join(primer_dir, "primer3_output")
     output_file = p3_file
     with open(p3_file, "w") as f:
         f.write("PRIMER3MOCK")
-    assert os.path.isfile(p3_file) == True
+    assert os.path.isfile(p3_file) is True
     G.keyexit_rollback("primer3 run", fp=output_file)
-    assert os.path.isfile(p3_file) == False
+    assert os.path.isfile(p3_file) is False
     # alignments
     run_file = os.path.join(results_dir, "run_prank")
     with open(run_file, "w") as f:
         f.write("PRANK MSA MOCK")
-    assert os.path.isfile(run_file) == True
+    assert os.path.isfile(run_file) is True
     G.keyexit_rollback("Prank MSA run", dp=alignments_dir, fp=run_file)
-    assert os.path.isfile(run_file) == False
-    assert os.path.isdir(alignments_dir) == False
+    assert os.path.isfile(run_file) is False
+    assert os.path.isdir(alignments_dir) is False
     # consensus
     run_file = os.path.join(results_dir, "run_consensus")
     with open(run_file, "w") as f:
         f.write("CONSAMBIG MOCK")
-    assert os.path.isfile(run_file) == True
+    assert os.path.isfile(run_file) is True
     G.keyexit_rollback("consensus run", dp=consensus_dir, fp=run_file)
-    assert os.path.isfile(run_file) == False
-    assert os.path.isdir(consensus_dir) == False
+    assert os.path.isfile(run_file) is False
+    assert os.path.isdir(consensus_dir) is False
     # dp only
     run_file = os.path.join(results_dir, "run_consensus")
     G.create_directory(consensus_dir)
-    assert os.path.isfile(run_file) == False
+    assert os.path.isfile(run_file) is False
     G.keyexit_rollback("consensus run", dp=consensus_dir, fp=run_file)
-    assert os.path.isfile(run_file) == False
-    assert os.path.isdir(consensus_dir) == False
+    assert os.path.isfile(run_file) is False
+    assert os.path.isdir(consensus_dir) is False
     # fp only
     run_file = os.path.join(results_dir, "run_consensus")
     with open(run_file, "w") as f:
         f.write("CONSAMBIG MOCK")
     G.keyexit_rollback("consensus run", dp=consensus_dir, fp=run_file)
-    assert os.path.isfile(run_file) == False
-    assert os.path.isdir(consensus_dir) == False
+    assert os.path.isfile(run_file) is False
+    assert os.path.isdir(consensus_dir) is False
     # DB extraction
     filename = "BLASTnontarget0.sequences"
     filepath = os.path.join(primer_qc_dir, filename)
     with open(filepath, "w") as f:
         f.write("DB extract Mock")
-    assert os.path.isfile(filepath) == True
+    assert os.path.isfile(filepath) is True
     G.keyexit_rollback("DB extraction", fp=filepath)
-    assert os.path.isfile(filepath) == False
+    assert os.path.isfile(filepath) is False
     # blast
     directory = blast_dir
     blastfile = "conserved_0_results.xml"
@@ -332,9 +355,9 @@ def test_rollback():
     with open(filepath, "w") as f:
         f.write("BLAST MOCK")
     filename = blastfile
-    assert os.path.isfile(filepath) == True
+    assert os.path.isfile(filepath) is True
     G.keyexit_rollback("BLAST search", dp=directory, fn=filename)
-    assert os.path.isfile(filepath) == False
+    assert os.path.isfile(filepath) is False
     # primerblast
     directory = primerblast_dir
     primerblastfile = "primer_0_results.xml"
@@ -342,9 +365,9 @@ def test_rollback():
     with open(filepath, "w") as f:
         f.write("PRIMERBLAST MOCK")
     filename = primerblastfile
-    assert os.path.isfile(filepath) == True
+    assert os.path.isfile(filepath) is True
     G.keyexit_rollback("BLAST search", dp=directory, fn=filename)
-    assert os.path.isfile(filepath) == False
+    assert os.path.isfile(filepath) is False
     # DB indexing
     dbfiles = [
         "Lb_curva.genomic", "Lb_curva.genomic.sqlite3.db",
@@ -353,18 +376,18 @@ def test_rollback():
         filepath = os.path.join(primer_qc_dir, files)
         with open(filepath, "w") as f:
             f.write(files + " Mock")
-        assert os.path.isfile(filepath) == True
+        assert os.path.isfile(filepath) is True
     db_name = "Lb_curva.genomic"
     G.keyexit_rollback("DB indexing", dp=primer_qc_dir, search=db_name)
     for files in dbfiles:
         filepath = os.path.join(primer_qc_dir, files)
-        assert os.path.isfile(filepath) == False
+        assert os.path.isfile(filepath) is False
     # pangenome
-    assert os.path.isdir(pangenome_dir) == True
+    assert os.path.isdir(pangenome_dir) is True
     G.keyexit_rollback("pan-genome analysis", dp=pangenome_dir)
-    assert os.path.isdir(pangenome_dir) == False
-
+    assert os.path.isdir(pangenome_dir) is False
     shutil.rmtree(testdir)
+
 
 if __name__ == "__main__":
     print(msg)

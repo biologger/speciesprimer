@@ -201,7 +201,7 @@ class DataCollection():
                 for gi in removed_gis:
                     f.write(gi + "\n")
 
-    def get_ncbi_links(self, taxid, maxrecords=2000 ):
+    def get_ncbi_links(self, taxid, maxrecords=2000):
 
         def collect_genomedata(taxid, email):
             genomedata = []
@@ -511,7 +511,8 @@ class DataCollection():
                 try:
                     G.run_subprocess(prokka_cmd, True, True, False)
                 except (KeyboardInterrupt, SystemExit):
-                    G.keyexit_rollback("annotation", dp=os.path.join(self.target_dir, outdir))
+                    G.keyexit_rollback(
+                        "annotation", dp=os.path.join(self.target_dir, outdir))
                     raise
 
                 annotation_dirs.append(file_name + "_" + date)
@@ -557,15 +558,16 @@ class DataCollection():
                     else:
                         msg = (
                             files + " has more than " + str(self.contiglimit)
-                            + " contigs and will be removed before annotation"
-                            " to include it in the run use the ignore_qc option")
+                            + " contigs and will be removed before annotation "
+                            "to include it in the run use the ignore_qc option"
+                        )
                         print(msg)
                         G.logger(msg)
                         os.remove(filepath)
 
     def add_synonym_exceptions(self, syn):
         for item in syn:
-            if not item in self.config.exception:
+            if item not in self.config.exception:
                 self.config.exception.append(item)
         conffile = os.path.join(self.config_dir, "config.json")
         with open(conffile) as f:
@@ -584,8 +586,9 @@ class DataCollection():
 
         if not self.config.offline:
             syn, taxid = self.get_taxid(self.target)
-            if taxid == None:
-                error_msg = "No taxid was found on NCBI check spelling and internet connection"
+            if taxid is None:
+                error_msg = (
+                    "No taxid was found on NCBI, check internet connection")
                 errors.append([self.target, error_msg])
             if syn:
                 self.add_synonym_exceptions(syn)
@@ -959,9 +962,10 @@ class QualityControl:
                     blast_record_list = list(blast_records)
                 except Exception:
                     error_msg = (
-                        "A problem with the BLAST results file " + file_name
-                        + " was detected. Trying to remove the file. "
-                        + "Please check if the file was removed and start the run again" )
+                        "A problem with the BLAST results file " + file_name +
+                        " was detected. Trying to remove the file. Please "
+                        "check if the file was removed and start the run again"
+                    )
                     print("\n" + error_msg + "\n")
                     G.logger("> " + error_msg)
                     errors.append([self.target, error_msg])
@@ -983,7 +987,7 @@ class QualityControl:
                             spec, gi, db_id = get_blastresults_info(
                                     blast_record, i)
                             if str(gi) not in excluded_gis:
-                                    break
+                                break
                             else:
                                 if gi not in gi_list:
                                     gi_list.append(gi)
@@ -1297,7 +1301,8 @@ class PangenomeAnalysis:
                     treecmd, printcmd=True, logcmd=True,
                     log=True)
             except (KeyboardInterrupt, SystemExit):
-                G.keyexit_rollback("fasttree run", dp=self.pangenome_dir, fn=tree)
+                G.keyexit_rollback(
+                    "fasttree run", dp=self.pangenome_dir, fn=tree)
                 raise
         os.chdir(self.target_dir)
 
@@ -1346,7 +1351,8 @@ class CoreGenes:
         self.fasta_dir = os.path.join(self.results_dir, "fasta")
         self.all_core_path = os.path.join(self.pangenome_dir, "allcoregenes")
         self.multi_path = os.path.join(self.pangenome_dir, "multiannotated")
-        self.singlecopy = os.path.join(self.pangenome_dir, "singlecopy_genes.csv")
+        self.singlecopy = os.path.join(
+                self.pangenome_dir, "singlecopy_genes.csv")
         self.ffn_seqs = os.path.join(self.pangenome_dir, "ffn_sequences.csv")
 
     def get_singlecopy_genes(self, mode):
@@ -1354,7 +1360,8 @@ class CoreGenes:
         single_count = []
         all_core = []
         multi_annotated = []
-        filepath = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
+        filepath = os.path.join(
+                self.pangenome_dir, "gene_presence_absence.csv")
         newtabledata = []
         with open(filepath, "r") as f:
             reader = csv.reader(f)
@@ -1377,8 +1384,8 @@ class CoreGenes:
                             for locus in loci:
                                 data_row.append(locus)
                             if "group" in gene_name:
-                                    all_core.append(gene_name)
-                                    newtabledata.append(data_row)
+                                all_core.append(gene_name)
+                                newtabledata.append(data_row)
                             if "group" not in gene_name:
                                 if len(gene_name.split("_")) > 1:
                                     multi_annotated.append(gene_name)
@@ -1415,8 +1422,7 @@ class CoreGenes:
             with open(self.ffn_seqs, "r") as f:
                 r = csv.reader(f)
                 for row in r:
-                    locustags.update(
-                            {row[1]:{"name": row[0], "seq": row[2]}})
+                    locustags.update({row[1]: {"name": row[0], "seq": row[2]}})
         else:
             ffn_data = []
             for files in os.listdir(self.ffn_dir):
@@ -1464,7 +1470,7 @@ class CoreGenes:
                         record = SeqRecord(
                             Seq(seq),
                             name=item,
-                            id='{}|{}|{}'.format(name,item, gene),
+                            id='{}|{}|{}'.format(name, item, gene),
                             description="")
                         SeqIO.write(record, r, "fasta")
 
@@ -1577,7 +1583,8 @@ class CoreGeneSequences:
                     G.run_subprocess(
                         ["parallel", "-a", run_file], True, True, False)
                 except (KeyboardInterrupt, SystemExit):
-                    G.keyexit_rollback("Prank MSA run", dp=self.alignments_dir, fp=run_file)
+                    G.keyexit_rollback(
+                        "Prank MSA run", dp=self.alignments_dir, fp=run_file)
                     raise
 
             with open(coregenes, "w") as f:
@@ -1653,7 +1660,8 @@ class CoreGeneSequences:
                 G.run_subprocess(
                     ["parallel", "-a", run_file], True, True, False)
             except (KeyboardInterrupt, SystemExit):
-                G.keyexit_rollback("consensus run", dp=self.consensus_dir, fp=run_file)
+                G.keyexit_rollback(
+                    "consensus run", dp=self.consensus_dir, fp=run_file)
                 raise
 
             records = []
@@ -1863,8 +1871,6 @@ class Blast:
                 str(cores), "-query", blastfile,
                 "-evalue", "500", "-out", filename, "-outfmt", "5"]
 
-
-
         if self.config.blastdbv5:
             if self.mode == "quality_control":
                 blast_cmd.append("-taxidlist")
@@ -1925,7 +1931,8 @@ class Blast:
                     try:
                         G.run_subprocess(blast_cmd)
                     except (KeyboardInterrupt, SystemExit):
-                        G.keyexit_rollback("BLAST search", dp=self.directory, fn=filename)
+                        G.keyexit_rollback(
+                            "BLAST search", dp=self.directory, fn=filename)
                         raise
 
             duration = time.time() - start
@@ -1996,12 +2003,12 @@ class BlastParser:
 
             gi = alignment.title.split("|")[di[0]].strip()
             db_id = alignment.title.split("|")[di[1]].strip()
-            name_long = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
+            lname = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
 
-            if re.search("PREDICTED", name_long):
+            if re.search("PREDICTED", lname):
                 pass
             else:
-                name = name_long.split(" ")
+                name = lname.split(" ")
                 if len(name) >= 3:
                     if "subsp" in str(" ".join(name)):
                         identity = str(" ".join(name[0:4]))
@@ -2035,7 +2042,7 @@ class BlastParser:
                 qletters = str(blast_record.query_letters)
                 seq_range = "[" + str(min(query_end)) + ":" + qletters + "]"
                 seqlen = int(qletters) - min(query_end)
-                if  seqlen >= self.config.minsize:
+                if seqlen >= self.config.minsize:
                     seq_ends.append([blast_record.query, seq_range])
         if len(seq_ends) > 0:
             filename = os.path.join(self.blast_dir, "partialseqs.txt")
@@ -2136,9 +2143,9 @@ class BlastParser:
             record_list = list(blast_records)
         except Exception:
             error_msg = (
-                "A problem with the BLAST results file " + filename
-                + " was detected. Try to remove the file. "
-                + "Please check if the file was removed and start the run again" )
+                "A problem with the BLAST results file " + filename +
+                " was detected. Try to remove the file. Please check"
+                " if the file was removed and start the run again")
             print("\n" + error_msg + "\n")
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
@@ -2167,7 +2174,7 @@ class BlastParser:
         if not self.exception == []:
             for item in self.exception:
                 exception = ' '.join(item.split("_"))
-                if not exception in exceptions:
+                if exception not in exceptions:
                     exceptions.append(exception)
 
         query_start = []
@@ -2287,7 +2294,7 @@ class BlastParser:
                         poskey = nonred_dict[key][species]['main_id']
                         pos = int(
                             nonred_dict[key][species]["subject_start"])
-                        if not pos in posdict[poskey]:
+                        if pos not in posdict[poskey]:
                             posdict[poskey].append(pos)
 
             for key in posdict.keys():
@@ -2332,16 +2339,17 @@ class BlastParser:
                 db = "nt_v5"
             else:
                 db = "nt"
-        info = "Found " + str(len(nonreddata)) + " sequences for the non-target DB"
+        seqcount = len(nonreddata)
+        info = "Found " + str(seqcount) + " sequences for the non-target DB"
         G.logger(info)
         print("\n" + info + "\n")
-        parts = len(nonreddata)//maxsize + 1
+        parts = seqcount//maxsize + 1
 
         for part in range(0, parts):
             print("Working on part " + str(part + 1) + "/" + str(parts))
             end = (part+1)*maxsize
-            if end > len(nonreddata):
-                end = len(nonreddata)
+            if end > seqcount:
+                end = seqcount
             filename = "BLASTnontarget" + str(part) + ".sequences"
             filepath = os.path.join(self.primer_qc_dir, filename)
             if not os.path.isfile(filepath):
@@ -2357,7 +2365,8 @@ class BlastParser:
                     with open(filepath, "w") as r:
                         for fastainfo in fasta_seqs:
                             name = fastainfo[0].split(":")
-                            fastainfo[0] = name[0] + "_" + "_".join(name[1].split("-"))
+                            fastainfo[0] = (
+                                name[0] + "_" + "_".join(name[1].split("-")))
                             fastadata = "\n".join(fastainfo) + "\n"
                             r.write(fastadata)
                 except (KeyboardInterrupt, SystemExit):
@@ -2448,7 +2457,7 @@ class BlastParser:
                     for species in align_dict[key].keys():
                         gi = align_dict[key][species]['main_id']
                         if str(gi) in excluded_gis:
-                            if not gi in ex_gis:
+                            if gi not in ex_gis:
                                 ex_gis.append(gi)
                             deletekey.append([key, species])
                 for item in deletekey:
@@ -2493,7 +2502,7 @@ class BlastParser:
                         for species in item.copy().keys():
                             gi = item[species]['gi']
                             if str(gi) in excluded_gis:
-                                if not gi in ex_gis:
+                                if gi not in ex_gis:
                                     ex_gis.append(gi)
                                 del align_dict[key][index]
 
@@ -2559,10 +2568,10 @@ class BlastParser:
 
     def run_blastparser(self, conserved_seq_dict):
         if self.mode == "primer":
-            file_path = os.path.join(self.primerblast_dir, "nontargethits.json")
+            filepath = os.path.join(self.primerblast_dir, "nontargethits.json")
             G.logger("Run: run_blastparser(" + self.target + "), primer")
             align_dict = self.blast_parser(self.primerblast_dir)
-            if not os.path.isfile(file_path):
+            if not os.path.isfile(filepath):
                 nonred_dict = self.remove_redundanthits(align_dict)
                 self.write_nontargethits(
                         self.primerblast_dir, nonred_dict,
@@ -2577,12 +2586,12 @@ class BlastParser:
                 "> Primer blast parser time: "
                 + str(timedelta(seconds=duration)).split(".")[0])
         else:
-            file_path = os.path.join(self.blast_dir, "nontargethits.json")
+            filepath = os.path.join(self.blast_dir, "nontargethits.json")
             G.logger(
                 "Run: run_blastparser(" + self.target
                 + "), conserved sequences")
             align_dict = self.blast_parser(self.blast_dir)
-            if not os.path.isfile(file_path):
+            if not os.path.isfile(filepath):
                 nonred_dict = self.remove_redundanthits(align_dict)
                 self.commonhit_counter(nonred_dict)
                 self.write_nontargethits(
@@ -2666,7 +2675,7 @@ class PrimerDesign():
 
         def parsePrimer(key, value, pos):
             pp = "Primer_pair_"
-            if key.startswith("PRIMER_"+ pos):
+            if key.startswith("PRIMER_" + pos):
                 i = key.split("_")[2]
                 if key.endswith("_PENALTY"):
                     primer_rpen = value
@@ -2716,7 +2725,9 @@ class PrimerDesign():
                     if "P3_SETTINGS_FILE_END=" in line:
                         settings = 0
                     if settings == 0:
-                        if not (line == "=" or "P3_SETTINGS_FILE_END=" in line):
+                        if not (
+                            line == "=" or "P3_SETTINGS_FILE_END=" in line
+                        ):
                             if "PRIMER_ERROR=" in line:
                                 primerdata.append(line)
                                 primererror.append(primerdata)
@@ -2728,14 +2739,12 @@ class PrimerDesign():
                         primerdata = []
 
             if not primererror == []:
-
-
-                errorfile = os.path.join(self.primer_dir, "primer3_errors.csv")
-                msg = "Detected errors during primer3 run, check:\n" + errorfile
+                errfile = os.path.join(self.primer_dir, "primer3_errors.csv")
+                msg = "Detected errors during primer3 run, check:\n" + errfile
                 G.logger(">" + msg)
                 print("\n" + msg + "\n")
                 errors.append([self.target, msg])
-                G.csv_writer(errorfile, primererror)
+                G.csv_writer(errfile, primererror)
             return primerdatasets
 
         p3list = []
@@ -2763,15 +2772,15 @@ class PrimerDesign():
 
         for key in self.p3dict.keys():
             if self.p3dict[key]["Primer_pairs"] > 0:
-               template = self.p3dict[key]["template_seq"]
-               for pp in self.p3dict[key].keys():
-                   if "Primer_pair_" in pp:
-                       lprimer = self.p3dict[key][pp]["primer_L_sequence"]
-                       rprimer = self.p3dict[key][pp]["primer_R_sequence"]
-                       rev_compl = str(Seq(rprimer).reverse_complement())
-                       pcr_product = PCR(lprimer, rev_compl, template)
-                       self.p3dict[key][pp].update(
-                           {"amplicon_seq": pcr_product})
+                template = self.p3dict[key]["template_seq"]
+                for pp in self.p3dict[key].keys():
+                    if "Primer_pair_" in pp:
+                        lprimer = self.p3dict[key][pp]["primer_L_sequence"]
+                        rprimer = self.p3dict[key][pp]["primer_R_sequence"]
+                        rev_compl = str(Seq(rprimer).reverse_complement())
+                        pcr_product = PCR(lprimer, rev_compl, template)
+                        self.p3dict[key][pp].update(
+                            {"amplicon_seq": pcr_product})
 
     def write_primer3_data(self):
         file_path = os.path.join(self.primer_dir, "primer3_summary.json")
@@ -3124,7 +3133,8 @@ class PrimerQualityControl:
         # if the MFEprimer_nontarget.csv has only the table header
         # and no results, then no primer binding was detected
         # and the primers passed the QC
-        check_assembly = self.write_MFEprimer_results(nontarget_lists, "nontarget")
+        check_assembly = self.write_MFEprimer_results(
+                                                nontarget_lists, "nontarget")
         msg = " primer pair(s) passed non-target PCR check"
         info2 = str(len(check_assembly)) + msg
         print("\n\n" + info2 + "\n")
@@ -3811,8 +3821,8 @@ class Summary:
 
                     for key in blast_dict.keys():
                         for speciesname in blast_dict[key]:
-                                if speciesname not in specieslist:
-                                    specieslist.append(speciesname)
+                            if speciesname not in specieslist:
+                                specieslist.append(speciesname)
                 except FileNotFoundError:
                     pass
 
@@ -3825,8 +3835,8 @@ class Summary:
 
                     for key in primerblast_dict.keys():
                         for speciesname in primerblast_dict[key]:
-                                if speciesname not in specieslist:
-                                    specieslist.append(speciesname)
+                            if speciesname not in specieslist:
+                                specieslist.append(speciesname)
                 except FileNotFoundError:
                     pass
 
@@ -3987,7 +3997,6 @@ def auto_run():
     return targets, conf_from_file, use_configfile
 
 
-
 def main(mode=None):
     today = time.strftime("%Y_%m_%d", time.localtime())
     use_configfile = False
@@ -4126,9 +4135,6 @@ def main(mode=None):
         except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "KeyboardInterrupt while working on " + target, exc_info=True)
-            logging.error(
-                "Warning: KeyboardInterrupt during long running processes can have "
-                "severe side effects.")
             raise
 
     if len(errors) > 0:

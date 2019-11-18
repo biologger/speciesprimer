@@ -1,21 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-msg = (
-"""
-Works only in the Docker container!!!
-- Start the container
-    sudo docker start {Containername}
-- Start an interactive terminal in the container
-    sudo docker exec -it {Containername} bash
-- Start the tests in the container terminal
-    cd /
-    pytest -vv --cov=pipeline /tests/
-"""
-)
-
 import os
-import sys
 import shutil
 import pytest
 import json
@@ -23,21 +9,31 @@ import time
 import csv
 from Bio import SeqIO
 from Bio import Entrez
-
-# /tests
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
-sys.path.append(pipe_dir)
-dict_path = os.path.join(pipe_dir, "dictionaries")
-tmpdir = os.path.join("/", "primerdesign", "tmp")
-
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import ParallelFunctions as P
 
+
+msg = (
+    """
+    Works only in the Docker container!!!
+    - Start the container
+        sudo docker start {Containername}
+    - Start an interactive terminal in the container
+        sudo docker exec -it {Containername} bash
+    - Start the tests in the container terminal
+        cd /
+        pytest -vv --cov=pipeline /tests/
+    """)
+
+
+# /tests
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
+dict_path = os.path.join(pipe_dir, "dictionaries")
+tmpdir = os.path.join("/", "primerdesign", "tmp")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
-
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
@@ -46,12 +42,15 @@ confargs = {
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": [], "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": True, "nontargetlist": ["Lactobacillus sakei"]}
+    "blastdbv5": False, "intermediate": True,
+    "nontargetlist": ["Lactobacillus sakei"]}
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
 
 @pytest.fixture
 def config():
@@ -71,13 +70,14 @@ def config():
 
     return config
 
+
 def compare_ref_files(results_dir, ref_dir):
 
     resfileslist = []
     reffileslist = []
-
     resrecords = []
     refrecords = []
+
     def compare_files(resfiles, reffiles):
         resrecords = []
         refrecords = []
@@ -122,32 +122,34 @@ def compare_ref_files(results_dir, ref_dir):
         reffiles = os.path.join(ref_dir)
         compare_files(resfiles, reffiles)
 
+
 def test_commandline():
     os.chdir("/")
     import speciesprimer
     parser = speciesprimer.commandline()
     args = parser.parse_args([])
     assert args.assemblylevel == ['all']
-    assert args.blastdbv5 == False
+    assert args.blastdbv5 is False
     assert args.blastseqs == 1000
-    assert args.customdb == None
-    assert args.email == None
+    assert args.customdb is None
+    assert args.email is None
     assert args.exception == []
-    assert args.ignore_qc == False
-    assert args.intermediate == False
+    assert args.ignore_qc is False
+    assert args.intermediate is False
     assert args.maxsize == 200
     assert args.mfethreshold == 90
     assert args.mfold == -3.0
     assert args.minsize == 70
     assert args.mpprimer == -3.5
-    assert args.nolist == False
-    assert args.offline == False
+    assert args.nolist is False
+    assert args.offline is False
     assert args.path == '/'
-    assert args.probe == False
+    assert args.probe is False
     assert args.qc_gene == ['rRNA']
-    assert args.skip_download == False
-    assert args.skip_tree == False
-    assert args.target == None
+    assert args.skip_download is False
+    assert args.skip_tree is False
+    assert args.target is None
+
 
 def test_CLIconf(config):
     assert config.minsize == confargs['minsize']
@@ -169,6 +171,7 @@ def test_CLIconf(config):
     assert config.qc_gene == confargs['qc_gene']
     assert config.blastdbv5 == confargs['blastdbv5']
 
+
 def test_auto_run_config():
 
     def prepare_tmp_db():
@@ -178,12 +181,14 @@ def test_auto_run_config():
         if os.path.isfile(tmp_path):
             os.remove(tmp_path)
         shutil.copy(t, tmp_path)
+
     def change_tmp_db():
         tmp_path = os.path.join(pipe_dir, "tmp_config.json")
         with open(tmp_path) as f:
             for line in f:
                 tmp_dict = json.loads(line)
-        tmp_dict["new_run"].update({'modus': "continue", "targets": "Lactobacillus_curvatus"})
+        tmp_dict["new_run"].update(
+                {'modus': "continue", "targets": "Lactobacillus_curvatus"})
         with open(tmp_path, "w") as f:
             f.write(json.dumps(tmp_dict))
 
@@ -193,7 +198,7 @@ def test_auto_run_config():
         targets, conf_from_file, use_configfile = auto_run()
         nontargetlist = []
         assert targets == ["Lactobacillus_curvatus"]
-        assert use_configfile == True
+        assert use_configfile is True
         for target in targets:
             target = target.capitalize()
             if use_configfile:
@@ -238,21 +243,20 @@ def test_auto_run_config():
     change_tmp_db()
     run_autorun()
 
-def clean_before_tests(config):
-    shutil.rmtree(os.path.join(config.path, config.target))
 
 def test_DataCollection(config, monkeypatch):
-    clean_before_tests(config)
-
-    downdir = os.path.join(tmpdir, "download", "GCF_902362325.1_MGYG-HGUT-00020")
+    from speciesprimer import DataCollection
+    shutil.rmtree(os.path.join(config.path, config.target))
+    downdir = os.path.join(
+            tmpdir, "download", "GCF_902362325.1_MGYG-HGUT-00020")
     G.create_directory(downdir)
     genomefile = os.path.join(
         testfiles_dir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
-    downfile = os.path.join(downdir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
+    downfile = os.path.join(
+            downdir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna.gz")
     shutil.copy(genomefile, downfile)
     assert os.path.isfile(downfile)
 
-    from speciesprimer import DataCollection
     DC = DataCollection(config)
 
     def test_get_email_from_config(config):
@@ -261,11 +265,14 @@ def test_DataCollection(config, monkeypatch):
 
     def test_get_taxid(target, monkeypatch):
         def mock_taxid(db, term):
-            mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock01.xml")
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "esearchmock01.xml")
             f = open(mockfile)
             return f
+
         def mock_syn(db, id):
-            mockfile = os.path.join(testfiles_dir, "entrezmocks", "efetchmock01.xml")
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "efetchmock01.xml")
             f = open(mockfile)
             return f
 
@@ -279,14 +286,14 @@ def test_DataCollection(config, monkeypatch):
 
         # get_taxid fails
         def mock_taxid(db, term):
-            mockfile = os.path.join(testfiles_dir, "entrezmocks", "esearchmock02.xml")
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "esearchmock02.xml")
             f = open(mockfile)
             return f
 
         monkeypatch.setattr(Entrez, "esearch", mock_taxid)
         syn, taxid = DC.get_taxid(target)
-        assert taxid == None
-
+        assert taxid is None
 
     def test_syn_exceptions(config):
         # standard case
@@ -311,7 +318,7 @@ def test_DataCollection(config, monkeypatch):
         gi_list = []
         with open(filepath) as f:
             for line in f:
-               gi_list.append(line.strip())
+                gi_list.append(line.strip())
 
         assert gi_list == ["1231231231"]
 
@@ -336,11 +343,14 @@ def test_DataCollection(config, monkeypatch):
 
     def test_ncbi_download(taxid, monkeypatch):
         def mock_getsummary(db, term, retmax):
-            mockfile = os.path.join(testfiles_dir, "entrezmocks", "getsummarymock.xml")
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "getsummarymock.xml")
             f = open(mockfile)
             return f
+
         def mock_getlinks(db, id, rettype, retmode):
-            mockfile = os.path.join(testfiles_dir, "entrezmocks", "getlinksmock.xml")
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "getlinksmock.xml")
             f = open(mockfile)
             return f
 
@@ -349,13 +359,16 @@ def test_DataCollection(config, monkeypatch):
 
         DC.get_ncbi_links(taxid, 1)
         DC.ncbi_download()
-        filepath= os.path.join(
-            DC.target_dir, "genomic_fna", "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
-        # will not download the file a second time because it is already extracted
+        filepath = os.path.join(
+            DC.target_dir, "genomic_fna",
+            "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
+        # will not download the file a second time
+        # because it is already extracted
         time.sleep(2)
         DC.ncbi_download()
         # test excluded files
-        excluded_dir = os.path.join(DC.config.path, "excludedassemblies", DC.config.target)
+        excluded_dir = os.path.join(
+                DC.config.path, "excludedassemblies", DC.config.target)
         excludedfile = os.path.join(excluded_dir, "excluded_list.txt")
         G.create_directory(excluded_dir)
         with open(excludedfile, "w") as f:
@@ -366,7 +379,7 @@ def test_DataCollection(config, monkeypatch):
         # will not download the file because it is in excluded list
         time.sleep(2)
         DC.ncbi_download()
-        assert os.path.isfile(filepath) == False
+        assert os.path.isfile(filepath) is False
         shutil.rmtree(excluded_dir)
         mocked_urlopen_fail(monkeypatch)
         fna = os.path.join(config.path, config.target, "genomic_fna")
@@ -384,9 +397,9 @@ def test_DataCollection(config, monkeypatch):
         fileformat = ["fna", "gff", "ffn"]
         for fo in fileformat:
             for files in os.listdir(testfiles_dir):
-                if files.endswith("."+fo):
+                if files.endswith("." + fo):
                     fromfile = os.path.join(testfiles_dir, files)
-                    tofile =  os.path.join(targetdir, fo + "_files", files)
+                    tofile = os.path.join(targetdir, fo + "_files", files)
                     shutil.copy(fromfile, tofile)
                     if fo == "fna":
                         tofile = os.path.join(targetdir, "genomic_fna", files)
@@ -422,8 +435,8 @@ def test_DataCollection(config, monkeypatch):
     test_run_prokka()
     remove_prokka_testfiles()
 
-def test_QualityControl(config):
 
+def test_QualityControl(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
@@ -457,16 +470,18 @@ def test_QualityControl(config):
             for line in lines:
                 f.write(line)
 
-
     def prepare_QC_testfiles(config):
         QC = QualityControl(config)
         G.create_directory(QC.gff_dir)
         G.create_directory(QC.ffn_dir)
         G.create_directory(QC.fna_dir)
-        excluded_dir = os.path.join(QC.config.path, "excludedassemblies", QC.config.target)
+        excluded_dir = os.path.join(
+                QC.config.path, "excludedassemblies", QC.config.target)
         G.create_directory(excluded_dir)
         # GCF_004088235v1_20191001
-        testcases = ["004088235v1_20191001", "maxcontigs_date", "noseq_date", "duplicate"]
+        testcases = [
+            "004088235v1_20191001", "maxcontigs_date",
+            "noseq_date", "duplicate"]
         fileformat = ["fna", "gff", "ffn"]
         for testcase in testcases:
             for fo in fileformat:
@@ -480,7 +495,7 @@ def test_QualityControl(config):
                             shutil.copy(fromfile, tofile)
                             make_duplicate(tofile)
                         else:
-                            tofile =  os.path.join(
+                            tofile = os.path.join(
                                 targetdir, fo + "_files",
                                 "GCF_" + testcase + "." + fo)
                             shutil.copy(fromfile, tofile)
@@ -490,7 +505,7 @@ def test_QualityControl(config):
             filepath = os.path.join(targetdir, "fna_files", name)
             nonsense = ">nonsense_contig\nATTAG\n"
             with open(filepath, "w") as f:
-                for i in range(0,500):
+                for i in range(0, 500):
                     f.write(nonsense)
 
         def remove_qc_seq():
@@ -512,7 +527,6 @@ def test_QualityControl(config):
 
         make_maxcontigs()
         remove_qc_seq()
-
 
     prepare_QC_testfiles(config)
     create_customblastdb()
@@ -577,7 +591,7 @@ def test_QualityControl(config):
         for files in os.listdir(QC.ffn_dir):
             if files in ffn:
                 if files not in QC.ffn_list:
-                        QC.ffn_list.append(files)
+                    QC.ffn_list.append(files)
         assert len(QC.ffn_list) == 1
 
     def test_choose_sequence(qc_gene):
@@ -620,8 +634,7 @@ def test_QualityControl(config):
         shutil.copy(corrfile, errfile)
         with pytest.raises(Exception):
             passed = QC.qc_blast_parser(qc_gene)
-        assert os.path.isfile(errfile) == False
-
+        assert os.path.isfile(errfile) is False
 
     def test_remove_qc_failures():
         delete = QC.remove_qc_failures(qc_gene)
@@ -675,6 +688,7 @@ def test_QualityControl(config):
     if os.path.isdir(QC.ex_dir):
         shutil.rmtree(QC.ex_dir)
 
+
 def test_skip_pangenome_analysis(config):
     from speciesprimer import PangenomeAnalysis
     PA = PangenomeAnalysis(config)
@@ -687,9 +701,11 @@ def test_skip_pangenome_analysis(config):
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
 
+
 def test_CoreGenes(config):
     from speciesprimer import CoreGenes
     CG = CoreGenes(config)
+
     def prepare_tests():
         if os.path.isdir(CG.ffn_dir):
             shutil.rmtree(CG.ffn_dir)
@@ -712,6 +728,7 @@ def test_CoreGenes(config):
     prepare_tests()
     test_coregene_extract(config)
 
+
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
     from speciesprimer import BlastParser
@@ -721,15 +738,14 @@ def test_CoreGeneSequences(config):
     config.blastdbv5 = False
     CGS = CoreGeneSequences(config)
 
-
     def test_seq_alignments():
         # skip this test because of variation in alignments
-#        CGS.seq_alignments()
-#        results_dir = CGS.alignments_dir
+        # CGS.seq_alignments()
+        # results_dir = CGS.alignments_dir
         ref_dir = os.path.join(ref_data, "alignments")
-#        compare_ref_files(results_dir, ref_dir)
+        # compare_ref_files(results_dir, ref_dir)
         shutil.copytree(ref_dir, CGS.alignments_dir)
-#
+
     def test_seq_consenus():
         CGS.seq_consensus()
         ref_dir = os.path.join(ref_data, "consensus")
@@ -753,14 +769,14 @@ def test_CoreGeneSequences(config):
         ref_file = os.path.join(ref_data, "conserved_seqs.fas")
         ref_dataset = []
         with open(ref_file, "r") as f:
-                datapoint = []
-                for index, line in enumerate(f):
-                    if index % 2 == 0:
-                        datapoint.append(line.split(">")[1].strip())
-                    else:
-                        datapoint.append(line.strip())
-                        ref_dataset.append(datapoint)
-                        datapoint = []
+            datapoint = []
+            for index, line in enumerate(f):
+                if index % 2 == 0:
+                    datapoint.append(line.split(">")[1].strip())
+                else:
+                    datapoint.append(line.strip())
+                    ref_dataset.append(datapoint)
+                    datapoint = []
         tmp_dict = {}
         for item in ref_dataset:
             tmp_dict.update({item[0]: item[1]})
@@ -775,31 +791,31 @@ def test_CoreGeneSequences(config):
         for key in non_dict.keys():
             try:
                 newval = non_dict[key]["Lactobacillus sakei"]["main_id"]
-                if not newval in sakei:
+                if newval not in sakei:
                     sakei.append(newval)
             except KeyError:
                 pass
         for key in non_dict.keys():
             for i, item in enumerate(sakei):
                 try:
-                    if not item == non_dict[key]["Lactobacillus sakei"]["main_id"]:
+                    if not (
+                        item == non_dict[key]["Lactobacillus sakei"]["main_id"]
+                    ):
                         non_dict[key].update(
                             {
-                                "Lactobacillus sakei_" + str(i + 2)
-                                : {"main_id": item,
-                                   "gi_ids": []}})
+                                "Lactobacillus sakei_" + str(i + 2):
+                                    {"main_id": item, "gi_ids": []}})
                 except KeyError:
                     non_dict[key].update(
                         {
-                            "Lactobacillus sakei_" + str(i + 2)
-                            : {"main_id": item,
-                               "gi_ids": []}})
+                            "Lactobacillus sakei_" + str(i + 2):
+                            {"main_id": item, "gi_ids": []}})
         with open(os.path.join(CGS.blast_dir, "nontargethits.json"), "w") as f:
             f.write(json.dumps(non_dict))
 
-
     def test_run_coregeneanalysis(config):
         G.create_directory(tmpdir)
+
         def create_customblastdb(config):
             infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
             cmd = [
@@ -837,15 +853,15 @@ def test_CoreGeneSequences(config):
 
 def test_blastprep(config):
     from speciesprimer import BlastPrep
-    testconditions = [[100, 50], [500,10], [1000,5], [2000,3], [5000,1]]
-    listlengths = [50*[100], 10*[500], 5*[1000], [1667,1667,1666], [5000]]
+    testconditions = [[100, 50], [500, 10], [1000, 5], [2000, 3], [5000, 1]]
+    listlengths = [50*[100], 10*[500], 5*[1000], [1667, 1667, 1666], [5000]]
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
     input_list = []
-    for i in range(0,5000):
+    for i in range(0, 5000):
         i = i + 1
-        elem = ["seq_"+ str(i), i *"A"]
+        elem = ["seq_" + str(i), i * "A"]
         input_list.append(elem)
     name = "test"
     directory = tmpdir
@@ -868,9 +884,10 @@ def test_blastprep(config):
     rangelist = [5001, 5000, 4999, 4998, 4997]
     for i, r in enumerate(rangelist):
         for x in reversed(range(5-i, r, 5)):
-            if not x in reflist:
+            if x not in reflist:
                 reflist.append("seq_" + str(x))
     assert reflist == inlist
+
 
 def test_BLASTsettings(config):
     import multiprocessing
@@ -896,7 +913,8 @@ def test_BLASTsettings(config):
         for mode in modes:
             bl = Blast(config, tmpdir, mode)
             cores = cores = multiprocessing.cpu_count()
-            cmd = bl.get_blast_cmd(blastfile, blastfile + "_results.xml", cores)
+            cmd = bl.get_blast_cmd(
+                    blastfile, blastfile + "_results.xml", cores)
             if mode == "quality_control":
                 assert cmd[2] == "megablast"
             elif mode == "conserved":
@@ -909,6 +927,7 @@ def test_BLASTsettings(config):
             assert cmd[-1] == db_outcome[i]
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
+
 
 def test_blastparser(config):
     corrfile = os.path.join(testfiles_dir, "conserved_0_results_err.xml")
@@ -925,7 +944,8 @@ def test_blastparser(config):
     conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
     with pytest.raises(Exception):
         blapa.run_blastparser(conserved_seq_dict)
-    assert os.path.isfile(errfile) == False
+    assert os.path.isfile(errfile) is False
+
 
 def prepare_test(config):
     testdir = os.path.join("/", "primerdesign", "test")
@@ -936,6 +956,7 @@ def prepare_test(config):
     primerblast_dir = os.path.join(primer_dir, "primerblast")
     primer_qc_dir = os.path.join(primer_dir, "primer_QC")
     dbpath = os.path.join(tmpdir, "customdb.fas")
+
     def dbinputfiles():
         filenames = [
             "GCF_004088235v1_20191001.fna",
@@ -947,7 +968,8 @@ def prepare_test(config):
                 for record in records:
                     if record.id == record.description:
                         description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                            record.id
+                            + " Lactobacillus curvatus strain SRCM103465")
                         record.description = description
                     SeqIO.write(record, f, "fasta")
         return dbpath
@@ -990,6 +1012,7 @@ def prepare_test(config):
 
     return primer_dir, primerblast_dir, primer_qc_dir
 
+
 def test_primerblastparser(config):
     from speciesprimer import BlastParser
     primer_dir, primerblast_dir, primer_qc_dir = prepare_test(config)
@@ -1018,8 +1041,8 @@ def test_primerblastparser(config):
     blapa.write_nontarget_sequences(nonreddata)
     nontarget_seqs = os.path.join(primer_qc_dir, "BLASTnontarget0.sequences")
     DBIDS = os.path.join(primer_qc_dir, "primerBLAST_DBIDS.csv")
-    assert os.path.isfile(nontarget_seqs) == True
-    assert os.path.isfile(DBIDS) == True
+    assert os.path.isfile(nontarget_seqs) is True
+    assert os.path.isfile(DBIDS) is True
     count = 0
     with open(nontarget_seqs) as f:
         for line in f:
@@ -1029,8 +1052,9 @@ def test_primerblastparser(config):
     # skip
     exitstatus = blapa.get_primerBLAST_DBIDS(nonred_dict)
     assert exitstatus == 0
-    assert os.path.isfile(nontarget_seqs) == True
-    assert os.path.isfile(DBIDS) == True
+    assert os.path.isfile(nontarget_seqs) is True
+    assert os.path.isfile(DBIDS) is True
+
 
 def test_primerblastparser_exceptions(config):
     from speciesprimer import BlastParser
@@ -1063,17 +1087,15 @@ def test_primerblastparser_exceptions(config):
     assert len(nonreddata) == 0
     nontarget_seqs = os.path.join(primer_qc_dir, "BLASTnontarget0.sequences")
     DBIDS = os.path.join(primer_qc_dir, "primerBLAST_DBIDS.csv")
-    assert os.path.isfile(nontarget_seqs) == False
-    assert os.path.isfile(DBIDS) == False
+    assert os.path.isfile(nontarget_seqs) is False
+    assert os.path.isfile(DBIDS) is False
 
     if os.path.isdir(os.path.dirname(dbpath)):
         shutil.rmtree(os.path.dirname(dbpath))
-#    shutil.rmtree(primer_dir)
-
-
-
+    shutil.rmtree(primer_dir)
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
 #    get_alignmentdata(self, alignment)
+
 
 def test_PrimerDesign(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -1095,7 +1117,7 @@ def test_PrimerDesign(config):
 
     pd.run_primer3()
 
-    assert os.path.isfile(p3_output) == True
+    assert os.path.isfile(p3_output) is True
     pd.run_primerdesign()
 
     with open(reffile) as f:
@@ -1109,15 +1131,18 @@ def test_PrimerDesign(config):
     pd.p3dict = {}
     pd.parse_Primer3_output(p3_error)
     errorreport = os.path.join(pd.primer_dir, "primer3_errors.csv")
-    assert os.path.isfile(errorreport) == True
+    assert os.path.isfile(errorreport) is True
     with open(errorreport) as f:
         reader = csv.reader(f)
         for row in reader:
             assert row == [
                 'SEQUENCE_ID=yfnB_2',
-                'SEQUENCE_TEMPLATE=GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
+                'SEQUENCE_TEMPLATE='
+                'GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
                 'PRIMER_PRODUCT_SIZE_RANGE=70-200',
-                'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length < min PRIMER_PRODUCT_SIZE_RANGE']
+                'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length'
+                ' < min PRIMER_PRODUCT_SIZE_RANGE']
+
 
 def test_PrimerQualityControl_specificitycheck(config):
     from speciesprimer import PrimerQualityControl
@@ -1142,7 +1167,8 @@ def test_PrimerQualityControl_specificitycheck(config):
                 for record in records:
                     if record.id == record.description:
                         description = (
-                            record.id + " Lactobacillus curvatus strain SRCM103465")
+                            record.id
+                            + " Lactobacillus curvatus strain SRCM103465")
                         record.description = description
                     SeqIO.write(record, f, "fasta")
         return dbfile
@@ -1156,7 +1182,8 @@ def test_PrimerQualityControl_specificitycheck(config):
 
     def test_collect_primer(config):
         pqc = PrimerQualityControl(config, {})
-        exitstat = pqc.collect_primer() # returns 1 of len(primerlist) == 0, otherwise return 0
+        # returns 1 if len(primerlist) == 0
+        exitstat = pqc.collect_primer()
         assert exitstat == 1
         reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
         with open(reffile) as f:
@@ -1167,12 +1194,14 @@ def test_PrimerQualityControl_specificitycheck(config):
             'Lactobacillus sp. N55', 'Lactobacillus sp. N61']
         pqc = PrimerQualityControl(config, primer3dict)
 
-
         exitstat = pqc.collect_primer()
         item = ['comFA_5', 'Primer_pair_7', 11.374516]
-        pqc.get_blast_input(item) # test self.primerlist
-        assert pqc.primerlist[-2] == ['Lb_curva_comFA_5_P7_F', 'ACAACGCTTATTATTATTTGTGCCA']
-        assert pqc.primerlist[-1] == ['Lb_curva_comFA_5_P7_R', 'AAAGGCCGCTATCTTGTCTAAT']
+        # test self.primerlist
+        pqc.get_blast_input(item)
+        assert pqc.primerlist[-2] == [
+                'Lb_curva_comFA_5_P7_F', 'ACAACGCTTATTATTATTTGTGCCA']
+        assert pqc.primerlist[-1] == [
+                'Lb_curva_comFA_5_P7_R', 'AAAGGCCGCTATCTTGTCTAAT']
         del pqc.primerlist[-1]
         del pqc.primerlist[-1]
 
@@ -1189,10 +1218,8 @@ def test_PrimerQualityControl_specificitycheck(config):
             pqc.primerblast_dir, pqc.primerlist,
             "primer", pqc.config.blastseqs)
         use_cores, inputseqs = prep.run_blastprep()
-
 #        Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
 #            "primer", use_cores)
-
         G.create_directory(pqc.primer_qc_dir)
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
@@ -1205,24 +1232,26 @@ def test_PrimerQualityControl_specificitycheck(config):
         return inputseqs
 
     def test_get_primerinfo(inputseqs):
+        ref1 = [[
+            'Lb_curva_asnS_1_P0_F',
+            'AAACCATGTCGATGAAGAAGTTAAA',
+            'Lb_curva_asnS_1_P0_R',
+            'TGCCATCACGTAATTGGAGGA',
+            'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
+            + 'AAGATTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAA'
+            + 'AAG']]
+        ref2 = [[
+            'asnS_1', 'Primer_pair_0',
+            'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
+            + 'AAGATTTCATTCCTCCAATTACGTGATGGCA', 'Lb_curva_asnS_1_P0']]
         inputseqs.sort()
-        modes = ['mfeprimer', "mfold", "dimercheck"] #"results" after mfeprimer (PPC)
+        modes = ['mfeprimer', "mfold", "dimercheck"]
         for mode in modes:
             primerinfo = pqc.get_primerinfo([inputseqs[0]], mode)
             if mode == modes[0]:
-                assert primerinfo == [[
-                    'Lb_curva_asnS_1_P0_F',
-                    'AAACCATGTCGATGAAGAAGTTAAA',
-                    'Lb_curva_asnS_1_P0_R',
-                    'TGCCATCACGTAATTGGAGGA',
-                    'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
-                    + 'AAGATTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAA'
-                    + 'AAG']]
+                assert primerinfo == ref1
             elif mode == modes[1]:
-                assert primerinfo == [[
-                    'asnS_1', 'Primer_pair_0',
-                    'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
-                    + 'AAGATTTCATTCCTCCAATTACGTGATGGCA', 'Lb_curva_asnS_1_P0']]
+                assert primerinfo == ref2
             elif mode == modes[2]:
                 assert primerinfo == [[
                     'Lb_curva_asnS_1_P0',
@@ -1253,10 +1282,10 @@ def test_PrimerQualityControl_specificitycheck(config):
             ".uni"]
         for db in dbtype:
             for end in dbfiles:
-                files =  db + end
+                files = db + end
                 print(files)
                 filepath = os.path.join(pqc.primer_qc_dir, files)
-                assert os.path.isfile(filepath) == True
+                assert os.path.isfile(filepath) is True
                 assert os.stat(filepath).st_size > 0
 
     def test_MFEprimer(inputseqs):
@@ -1266,7 +1295,8 @@ def test_PrimerQualityControl_specificitycheck(config):
         # template
         print("Test MFEprimer_template()")
         ppcth = [100, 90, 80, 70]
-        outcome = [[None], [None], 'Lb_curva_asnS_1_P0_F', 'Lb_curva_asnS_1_P0_F']
+        outcome = [
+            [None], [None], 'Lb_curva_asnS_1_P0_F', 'Lb_curva_asnS_1_P0_F']
         results = []
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
@@ -1287,20 +1317,21 @@ def test_PrimerQualityControl_specificitycheck(config):
             'Lb_curva_asnS_1_P0_R',
             'TGCCATCACGTAATTGGAGGA',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
-            + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG'
-            , 17.700000000000003],
+            + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
+            17.700000000000003],
             [
-            'AmpID\tFpID\tRpID\tHitID\tPPC\tSize\tAmpGC\tFpTm\tRpTm\tFpDg'
-             + '\tRpDg\tBindingStart\tBindingStop\tAmpSeq',
-             '1\tLb_curva_asnS_1_P0_F\tLb_curva_asnS_1_P0_F'
-             + '\tNZ_CP020459.1_1524567_1528567\t-16.4\t364\t37.09\t7.26'
-             + '\t15.22\t-4.51\t-6.20\t3075\t3409\t'
-             + 'aaaccatgtcgatgAAGAAGTTAAAaaaccagctgaattagacaaatacctaaagagtatt'
-             + 'gactaattcattacaaaaaaagatcccgtcaatgacgagatctttttttatgctcaattact'
-             + 'aaccgcgatggtcagcacccttcacttaaacgtgcttctcgaactgccttttccggttaacc'
-             + 'acaaaatgggaatcatggctaaacccgccataatccccattttcttgttaatcctcaaagcc'
-             + 'aacccgttcgagtcagcactttatttgttttctttcttttcgctttgctttaattcttcacc'
-             + 'caatttgatgatgtatttcttcaaatcatcTTTAACTTCTtcatcgacatggttt']]
+                'AmpID\tFpID\tRpID\tHitID\tPPC\tSize\tAmpGC\tFpTm\tRpTm\tFpDg'
+                '\tRpDg\tBindingStart\tBindingStop\tAmpSeq',
+                '1\tLb_curva_asnS_1_P0_F\tLb_curva_asnS_1_P0_F'
+                '\tNZ_CP020459.1_1524567_1528567\t-16.4\t364\t37.09\t7.26'
+                '\t15.22\t-4.51\t-6.20\t3075\t3409\t'
+                'aaaccatgtcgatgAAGAAGTTAAAaaaccagctgaattagacaaatacctaaagagtat'
+                'tgactaattcattacaaaaaaagatcccgtcaatgacgagatctttttttatgctcaatt'
+                'actaaccgcgatggtcagcacccttcacttaaacgtgcttctcgaactgccttttccggt'
+                'taaccacaaaatgggaatcatggctaaacccgccataatccccattttcttgttaatcct'
+                'caaagccaacccgttcgagtcagcactttatttgttttctttcttttcgctttgctttaa'
+                'ttcttcacccaatttgatgatgtatttcttcaaatcatcTTTAACTTCTtcatcgacatg'
+                'gttt']]
         results = []
         nontarget_lists = []
         for index, item in enumerate(ppcth):
@@ -1311,7 +1342,8 @@ def test_PrimerQualityControl_specificitycheck(config):
             assert result == ref
             results.append(result)
         nontarget_lists = list(itertools.chain(nontarget_lists, results))
-        check_assembly = pqc.write_MFEprimer_results(nontarget_lists, "nontarget")
+        check_assembly = pqc.write_MFEprimer_results(
+                                                nontarget_lists, "nontarget")
 
         # assembly
         print("Test MFEprimer_assembly()")
@@ -1321,8 +1353,8 @@ def test_PrimerQualityControl_specificitycheck(config):
             'Lb_curva_asnS_1_P0_R',
             'TGCCATCACGTAATTGGAGGA',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
-            + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG'
-            , 17.700000000000003]]
+            'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
+            17.700000000000003]]
         results = []
         outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
         dbfile = dbfile = H.abbrev(pqc.target) + ".genomic"
@@ -1358,6 +1390,7 @@ def test_PrimerQualityControl_specificitycheck(config):
     tmpdict = os.path.join(pqc.primer_qc_dir, "tmp_p3dict.json")
     with open(tmpdict, "w") as f:
         f.write(json.dumps(pqc.primer3_dict))
+
 
 def test_PrimerQualityControl_structures(config):
     from speciesprimer import PrimerQualityControl
@@ -1399,17 +1432,20 @@ def test_PrimerQualityControl_structures(config):
 
     def test_dimercheck():
         selected_primer = [
-            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
-            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4',
-            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5', 'Lb_curva_g4430_1_P0',
-            'Lb_curva_g1243_1_P0', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
+            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1',
+            'Lb_curva_g4295_1_P0', 'Lb_curva_g4295_1_P4',
+            'Lb_curva_gshAB_2_P0', 'Lb_curva_gshAB_2_P4',
+            'Lb_curva_comFA_4_P2', 'Lb_curva_comFA_4_P5',
+            'Lb_curva_g4430_1_P0', 'Lb_curva_g1243_1_P0',
+            'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
             'Lb_curva_comFA_2_P1', 'Lb_curva_asnS_2_P0']
         excluded_primer = ['Lb_curva_comFA_2_P0']
         ref_choice = [
-            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1', 'Lb_curva_g4295_1_P0',
-            'Lb_curva_g4295_1_P4', 'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2',
-            'Lb_curva_comFA_4_P5', 'Lb_curva_g1243_1_P2', 'Lb_curva_comFA_6_P1',
-            'Lb_curva_comFA_2_P1']
+            'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1',
+            'Lb_curva_g4295_1_P0', 'Lb_curva_g4295_1_P4',
+            'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2',
+            'Lb_curva_comFA_4_P5', 'Lb_curva_g1243_1_P2',
+            'Lb_curva_comFA_6_P1', 'Lb_curva_comFA_2_P1']
         ref_choice.sort()
         dimercheck = pqc.dimercheck_primer(selected_primer, excluded_primer)
         choice = pqc.check_primerdimer(dimercheck)
@@ -1432,6 +1468,7 @@ def test_PrimerQualityControl_structures(config):
         + 'ACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAG'
         + 'GCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCCGCGGGTGGCGGTTTGTTT'
         + 'AGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT']
+
 
 def test_summary(config):
     total_results = [
@@ -1477,6 +1514,7 @@ def test_summary(config):
     ref_files.sort()
     assert files == ref_files
 
+
 def test_end(config):
     def remove_test_files(config):
         test = config.path
@@ -1487,7 +1525,7 @@ def test_end(config):
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
         os.chdir(BASE_PATH)
-        assert os.path.isdir(test) == False
+        assert os.path.isdir(test) is False
 
     remove_test_files(config)
 
