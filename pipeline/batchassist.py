@@ -190,6 +190,10 @@ class Input:
             if type(customdb) == str and len(customdb) > 0:
                 if os.path.isfile(customdb + ".nsq"):
                     customdb = customdb
+                elif os.path.isfile(
+                        os.path.join("/", "blastdb", customdb + ".nal")
+                ):
+                    customdb = customdb
                 else:
                     print("No BLAST DB was found " + customdb)
                     return self.get_customdb(target, index, listlen)
@@ -212,7 +216,8 @@ class Input:
                 "Primer binding to this non-target species is tolerated.\n"
                 "Provide a species name or hit return to skip:\n> ")
             if inexception:
-                for i, item in enumerate(inexception):
+                inputexcept = list(inexception.split(","))
+                for i, item in enumerate(inputexcept):
                     x = item.strip()
                     x = x.capitalize()
                     exception.insert(i, x)

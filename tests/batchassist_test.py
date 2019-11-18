@@ -152,7 +152,7 @@ def nodef_input(prompt):
         skip_download: "y", assemblylevel: "all",
         customdb: "/primerdesign/tmp/customdb.fas",
         blastseqs: "2000", qc_gene: "pheS, dnaK",
-        exception: ["Lactobacillus sunkii"],
+        exception: "Lactobacillus sunkii",
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5",
         mpprimer: "-3.0", mfethreshold: "100", ignore_qc: "y", blastdbv5: "y",
         intermediate: "y", nolist: "y", forall: "n"}
@@ -164,7 +164,7 @@ def wrong_input(prompt):
     prompt_dict = {
         assemblylevel: "alle", customdb: "customdb.fas",
         blastseqs: "66", qc_gene: "tufrrna",
-        exception: ["Lactobacillus sunkii"],
+        exception: "Lactobacillus sunkii",
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
         mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
     val = prompt_dict[prompt]
@@ -175,7 +175,7 @@ def wrong_input2(prompt):
     prompt_dict = {
         species: "help", assemblylevel: "alle, complete, contig",
         customdb: "customdb.fas", blastseqs: "forty", qc_gene: "tufrrna",
-        exception: ["Lactobacillus_sunkii"],
+        exception: "Lactobacillus_sunkii",
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
         mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
     val = prompt_dict[prompt]
@@ -189,7 +189,7 @@ def nodef_input2(prompt):
         path: "primerdesign/test", skip_tree: "YES", offline: "",
         assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
         blastseqs: "2000", qc_gene: "pheS, dnaK",
-        exception: ["Lactobacillus sunkii"], minsize: "60", maxsize: "300",
+        exception: "Lactobacillus sunkii, Lactobacillus helveticus", minsize: "60", maxsize: "300",
         probe: "y", mfold: "-2.5", mpprimer: "-3.0",
         mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
         skip_download: "y", nolist: "y", forall: "y"}
@@ -324,7 +324,6 @@ def test_default_input(monkeypatch):
     if os.path.isdir(defdir):
         shutil.rmtree(defdir)
 
-
 def test_offline(monkeypatch):
     monkeypatch.setattr('builtins.input', offline_input)
     conf_from_file = Config()
@@ -367,24 +366,24 @@ def test_nodefault(monkeypatch):
         monkeypatch.setattr('builtins.input', nodef_input2)
         conf_from_file = Config()
         configpath = get_config_from_file(conf_from_file)[0]
-        compare_configfiles(reference_dict, configpath, "3")
+        compare_configfiles(reference_dict, configpath, "8")
         configpath = get_config_from_file(conf_from_file)[1]
-        compare_configfiles(reference_dict, configpath, "4")
+        compare_configfiles(reference_dict, configpath, "9")
 
     finally:
         if os.path.isfile(dbpath_tmp):
-            os.remove(dbpath_tmp)
+            os.remove(dbpath_tmp)    
 
 
 def test_start_all(monkeypatch):
     monkeypatch.setattr('builtins.input', start_input)
     conf_from_file = Config()
     configpath = get_config_from_file(conf_from_file)[0]
-    compare_configfiles(reference_dict, configpath, "3")
+    compare_configfiles(reference_dict, configpath, "8")
     if os.path.isfile(configpath):
         os.remove(configpath)
     configpath = get_config_from_file(conf_from_file)[1]
-    compare_configfiles(reference_dict, configpath, "4")
+    compare_configfiles(reference_dict, configpath, "9")
     if os.path.isfile(configpath):
         os.remove(configpath)
 
@@ -395,7 +394,7 @@ def test_start_unknown(monkeypatch):
     monkeypatch.setattr('builtins.input', mock.prompt_input)
     conf_from_file = Config()
     configpath = get_config_from_file(conf_from_file)[0]
-    compare_configfiles(reference_dict, configpath, "3")
+    compare_configfiles(reference_dict, configpath, "8")
 
 
 def test_start_wrong(monkeypatch):
@@ -404,7 +403,7 @@ def test_start_wrong(monkeypatch):
     monkeypatch.setattr('builtins.input', mock.prompt_input)
     conf_from_file = Config()
     configpath = get_config_from_file(conf_from_file)[0]
-    compare_configfiles(reference_dict, configpath, "3")
+    compare_configfiles(reference_dict, configpath, "8")
     if os.path.isfile(configpath):
         os.remove(configpath)
 
