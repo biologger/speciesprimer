@@ -28,7 +28,6 @@ pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 dbpath = os.path.join(tmpdir, "customdb.fas")
-
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
@@ -49,7 +48,10 @@ config_dir = os.path.join(
     "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
 conffile = os.path.join(testfiles_dir, "fullrun_config.json")
 testconfig = os.path.join(config_dir, "config.json")
-
+summ_dir = os.path.join(
+        "/", "primerdesign", "test", "Summary", "Lactobacillus_curvatus")
+genomic_dir = os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus", "genomic_fna")
 
 def prepare_testfiles():
     def prepare_tmp_db():
@@ -112,9 +114,6 @@ def start_oneinput(prompt):
 
 
 def prepare_files():
-    genomic_dir = os.path.join(
-            "/", "primerdesign", "test",
-            "Lactobacillus_curvatus", "genomic_fna")
     if os.path.isdir(genomic_dir):
         shutil.rmtree(genomic_dir)
     G.create_directory(genomic_dir)
@@ -149,9 +148,6 @@ def prepare_files():
 
 
 def assert_ref_files(nolist=False):
-    summ_dir = os.path.join(
-                "/", "primerdesign", "test",
-                "Summary", "Lactobacillus_curvatus")
     files = []
     for filename in os.listdir(summ_dir):
         files.append(filename)
@@ -179,11 +175,6 @@ def test_run(monkeypatch):
     os.chdir(os.path.join("/", "primerdesign"))
     from speciesprimer import main
     main(mode="auto")
-
-
-    genomic_dir = os.path.join(
-            "/", "primerdesign", "test",
-            "Lactobacillus_curvatus", "genomic_fna")
     maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
     # compare primer results
     assert os.path.isfile(maxcontig) is False
@@ -192,9 +183,7 @@ def test_run(monkeypatch):
     monkeypatch.setattr('builtins.input', start_oneinput)
     from speciesprimer import main
     main()
-    summ_dir = os.path.join(
-                "/", "primerdesign", "test",
-                "Summary", "Lactobacillus_curvatus")
+
     if os.path.isdir(summ_dir):
         shutil.rmtree(summ_dir)
 
@@ -219,9 +208,6 @@ def test_rerun(monkeypatch):
     assert mfoldfiles == [
             "mfold_failed.csv", "mfold_passed.csv"]
     assert_ref_files()
-    summ_dir = os.path.join(
-                "/", "primerdesign", "test",
-                "Summary", "Lactobacillus_curvatus")
     if os.path.isdir(summ_dir):
         shutil.rmtree(summ_dir)
 

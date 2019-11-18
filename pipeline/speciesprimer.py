@@ -914,23 +914,21 @@ class QualityControl:
 
         def get_blastresults_info(blast_record, index):
             alninfo = str(blast_record.alignments[index])
-            if self.config.customdb is not None:
-                if len(alninfo.split("|")) == 3:
-                    di = [1, 1, -1]
-                elif len(alninfo.split("|")) > 3:
-                    di = [1, 3, -1]
-                else:
-                    error_msg = (
-                        "Data is missing in the custom BLAST DB. At least "
-                        "a unique sequence identifier and the species name "
-                        "is required for each entry")
-
-                    print("\n" + error_msg + "\n")
-                    G.logger("> " + error_msg)
-                    errors.append([self.target, error_msg])
-
-            else:
+            if len(alninfo.split("|")) == 3:
+                di = [1, 1, -1]
+            elif len(alninfo.split("|")) > 3:
                 di = [1, 3, -1]
+            else:
+                error_msg = (
+                    "Data is missing in the custom BLAST DB. At least "
+                    "a unique sequence identifier and the species name "
+                    "is required for each entry")
+
+                print("\n" + error_msg + "\n")
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                raise H.BlastDBError(error_msg)
+
 
             gi = alninfo.split("|")[di[0]].strip(" ")
             db_id = alninfo.split("|")[di[1]].strip(" ")
@@ -1997,10 +1995,21 @@ class BlastParser:
                 print("\n" + error_msg + "\n")
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
+                raise H.BlastDBError(error_msg)
 
             gi = alignment.title.split("|")[di[0]].strip()
             db_id = alignment.title.split("|")[di[1]].strip()
             lname = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
+
+            if lname == "No definition line":
+                error_msg = (
+                    "Data is missing in the custom BLAST DB. At least "
+                    "a unique sequence identifier and the species name "
+                    "is required for each entry")
+                print("\n" + error_msg + "\n")
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                raise H.BlastDBError(error_msg)
 
             if re.search("PREDICTED", lname):
                 pass

@@ -466,8 +466,9 @@ def test_QualityControl(config):
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
 
-    def create_customblastdb():
-        infile = os.path.join(testfiles_dir, "customdb.fas")
+    def create_customblastdb(infile=None):
+        if infile is None:
+            infile = os.path.join(testfiles_dir, "customdb.fas")
         cmd = [
             "makeblastdb", "-in", infile, "-parse_seqids", "-title",
             "mock16SDB", "-dbtype", "nucl", "-out", config.customdb]
@@ -678,7 +679,7 @@ def test_QualityControl(config):
     def test_qc_blast_parser_fail():
         passed = QC.qc_blast_parser(qc_gene)
         from speciesprimer import errors
-        assert passed ==[]
+        assert passed == []
         assert errors[-1] == [
             'Lactobacillus_curvatus',
             'A problem with the BLAST results file rRNA_0_results.xml was '
@@ -688,6 +689,29 @@ def test_QualityControl(config):
         if os.path.isdir(qc_dir):
             shutil.rmtree(qc_dir)
         G.create_directory(qc_dir)
+
+    def test_DBError():
+        from speciesprimer import Blast
+        from speciesprimer import BlastPrep
+        infile = os.path.join(testfiles_dir, "customdb_err.fas")
+        create_customblastdb(infile)
+        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        use_cores, inputseqs = BlastPrep(
+                        qc_dir, qc_seqs, qc_gene,
+                        QC.config.blastseqs).run_blastprep()
+        Blast(
+            QC.config, qc_dir, "quality_control"
+            ).run_blast(qc_gene, use_cores)
+
+        with pytest.raises(Exception):
+            QC.qc_blast_parser(qc_gene)
+
+        from speciesprimer import errors
+        assert errors[-1] == [
+            'Lactobacillus_curvatus',
+            "Data is missing in the custom BLAST DB. At least "
+            "a unique sequence identifier and the species name "
+            "is required for each entry"]
 
     def test_remove_qc_failures():
         delete = QC.remove_qc_failures(qc_gene)
@@ -740,6 +764,9 @@ def test_QualityControl(config):
     qc_blast(qc_gene)
     test_qc_blast_parser(gi_list=True)
     test_remove_qc_failures()
+
+    test_DBError()
+
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     if os.path.isdir(QC.ex_dir):
@@ -784,7 +811,6 @@ def test_CoreGenes(config):
 
     prepare_tests()
     test_coregene_extract(config)
-
 
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences
@@ -907,6 +933,82 @@ def test_CoreGeneSequences(config):
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
 
+def test_BlastDBError(config):
+    dbpath = os.path.join(tmpdir, "customdb.fas")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    config.customdb = dbpath
+    config.blastdbv5 = False
+
+    def create_customblastdb(config, infile):
+        cmd = [
+            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
+        G.run_subprocess(cmd)
+
+    from speciesprimer import BlastParser
+    from speciesprimer import CoreGeneSequences
+    infile = os.path.join(testfiles_dir, "conserved_customdb_err.fas")
+    create_customblastdb(config, infile)
+    CGS = CoreGeneSequences(config)
+    if os.path.isdir(CGS.blast_dir):
+        shutil.rmtree(CGS.blast_dir)
+    G.create_directory(CGS.blast_dir)
+    conserved_seq_dict = CGS.run_coregeneanalysis()
+
+    with pytest.raises(Exception):
+        conserved = BlastParser(
+                config).run_blastparser(conserved_seq_dict)
+
+    from speciesprimer import errors
+    assert errors[-1] == [
+        'Lactobacillus_curvatus',
+        "Data is missing in the custom BLAST DB. At least "
+        "a unique sequence identifier and the species name "
+        "is required for each entry"]
+
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+
+    infile = os.path.join(testfiles_dir, "conserved_customdb_err2.fas")
+    create_customblastdb(config, infile)
+    CGS = CoreGeneSequences(config)
+    if os.path.isdir(CGS.blast_dir):
+        shutil.rmtree(CGS.blast_dir)
+    G.create_directory(CGS.blast_dir)
+    conserved_seq_dict = CGS.run_coregeneanalysis()
+
+    with pytest.raises(Exception):
+        conserved = BlastParser(
+                config).run_blastparser(conserved_seq_dict)
+
+    from speciesprimer import errors
+    assert errors[-2] == [
+        'Lactobacillus_curvatus',
+        "Data is missing in the custom BLAST DB. At least "
+        "a unique sequence identifier and the species name "
+        "is required for each entry"]
+    assert errors[-1] == [
+        'Lactobacillus_curvatus',
+        "Data is missing in the custom BLAST DB. At least "
+        "a unique sequence identifier and the species name "
+        "is required for each entry"]
+
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
+    if os.path.isdir(CGS.blast_dir):
+        shutil.rmtree(CGS.blast_dir)
+
+    G.create_directory(CGS.blast_dir)
+    G.create_directory(tmpdir)
+    infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
+    create_customblastdb(config, infile)
+    conserved_seq_dict = CGS.run_coregeneanalysis()
+    conserved = BlastParser(
+                config).run_blastparser(conserved_seq_dict)
+    shutil.rmtree(tmpdir)
+    assert os.path.isfile(
+            os.path.join(CGS.blast_dir, "nontargethits.json")) is True
 
 def test_blastprep(config):
     from speciesprimer import BlastPrep
