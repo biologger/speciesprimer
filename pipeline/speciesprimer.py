@@ -923,7 +923,7 @@ class QualityControl:
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
                 raise BlastDBError(error_msg)
-    
+
             elif alignment.hit_def == "No definition line":
                 error_msg = (
                     "Error: No definition line in " + alignment.title +
@@ -935,13 +935,13 @@ class QualityControl:
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
                 raise BlastDBError(error_msg)
-    
+
             else:
                 if "gi|" in alignment.hit_id:
                     gi = alignment.hit_id.split("gi|")[1].split("|")[0]
                 else:
                     gi = alignment.accession
-    
+
                 db_id = alignment.accession
                 lname = alignment.hit_def
                 name = lname.split(" ")
@@ -952,7 +952,7 @@ class QualityControl:
                         spec = str(" ".join(name[0:2]))
                 else:
                     spec = str(" ".join(name[0:2]))
-    
+
                 return spec, gi, db_id
 
         def parse_blastresults():
@@ -2986,20 +2986,28 @@ class PrimerQualityControl:
 
     def create_assembly_db_file(self):
         # add option to choose a folder for Reference genomes?
-        qc_data = self.get_QC_data()
+        def assembly_selection(stat):
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if stat == "":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+                    else:
+                        if assembly_dict[item] == stat:
+                            if item not in ref_assembly:
+                                ref_assembly.append(item)
+                else:
+                    break
 
+        qc_data = self.get_QC_data()
         remove = []
         qc_acc = []
         assembly_dict = {}
         ref_assembly = []
         for item in qc_data:
-            accession = item[0]
-            assembly_stat = item[2]
-            rRNA = item[4]
-            tuf = item[6]
-            recA = item[8]
-            dnaK = item[10]
-            pheS = item[12]
+            accession, assembly_stat, rRNA, tuf, recA, dnaK, pheS = (
+                item[0], item[2], item[4], item[6],
+                item[8], item[10], item[12])
             qc_list = rRNA, tuf, recA, dnaK, pheS
             assembly_dict.update({accession: assembly_stat})
 
@@ -3021,31 +3029,9 @@ class PrimerQualityControl:
         check = set(qc_acc) - set(remove)
         check = list(check)
         check.sort()
-        for item in check:
-            if len(ref_assembly) < self.referencegenomes:
-                if assembly_dict[item] == "Complete Genome":
-                    if item not in ref_assembly:
-                        ref_assembly.append(item)
-
-        if len(ref_assembly) < self.referencegenomes:
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if assembly_dict[item] == "Chromosome":
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-        if len(ref_assembly) < self.referencegenomes:
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if assembly_dict[item] == "Scaffold":
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-
-        if len(ref_assembly) < self.referencegenomes:
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if item not in ref_assembly:
-                        ref_assembly.append(item)
+        assembly_stats = ["Complete Genome", "Chromosome", "Scaffold", ""]
+        for stat in assembly_stats:
+            assembly_selection(stat)
 
         ref_assembly.sort()
         target_fasta = []

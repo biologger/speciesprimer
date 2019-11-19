@@ -7,6 +7,7 @@ import pytest
 import json
 import time
 from Bio import SeqIO
+from Bio import Entrez
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from basicfunctions import GeneralFunctions as G
