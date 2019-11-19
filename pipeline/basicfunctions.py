@@ -75,7 +75,7 @@ class GeneralFunctions:
         outputlist = []
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, shell=True)
+            stderr=subprocess.STDOUT)
 
         def check_output():
             while True:
@@ -399,9 +399,9 @@ class ParallelFunctions:
     def get_seq_fromDB(extractdata, db):
         [accession, start, stop] = extractdata
         fasta = []
-        seq_cmd = " ".join([
+        seq_cmd = [
             "blastdbcmd", "-db", db, "-entry", str(accession),
-            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"])
+            "-range", str(start) + "-" + str(stop), "-outfmt", "%f"]
         while fasta == []:
             fasta = GeneralFunctions().read_shelloutput(seq_cmd)
         return fasta
@@ -419,9 +419,9 @@ class ParallelFunctions:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
 
         db = "template.sequences"
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", db,
+            "-k", "9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
@@ -455,9 +455,9 @@ class ParallelFunctions:
         ) as primefile:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + dbfile
-            + " -k 9 --tab --ppc 10")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", dbfile,
+            "-k 9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
@@ -483,9 +483,9 @@ class ParallelFunctions:
         ) as primefile:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        cmd = (
-            "MFEprimer.py -i " + primefile.name + " -d " + db
-            + " -k 9 --tab --ppc 10")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", db,
+            "-k", "9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)

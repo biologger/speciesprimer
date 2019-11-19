@@ -408,11 +408,6 @@ def test_DataCollection(config, monkeypatch):
         G.create_directory(fna)
         os.chdir(config.path)
 
-    def test_prokka_is_installed():
-        cmd = "prokka --citation"
-        lines = G.read_shelloutput(cmd)
-        assert lines[0] == "If you use Prokka in your work, please cite:"
-
     def prepare_prokka(config):
         targetdir = os.path.join(config.path, config.target)
         fileformat = ["fna", "gff", "ffn"]
@@ -451,7 +446,6 @@ def test_DataCollection(config, monkeypatch):
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)
     G.create_directory(DC.fna_dir)
-    test_prokka_is_installed()
     prepare_prokka(config)
     test_run_prokka()
     remove_prokka_testfiles()
