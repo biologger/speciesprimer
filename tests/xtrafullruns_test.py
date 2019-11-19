@@ -86,6 +86,10 @@ def prepare_testfiles():
                             " Lactobacillus curvatus strain SRCM103465")
                         record.description = description
                     SeqIO.write(record, f, "fasta")
+            mockseqs = os.path.join(testfiles_dir, "mocktemplate.seqs")
+            records = list(SeqIO.parse(mockseqs, "fasta"))
+            SeqIO.write(records, f, "fasta")
+
         return dbpath
 
     def create_customblastdb():
@@ -94,6 +98,12 @@ def prepare_testfiles():
             "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
         G.run_subprocess(
             cmd, printcmd=False, logcmd=False, printoption=False)
+
+    if os.path.isdir(os.path.dirname(dbpath)):
+        shutil.rmtree(os.path.dirname(dbpath))
+    test =  os.path.join("/", "primerdesign", "test")
+    if os.path.isdir(test):
+        shutil.rmtree(test)
 
     G.create_directory(os.path.dirname(dbpath))
     dbinputfiles()
@@ -195,6 +205,8 @@ def test_rerun(monkeypatch):
             confdict = json.loads(line)
     confdict.update({"qc_gene": ["tuf"]})
     confdict.update({"ignore_qc": True})
+    confdict.update({"probe": True})
+    confdict.update({"intermediate": False})
     with open(testconfig, "w") as f:
         f.write(json.dumps(confdict))
     if os.path.isdir(pandir):
@@ -216,6 +228,8 @@ def test_repeat_primerQC(monkeypatch):
         for line in f:
             confdict = json.loads(line)
     confdict.update({"nolist": True})
+    confdict.update({"probe": True})
+    confdict.update({"intermediate": False})
     with open(testconfig, "w") as f:
         f.write(json.dumps(confdict))
     monkeypatch.setattr('builtins.input', start_oneinput)

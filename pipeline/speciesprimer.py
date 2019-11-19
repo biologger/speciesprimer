@@ -28,6 +28,7 @@ from Bio import Entrez
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 from basicfunctions import ParallelFunctions as P
+from basicfunctions import BlastDBError
 
 # paths
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
@@ -913,34 +914,46 @@ class QualityControl:
             return False
 
         def get_blastresults_info(blast_record, index):
-            alninfo = str(blast_record.alignments[index])
-            if len(alninfo.split("|")) == 3:
-                di = [1, 1, -1]
-            elif len(alninfo.split("|")) > 3:
-                di = [1, 3, -1]
-            else:
+            alignment = blast_record.alignments[index]
+            if "gnl|BL_ORD_ID|" in alignment.hit_id:
                 error_msg = (
-                    "Data is missing in the custom BLAST DB. At least "
-                    "a unique sequence identifier and the species name "
-                    "is required for each entry")
-
+                    "Problem with custom DB, Please use the '-parse_seqids'"
+                    " option for the makeblastdb command")
                 print("\n" + error_msg + "\n")
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
-                raise H.BlastDBError(error_msg)
-
-
-            gi = alninfo.split("|")[di[0]].strip(" ")
-            db_id = alninfo.split("|")[di[1]].strip(" ")
-            short = alninfo.split("|")[di[2]].strip(" ").split(" ")
-            if "subsp." in short:
-                spec = str(
-                    " ".join(short[0:2]) + " " + short[2].split(".")[0]
-                    + " " + short[3])
+                raise BlastDBError(error_msg)
+    
+            elif alignment.hit_def == "No definition line":
+                error_msg = (
+                    "Error: No definition line in " + alignment.title +
+                    "\nData is missing in the custom BLAST DB. At least "
+                    "a unique sequence identifier and the species name "
+                    "is required for each entry.\nExpected format: "
+                    ">seqid species name optional description")
+                print("\n" + error_msg + "\n")
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                raise BlastDBError(error_msg)
+    
             else:
-                spec = short[0] + " " + short[1]
-
-            return spec, gi, db_id
+                if "gi|" in alignment.hit_id:
+                    gi = alignment.hit_id.split("gi|")[1].split("|")[0]
+                else:
+                    gi = alignment.accession
+    
+                db_id = alignment.accession
+                lname = alignment.hit_def
+                name = lname.split(" ")
+                if len(name) >= 3:
+                    if "subsp" in str(" ".join(name)):
+                        spec = str(" ".join(name[0:4]))
+                    else:
+                        spec = str(" ".join(name[0:2]))
+                else:
+                    spec = str(" ".join(name[0:2]))
+    
+                return spec, gi, db_id
 
         def parse_blastresults():
             exceptions = []
@@ -1971,6 +1984,47 @@ class BlastParser:
         return xmlblastresults
 
     def get_alignmentdata(self, alignment):
+        if "gnl|BL_ORD_ID|" in alignment.hit_id:
+            error_msg = (
+                "Problem with custom DB, Please use the '-parse_seqids'"
+                " option for the makeblastdb command")
+            print("\n" + error_msg + "\n")
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            raise BlastDBError(error_msg)
+
+        elif alignment.hit_def == "No definition line":
+            error_msg = (
+                "Error: No definition line in " + alignment.title +
+                "\nData is missing in the custom BLAST DB. At least "
+                "a unique sequence identifier and the species name "
+                "is required for each entry.\nExpected format: "
+                ">seqid species name optional description")
+            print("\n" + error_msg + "\n")
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            raise BlastDBError(error_msg)
+
+        else:
+            if "gi|" in alignment.hit_id:
+                gi = alignment.hit_id.split("gi|")[1].split("|")[0]
+            else:
+                gi = alignment.accession
+
+            db_id = alignment.accession
+            lname = alignment.hit_def
+            if not "PREDICTED" in lname:
+                name = lname.split(" ")
+                if len(name) >= 3:
+                    if "subsp" in str(" ".join(name)):
+                        identity = str(" ".join(name[0:4]))
+                    else:
+                        identity = str(" ".join(name[0:2]))
+                else:
+                    identity = str(" ".join(name[0:2]))
+            else:
+                identity = None
+
         for hsp in alignment.hsps:
             score = hsp.score
             e_value = hsp.expect
@@ -1981,47 +2035,6 @@ class BlastParser:
             align_length = hsp.align_length
             nuc_ident = hsp.identities
 
-            identity = False
-            if len(alignment.title.split("|")) == 3:
-                di = [1, 1, -1]
-            elif len(alignment.title.split("|")) > 3:
-                di = [1, 3, -1]
-            else:
-                error_msg = (
-                    "Data is missing in the custom BLAST DB. At least "
-                    "a unique sequence identifier and the species name "
-                    "is required for each entry")
-
-                print("\n" + error_msg + "\n")
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                raise H.BlastDBError(error_msg)
-
-            gi = alignment.title.split("|")[di[0]].strip()
-            db_id = alignment.title.split("|")[di[1]].strip()
-            lname = alignment.title.split("|")[di[2]].split(",")[0].strip(" ")
-
-            if lname == "No definition line":
-                error_msg = (
-                    "Data is missing in the custom BLAST DB. At least "
-                    "a unique sequence identifier and the species name "
-                    "is required for each entry")
-                print("\n" + error_msg + "\n")
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                raise H.BlastDBError(error_msg)
-
-            if re.search("PREDICTED", lname):
-                pass
-            else:
-                name = lname.split(" ")
-                if len(name) >= 3:
-                    if "subsp" in str(" ".join(name)):
-                        identity = str(" ".join(name[0:4]))
-                    else:
-                        identity = str(" ".join(name[0:2]))
-                else:
-                    identity = str(" ".join(name[0:2]))
             if (identity and gi and db_id and score and e_value) is not None:
                 return (
                     identity, gi, db_id, score, e_value, query, match,
@@ -2200,7 +2213,6 @@ class BlastParser:
 
             perc_coverage = round(100/query_length * align_length, 0)
             perc_ident = round(100/align_length * nuc_ident, 0)
-
             if self.config.nolist:
                 targetspecies = " ".join(str(self.target).split("_"))
                 if "subsp" in self.target:

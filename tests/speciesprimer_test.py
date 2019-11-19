@@ -707,11 +707,8 @@ def test_QualityControl(config):
             QC.qc_blast_parser(qc_gene)
 
         from speciesprimer import errors
-        assert errors[-1] == [
-            'Lactobacillus_curvatus',
-            "Data is missing in the custom BLAST DB. At least "
-            "a unique sequence identifier and the species name "
-            "is required for each entry"]
+        errstart = errors[-1][1]
+        assert errstart[0:29] == "Error: No definition line in "
 
     def test_remove_qc_failures():
         delete = QC.remove_qc_failures(qc_gene)
@@ -933,82 +930,157 @@ def test_CoreGeneSequences(config):
     conserved = BlastParser(
             config).run_blastparser(conserved_seq_dict)
 
+def test_PrimerDesign(config):
+    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+    from speciesprimer import PrimerDesign
+    pd = PrimerDesign(config)
+    G.create_directory(pd.primer_dir)
+    p3_output = os.path.join(pd.primer_dir, "primer3_output")
+    with pytest.raises(Exception):
+        settings_file = os.path.join(BASE_PATH, "p3parameters")
+        errorsettings = os.path.join(BASE_PATH, "p3parameters_none")
+        try:
+            os.rename(settings_file, errorsettings)
+            pd.run_primerdesign()
+        finally:
+            os.rename(errorsettings, settings_file)
+
+    if os.path.isfile(p3_output):
+        os.remove(p3_output)
+
+    pd.run_primer3()
+
+    assert os.path.isfile(p3_output) is True
+    pd.run_primerdesign()
+
+    with open(reffile) as f:
+        for line in f:
+            refdict = json.loads(line)
+
+    assert refdict == pd.p3dict
+
+    # test primer3 error
+    p3_error = os.path.join(testfiles_dir, "primer3_output_err")
+    pd.p3dict = {}
+    pd.parse_Primer3_output(p3_error)
+    errorreport = os.path.join(pd.primer_dir, "primer3_errors.csv")
+    assert os.path.isfile(errorreport) is True
+    with open(errorreport) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            assert row == [
+                'SEQUENCE_ID=yfnB_2',
+                'SEQUENCE_TEMPLATE='
+                'GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
+                'PRIMER_PRODUCT_SIZE_RANGE=70-200',
+                'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length'
+                ' < min PRIMER_PRODUCT_SIZE_RANGE']
+
+
 def test_BlastDBError(config):
+    from speciesprimer import CoreGeneSequences
+    from speciesprimer import BlastParser
+    from speciesprimer import errors
+    from basicfunctions import BlastDBError
     dbpath = os.path.join(tmpdir, "customdb.fas")
-    if os.path.isdir(tmpdir):
-        shutil.rmtree(tmpdir)
+    blapa = BlastParser(config)
+    nontargetfile = os.path.join(blapa.blast_dir, "nontargethits.json")
+    blastresult = os.path.join(blapa.blast_dir, "conserved_0_results.xml")
+    primer3in = os.path.join(blapa.results_dir, "primer3_input")
+    consfile = os.path.join(testfiles_dir, "consensus_summary.txt")
+    consens = os.path.join(
+            blapa.results_dir, "consensus", "consensus_summary.txt")
+    if os.path.isfile(consens):
+        os.remove(consens)
+    shutil.copy(consfile, consens)
+
     config.customdb = dbpath
     config.blastdbv5 = False
 
-    def create_customblastdb(config, infile):
-        cmd = [
-            "makeblastdb", "-in", infile, "-parse_seqids", "-title",
-            "mockconservedDB", "-dbtype", "nucl", "-out", config.customdb]
-        G.run_subprocess(cmd)
+    def dbinputfiles(dbpath, nodesc=False):
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        with open(dbpath, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if nodesc:
+                        record.description = ""
+                    else:
+                        if record.id == record.description:
+                            description = (
+                                record.id +
+                                " Lactobacillus curvatus strain SRCM103465")
+                            record.description = description
+                    SeqIO.write(record, f, "fasta")
+            mockseqs = os.path.join(testfiles_dir, "mocktemplate.seqs")
+            records = list(SeqIO.parse(mockseqs, "fasta"))
+            for record in records:
+                if nodesc:
+                    record.description = ""
+                SeqIO.write(record, f, "fasta")
 
-    from speciesprimer import BlastParser
-    from speciesprimer import CoreGeneSequences
-    infile = os.path.join(testfiles_dir, "conserved_customdb_err.fas")
-    create_customblastdb(config, infile)
-    CGS = CoreGeneSequences(config)
-    if os.path.isdir(CGS.blast_dir):
-        shutil.rmtree(CGS.blast_dir)
-    G.create_directory(CGS.blast_dir)
-    conserved_seq_dict = CGS.run_coregeneanalysis()
+        return dbpath
 
-    with pytest.raises(Exception):
-        conserved = BlastParser(
-                config).run_blastparser(conserved_seq_dict)
+    def create_customblastdb(dbpath, noseq=False):
+        if noseq:
+            cmd = [
+                "makeblastdb", "-in", dbpath, "-title",
+                "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
+        else:
+            cmd = [
+                "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
+                "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
 
-    from speciesprimer import errors
-    assert errors[-1] == [
-        'Lactobacillus_curvatus',
-        "Data is missing in the custom BLAST DB. At least "
-        "a unique sequence identifier and the species name "
-        "is required for each entry"]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, printoption=False)
 
-    if os.path.isdir(tmpdir):
-        shutil.rmtree(tmpdir)
+    def remove_blastresults():
+        if os.path.isfile(nontargetfile):
+            os.remove(nontargetfile)
+        if os.path.isfile(blastresult):
+            os.remove(blastresult)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
 
-    infile = os.path.join(testfiles_dir, "conserved_customdb_err2.fas")
-    create_customblastdb(config, infile)
-    CGS = CoreGeneSequences(config)
-    if os.path.isdir(CGS.blast_dir):
-        shutil.rmtree(CGS.blast_dir)
-    G.create_directory(CGS.blast_dir)
-    conserved_seq_dict = CGS.run_coregeneanalysis()
+    print("\n>>> Start normal customDB:\n")
+    remove_blastresults()
+    G.create_directory(os.path.dirname(dbpath))
+    dbinputfiles(dbpath)
+    create_customblastdb(dbpath)
+    conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
+    blapa.run_blastparser(conserved_seq_dict)
+    assert os.path.isfile(primer3in) is True
 
-    with pytest.raises(Exception):
-        conserved = BlastParser(
-                config).run_blastparser(conserved_seq_dict)
+    print("\n>>> Start custom DB no parse_seqids option:\n")
+    remove_blastresults()
+    G.create_directory(os.path.dirname(dbpath))
+    dbinputfiles(dbpath)
+    create_customblastdb(dbpath, noseq=True)
+    conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
+    with pytest.raises(BlastDBError):
+        blapa.run_blastparser(conserved_seq_dict)
 
-    from speciesprimer import errors
-    assert errors[-2] == [
-        'Lactobacillus_curvatus',
-        "Data is missing in the custom BLAST DB. At least "
-        "a unique sequence identifier and the species name "
-        "is required for each entry"]
-    assert errors[-1] == [
-        'Lactobacillus_curvatus',
-        "Data is missing in the custom BLAST DB. At least "
-        "a unique sequence identifier and the species name "
-        "is required for each entry"]
+    error_msg = (
+        "Problem with custom DB, Please use the '-parse_seqids'"
+        " option for the makeblastdb command")
+    assert errors[-1] == [config.target, error_msg]
 
-    if os.path.isdir(tmpdir):
-        shutil.rmtree(tmpdir)
-    if os.path.isdir(CGS.blast_dir):
-        shutil.rmtree(CGS.blast_dir)
+    print("\n>>> Start missing description in BLASTDB:\n")
+    remove_blastresults()
+    G.create_directory(os.path.dirname(dbpath))
+    dbinputfiles(dbpath, nodesc=True)
+    create_customblastdb(dbpath)
+    conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
+    with pytest.raises(BlastDBError):
+        blapa.run_blastparser(conserved_seq_dict)
+    errstart = errors[-1][1]
+    assert errstart[0:29] == "Error: No definition line in "
 
-    G.create_directory(CGS.blast_dir)
-    G.create_directory(tmpdir)
-    infile = os.path.join(testfiles_dir, "conserved_customdb.fas")
-    create_customblastdb(config, infile)
-    conserved_seq_dict = CGS.run_coregeneanalysis()
-    conserved = BlastParser(
-                config).run_blastparser(conserved_seq_dict)
-    shutil.rmtree(tmpdir)
-    assert os.path.isfile(
-            os.path.join(CGS.blast_dir, "nontargethits.json")) is True
+    remove_blastresults()
+
 
 def test_blastprep(config):
     from speciesprimer import BlastPrep
@@ -1254,53 +1326,6 @@ def test_primerblastparser_exceptions(config):
     shutil.rmtree(primer_dir)
 #    write_primer3_input(self, selected_seqs, conserved_seq_dict)
 #    get_alignmentdata(self, alignment)
-
-
-def test_PrimerDesign(config):
-    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
-    from speciesprimer import PrimerDesign
-    pd = PrimerDesign(config)
-    G.create_directory(pd.primer_dir)
-    p3_output = os.path.join(pd.primer_dir, "primer3_output")
-    with pytest.raises(Exception):
-        settings_file = os.path.join(BASE_PATH, "p3parameters")
-        errorsettings = os.path.join(BASE_PATH, "p3parameters_none")
-        try:
-            os.rename(settings_file, errorsettings)
-            pd.run_primerdesign()
-        finally:
-            os.rename(errorsettings, settings_file)
-
-    if os.path.isfile(p3_output):
-        os.remove(p3_output)
-
-    pd.run_primer3()
-
-    assert os.path.isfile(p3_output) is True
-    pd.run_primerdesign()
-
-    with open(reffile) as f:
-        for line in f:
-            refdict = json.loads(line)
-
-    assert refdict == pd.p3dict
-
-    # test primer3 error
-    p3_error = os.path.join(testfiles_dir, "primer3_output_err")
-    pd.p3dict = {}
-    pd.parse_Primer3_output(p3_error)
-    errorreport = os.path.join(pd.primer_dir, "primer3_errors.csv")
-    assert os.path.isfile(errorreport) is True
-    with open(errorreport) as f:
-        reader = csv.reader(f)
-        for row in reader:
-            assert row == [
-                'SEQUENCE_ID=yfnB_2',
-                'SEQUENCE_TEMPLATE='
-                'GCCAANACGCAATATCGGCGGTTACAAGATTCAGGATTAATCACATATT',
-                'PRIMER_PRODUCT_SIZE_RANGE=70-200',
-                'PRIMER_ERROR=SEQUENCE_INCLUDED_REGION length'
-                ' < min PRIMER_PRODUCT_SIZE_RANGE']
 
 
 def test_PrimerQualityControl_specificitycheck(config):
