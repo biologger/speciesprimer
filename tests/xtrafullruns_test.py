@@ -113,6 +113,17 @@ def prepare_testfiles():
     change_tmp_db()
 
 
+def start_allinput(prompt):
+    prompt_dict = {
+        start: "s",
+        targets: "a",
+        species: "Lactobacillus curvatus",
+        path: "/primerdesign/test"
+    }
+    val = prompt_dict[prompt]
+    return val
+
+
 def start_oneinput(prompt):
     prompt_dict = {
         start: "s",
@@ -175,6 +186,7 @@ def assert_ref_files(nolist=False):
 
     if nolist:
         ref_files.append("potential_specieslist.txt")
+        ref_files.remove("Lb_curva_primer.csv")
 
     files.sort()
     ref_files.sort()
@@ -190,8 +202,13 @@ def test_run(monkeypatch):
     # compare primer results
     assert os.path.isfile(maxcontig) is False
     assert_ref_files()
-    # will not run again
-    monkeypatch.setattr('builtins.input', start_oneinput)
+    # should not run again
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    resfile = os.path.join(summ_dir, "Lb_curva_primer.csv")
+    represult = os.path.join(summ_dir, "Lb_curva_primer" + today + ".csv")
+    if os.path.isfile(resfile):
+        shutil.copy(resfile, represult)
+    monkeypatch.setattr('builtins.input', start_allinput)
     from speciesprimer import main
     main()
 
@@ -206,7 +223,7 @@ def test_rerun(monkeypatch):
             confdict = json.loads(line)
     confdict.update({"qc_gene": ["tuf"]})
     confdict.update({"ignore_qc": True})
-    confdict.update({"probe": True})
+    confdict.update({"probe": False})
     confdict.update({"intermediate": False})
     with open(testconfig, "w") as f:
         f.write(json.dumps(confdict))
