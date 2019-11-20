@@ -689,7 +689,7 @@ def test_QualityControl(config):
         if os.path.isdir(qc_dir):
             shutil.rmtree(qc_dir)
         G.create_directory(qc_dir)
-        QC.config.customdb = "/tmp/not_a_db.fas"
+        QC.config.customdb = os.path.join(tmpdir, "not_a_db.fas")
         from speciesprimer import Blast
         from speciesprimer import BlastPrep
         qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")

@@ -316,7 +316,8 @@ class HelperFunctions:
 
     @staticmethod
     def get_email_for_Entrez(email=None):
-        if os.path.isfile(tmp_db_path):
+
+        def tmp_db_email(email):
             with open(tmp_db_path) as f:
                 for line in f:
                     tmp_db = json.loads(line)
@@ -343,7 +344,9 @@ class HelperFunctions:
                 else:
                     print("Not a valid email adress")
                     HelperFunctions().get_email_for_Entrez()
-        else:
+            return email
+
+        def user_input_email(email):
             if not email:
                 email = input(
                     "To make use of NCBI's E-utilities, "
@@ -362,6 +365,12 @@ class HelperFunctions:
             else:
                 print("Not a valid email adress")
                 HelperFunctions().get_email_for_Entrez()
+            return email
+
+        if os.path.isfile(tmp_db_path):
+            email = tmp_db_email(email)
+        else:
+            email = user_input_email(email)
 
         return email
 
@@ -517,22 +526,22 @@ class ParallelFunctions:
             print("\n!!!" + msg + "!!!\n")
             os.remove(inputfilepath)
             return msg
-        else:
-            GeneralFunctions().logger("> Start index non-target DB " + db_name)
-            print("\nStart index " + db_name)
-            start = time.time()
-            cmd = "IndexDb.sh " + inputfilepath + " 9"
-            try:
-                GeneralFunctions().run_shell(
-                        cmd, printcmd=True, logcmd=True, log=False)
-            except (KeyboardInterrupt, SystemExit):
-                GeneralFunctions().keyexit_rollback(
-                        "DB indexing", dp=primer_qc_dir, search=db_name)
-                raise
-            end = time.time() - start
-            GeneralFunctions().logger(
-                "Run: index_Database(" + db_name + ") time: "
-                + str(timedelta(seconds=end)))
-            print("Done indexing " + db_name)
-            GeneralFunctions().logger("> Done indexing " + db_name)
-            return 0
+
+        GeneralFunctions().logger("> Start index non-target DB " + db_name)
+        print("\nStart index " + db_name)
+        start = time.time()
+        cmd = "IndexDb.sh " + inputfilepath + " 9"
+        try:
+            GeneralFunctions().run_shell(
+                    cmd, printcmd=True, logcmd=True, log=False)
+        except (KeyboardInterrupt, SystemExit):
+            GeneralFunctions().keyexit_rollback(
+                    "DB indexing", dp=primer_qc_dir, search=db_name)
+            raise
+        end = time.time() - start
+        GeneralFunctions().logger(
+            "Run: index_Database(" + db_name + ") time: "
+            + str(timedelta(seconds=end)))
+        print("Done indexing " + db_name)
+        GeneralFunctions().logger("> Done indexing " + db_name)
+        return 0
