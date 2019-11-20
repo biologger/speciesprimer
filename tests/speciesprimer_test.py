@@ -311,18 +311,22 @@ def test_DataCollection(config, monkeypatch):
         syn, taxid = DC.get_taxid(target)
         assert taxid is None
 
-    def test_syn_exceptions(config):
+    def test_syn_exceptions(config):       
         # standard case
-        config.target = "Lactobacillus_curvatus"
-        config.exception = []
-        dc = DataCollection(config)
+        confdict = config.__dict__
+        config.exception = ["Lactobacillus curvatus"]
+        DC = DataCollection(config)
+        G.create_directory(DC.config_dir)
+        conffile = os.path.join(DC.config_dir, "config.json")
+        with open(conffile, "w") as f:
+            f.write(json.dumps(confdict))
         syn = ['Bacterium_curvatum']
-        exceptions = dc.add_synonym_exceptions(syn)
+        exceptions = DC.add_synonym_exceptions(syn)
         assert exceptions == ['Lactobacillus curvatus', 'Bacterium_curvatum']
         config.exception = ['Lactobacillus curvatus', 'Bacterium_curvatum']
-        dc = DataCollection(config)
-        syn = None
-        exceptions = dc.add_synonym_exceptions(syn)
+        DC = DataCollection(config)
+        syn = ['Lactobacillus curvatus', 'Bacterium_curvatum']
+        exceptions = DC.add_synonym_exceptions(syn)
         assert exceptions == ['Lactobacillus curvatus', 'Bacterium_curvatum']
 
     def test_create_GI_list():
@@ -458,6 +462,7 @@ def test_DataCollection(config, monkeypatch):
     DC.prepare_dirs()
     test_get_taxid(config.target, monkeypatch)
     test_ncbi_download("28038", monkeypatch)
+    test_syn_exceptions(config)
     test_create_GI_list()
     G.create_directory(DC.gff_dir)
     G.create_directory(DC.ffn_dir)
@@ -687,14 +692,17 @@ def test_QualityControl(config):
         QC.config.customdb = os.path.join(tmpdir, "customdb.fas")
 
     def test_qc_blast_parser_fail():
-        passed = QC.qc_blast_parser(qc_gene)
+        with pytest.raises(Exception):
+            QC.qc_blast_parser(qc_gene)
+        filename = (
+            '/primerdesign/test/Lactobacillus_curvatus/rRNA_QC/'
+            'rRNA_0_results.xml')
+        error_msg = (
+                "A problem with the BLAST results file " + filename +
+                " was detected. Please check"
+                " if the file was removed and start the run again")
         from speciesprimer import errors
-        assert passed == []
-        assert errors[-1] == [
-            'Lactobacillus_curvatus',
-            'A problem with the BLAST results file rRNA_0_results.xml was '
-            'detected. Trying to remove the file. '
-            'Please check if the file was removed and start the run again']
+        assert errors[-1] == ['Lactobacillus_curvatus', error_msg]
         qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
         if os.path.isdir(qc_dir):
             shutil.rmtree(qc_dir)

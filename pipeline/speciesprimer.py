@@ -421,6 +421,37 @@ class DataCollection():
     def run_prokka(self):
         annotation_dirs = []
 
+        def excluded_assemblies():
+            qc_fail_dirs = []
+            # list of failed assemblies
+            if os.path.isfile(os.path.join(self.ex_dir, "excluded_list.txt")):
+                with open(
+                    os.path.join(self.ex_dir, "excluded_list.txt"), "r"
+                ) as f:
+                    for line in f:
+                        line = line.strip()
+                        qc_fail_dirs.append(line)
+            return qc_fail_dirs
+
+        def get_annotation_dirs():
+            dirs = []
+            # list of folders of annotated genomes
+            for directories in [
+                d for d in os.listdir(self.target_dir)
+                if os.path.isdir(os.path.join(self.target_dir, d))
+            ]:
+                name = "_".join(directories.split("_")[:-1])
+                dirs.append(name)
+            return dirs
+
+        def get_genomic_files():
+            genomic_files = []
+            # list of genomic files
+            if os.path.isdir(self.genomic_dir):
+                for file_name in os.listdir(self.genomic_dir):
+                    genomic_files.append(file_name)
+            return genomic_files
+
         def get_filenames(directory):
             filenames = []
             for files in [
@@ -441,28 +472,39 @@ class DataCollection():
                         info = "Removed " + filepath
                         G.logger(info)
 
+        def start_prokka(filename):
+            date = time.strftime("%Y%m%d")
+            genus = self.target.split("_")[0]
+            outdir = filename + "_" + date
+            prokka_cmd = [
+                "prokka",
+                "--kingdom", "Bacteria",
+                "--outdir", outdir,
+                "--genus", genus,
+                "--locustag", filename,
+                "--prefix", filename + "_" + date,
+                "--cpus", "0",
+                "genomic_fna/" + fna
+            ]
+            info = file_name + " annotation required"
+            G.logger(info)
+            print("\n" + info)
+            try:
+                G.run_subprocess(prokka_cmd, True, True, False)
+            except (KeyboardInterrupt, SystemExit):
+                G.keyexit_rollback(
+                    "annotation", dp=os.path.join(self.target_dir, outdir))
+                raise
+
+            annotation_dirs.append(filename + "_" + date)
+
         annotated = []
         excluded = []
         G.logger("Run: run_prokka(" + self.target + ")")
-        date = time.strftime("%Y%m%d")
-        genus = self.target.split("_")[0]
-        genomic_files = []
-        dirs = []
-        qc_fail_dir = []
-        # list of genomic files
-        if os.path.isdir(self.genomic_dir):
-            for file_name in os.listdir(self.genomic_dir):
-                if file_name.endswith(".fna"):
-                    genomic_files.append(file_name)
 
-        # list of folders of annotated genomes
-        for directories in [
-            d for d in os.listdir(self.target_dir)
-            if os.path.isdir(os.path.join(self.target_dir, d))
-        ]:
-            name = "_".join(directories.split("_")[:-1])
-            dirs.append(name)
-
+        dirs = get_annotation_dirs()
+        qc_fail_dirs = excluded_assemblies()
+        genomic_files = get_genomic_files()
         # set intersection to identify the required annotation files
         fna_names = get_filenames(self.fna_dir)
         gff_names = get_filenames(self.gff_dir)
@@ -475,15 +517,6 @@ class DataCollection():
         check_incomplete(annotatedname, fna_names, self.fna_dir)
         check_incomplete(annotatedname, gff_names, self.gff_dir)
         check_incomplete(annotatedname, ffn_names, self.ffn_dir)
-
-        # list of failed assemblies
-        if os.path.isfile(os.path.join(self.ex_dir, "excluded_list.txt")):
-            with open(
-                os.path.join(self.ex_dir, "excluded_list.txt"), "r"
-            ) as f:
-                for line in f:
-                    line = line.strip()
-                    qc_fail_dir.append(line)
 
         # write annotation command
         for fna in genomic_files:
@@ -498,31 +531,10 @@ class DataCollection():
             if file_name in dirs:
                 if file_name != '':
                     annotated.append(file_name)
-            elif file_name in qc_fail_dir:
+            elif file_name in qc_fail_dirs:
                 excluded.append(file_name)
             else:
-                outdir = file_name + "_" + date
-                prokka_cmd = [
-                    "prokka",
-                    "--kingdom", "Bacteria",
-                    "--outdir", outdir,
-                    "--genus", genus,
-                    "--locustag", file_name,
-                    "--prefix", file_name + "_" + date,
-                    "--cpus", "0",
-                    "genomic_fna/" + fna
-                ]
-                info = file_name + " annotation required"
-                G.logger(info)
-                print("\n" + info)
-                try:
-                    G.run_subprocess(prokka_cmd, True, True, False)
-                except (KeyboardInterrupt, SystemExit):
-                    G.keyexit_rollback(
-                        "annotation", dp=os.path.join(self.target_dir, outdir))
-                    raise
-
-                annotation_dirs.append(file_name + "_" + date)
+                start_prokka(file_name)
 
         if len(annotated) > 0:
             info = "Already annotated: "
@@ -583,6 +595,7 @@ class DataCollection():
         config_dict.update({"exception": self.config.exception})
         with open(conffile, "w") as f:
             f.write(json.dumps(config_dict))
+        return self.config.exception
 
     def collect(self):
         G.logger("Run: collect data(" + self.target + ")")
@@ -897,66 +910,19 @@ class QualityControl:
         return qc_seqs
 
     def qc_blast_parser(self, qc_gene):
-        """ reads the blast results """
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
         G.logger("Run: qc_blast_parser(" + qc_gene + ")")
-        xmlblastresults = []
-        wrote = []
 
-        def find_blastresults():
-            if os.path.isdir(qc_dir):
-                for filename in os.listdir(qc_dir):
-                    if filename.endswith("_results.xml"):
-                        filepath = os.path.join(qc_dir, filename)
-                        if not os.stat(filepath).st_size == 0:
-                            xmlblastresults.append(filename)
-            if len(xmlblastresults) > 0:
-                return True
-
-            return False
-
-        def get_blastresults_info(blast_record, index):
-            alignment = blast_record.alignments[index]
-            if "gnl|BL_ORD_ID|" in alignment.hit_id:
-                error_msg = (
-                    "Problem with custom DB, Please use the '-parse_seqids'"
-                    " option for the makeblastdb command")
-                print("\n" + error_msg + "\n")
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                raise BlastDBError(error_msg)
-
-            if alignment.hit_def == "No definition line":
-                error_msg = (
-                    "Error: No definition line in " + alignment.title +
-                    "\nData is missing in the custom BLAST DB. At least "
-                    "a unique sequence identifier and the species name "
-                    "is required for each entry.\nExpected format: "
-                    ">seqid species name optional description")
-                print("\n" + error_msg + "\n")
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                raise BlastDBError(error_msg)
-
-            if "gi|" in alignment.hit_id:
-                gi = alignment.hit_id.split("gi|")[1].split("|")[0]
-            else:
-                gi = alignment.accession
-
-            db_id = alignment.accession
-            lname = alignment.hit_def
-            name = lname.split(" ")
-            if len(name) >= 3:
-                if "subsp" in str(" ".join(name)):
-                    spec = str(" ".join(name[0:4]))
-                else:
-                    spec = str(" ".join(name[0:2]))
-            else:
-                spec = str(" ".join(name[0:2]))
-
-            return spec, gi, db_id
+        def delete_blastreport(xmlblastresults):
+            os.chdir(qc_dir)
+            for file_name in xmlblastresults:
+                os.remove(file_name)
+                n = file_name.split("_")[-2]
+                os.remove(qc_gene + ".part-" + n)
+            os.remove(qc_gene + "_seq")
 
         def parse_blastresults():
+            wrote = []
             exceptions = []
             if not self.exception == []:
                 for item in self.exception:
@@ -967,28 +933,15 @@ class QualityControl:
             expected = " ".join(self.target.split("_"))
             # collect the blast results
             os.chdir(qc_dir)
-            for file_name in xmlblastresults:
-                result_handle = open(file_name)
-                try:
-                    blast_records = NCBIXML.parse(result_handle)
-                    blast_record_list = list(blast_records)
-                except Exception:
-                    error_msg = (
-                        "A problem with the BLAST results file " + file_name +
-                        " was detected. Trying to remove the file. Please "
-                        "check if the file was removed and start the run again"
-                    )
-                    print("\n" + error_msg + "\n")
-                    G.logger("> " + error_msg)
-                    errors.append([self.target, error_msg])
-                    result_handle.close()
-                    os.remove(file_name)
-                    print("removed " + file_name)
-                    raise
-
+            blapa = BlastParser(self.config)
+            xmlblastresults = blapa.blastresult_files(qc_dir)
+            for filename in xmlblastresults:
+                blast_record_list = blapa.parse_BLASTfile(filename)
                 for index, blast_record in enumerate(blast_record_list):
                     i = 0
-                    spec, gi, db_id = get_blastresults_info(blast_record, i)
+                    alignment = blast_record.alignments[i]
+                    aln_data = blapa.get_alignmentdata(alignment)
+                    spec, gi, db_id = aln_data[0], aln_data[1], aln_data[2]
                     query = blast_record.query
                     if str(gi) in excluded_gis:
                         if gi not in gi_list:
@@ -996,8 +949,10 @@ class QualityControl:
 
                         while i < len(blast_record.alignments) - 1:
                             i = i+1
-                            spec, gi, db_id = get_blastresults_info(
-                                    blast_record, i)
+                            alignment = blast_record.alignments[i]
+                            aln_data = blapa.get_alignmentdata(alignment)
+                            spec, gi, db_id = (
+                                    aln_data[0], aln_data[1], aln_data[2])
                             if str(gi) not in excluded_gis:
                                 break
                             else:
@@ -1026,6 +981,8 @@ class QualityControl:
                                 query, gi, db_id, spec, expected, "failed QC"]
                             self.problems.append(fail)
 
+            if self.config.intermediate is False:
+                delete_blastreport(xmlblastresults)
             if len(gi_list) > 0:
                 info = "removed GI's in excluded GI list from results"
                 print(info)
@@ -1064,21 +1021,8 @@ class QualityControl:
                 G.logger("> " + error_msg)
                 errors.append([self.target, error_msg])
 
-        def delete_blastreport():
-            os.chdir(qc_dir)
-            for file_name in xmlblastresults:
-                os.remove(file_name)
-                n = file_name.split("_")[1]
-                os.remove(qc_gene + ".part-" + n)
-            os.remove(qc_gene + "_seq")
 
-        def run_blast_parser():
-            if find_blastresults():
-                parse_blastresults()
-                if self.config.intermediate is False:
-                    delete_blastreport()
-
-        run_blast_parser()
+        parse_blastresults()
         write_blastresults()
         return self.passed
 
@@ -2180,7 +2124,7 @@ class BlastParser:
         except Exception:
             error_msg = (
                 "A problem with the BLAST results file " + filename +
-                " was detected. Try to remove the file. Please check"
+                " was detected. Please check"
                 " if the file was removed and start the run again")
             print("\n" + error_msg + "\n")
             G.logger("> " + error_msg)

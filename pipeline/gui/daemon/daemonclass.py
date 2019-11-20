@@ -14,9 +14,6 @@ class Daemonize(Daemon):
 
     def run(self):
         RUNFILE = self.runfile
-        '''
-        Process start to run here.
-        '''
         self.command()
         # Delete the run file at exit. Maybe there will be no stop request.
         atexit.register(self.delrun)
