@@ -1,0 +1,251 @@
+<!-- DocSum DTD for assembly database -->
+
+<!--~~ !dtd
+~~json
+   <json type='esummary' version='0.3'>
+       <config lcnames='true'/>
+   </json>
+~~-->
+
+<!ENTITY	 % T_string		"(#PCDATA)">
+<!ENTITY	 % T_int		"(#PCDATA)">
+
+<!-- Members definition of Structure type: T_Bioproj -->
+<!ELEMENT	BioprojectAccn		%T_string;>
+<!--~~ <BioprojectId>
+~~json <number/>
+~~-->
+<!ELEMENT	BioprojectId		%T_int;>
+
+<!-- Definition of Structure type: T_Bioproj -->
+<!--~~ <Bioproj>
+~~json <object/>
+~~-->
+<!ENTITY	 % T_Bioproj "(
+			BioprojectAccn?,
+			BioprojectId?
+			)
+			">
+
+<!-- Definition of List type: T_BioProjList -->
+<!ELEMENT	Bioproj	%T_Bioproj;>
+<!ENTITY	 % T_BioProjList	"(Bioproj)*">
+
+<!-- Definition of List type: T_IntList -->
+<!ELEMENT	int	%T_int;>
+<!ENTITY	 % T_IntList	"(int)*">
+
+<!-- Members definition of Structure type: T_Infraspecie -->
+<!ELEMENT	Sub_type		%T_string;>
+<!ELEMENT	Sub_value		%T_string;>
+
+<!-- Definition of Structure type: T_Infraspecie -->
+<!--~~ <Infraspecie>
+~~json <object/>
+~~-->
+<!ENTITY	 % T_Infraspecie "(
+			Sub_type?,
+			Sub_value?
+			)
+			">
+
+<!-- Definition of List type: T_InfraspeciesList -->
+<!ELEMENT	Infraspecie	%T_Infraspecie;>
+<!ENTITY	 % T_InfraspeciesList	"(Infraspecie)*">
+
+<!-- Members definition of Structure type: T_BiosourceStruct -->
+<!ELEMENT	InfraspeciesList		%T_InfraspeciesList;>
+<!ELEMENT	Sex		%T_string;>
+<!ELEMENT	Isolate		%T_string;>
+
+<!-- Definition of Structure type: T_BiosourceStruct -->
+<!--~~ <BiosourceStruct>
+~~json <object/>
+~~-->
+<!ENTITY	 % T_BiosourceStruct "(
+			InfraspeciesList?,
+			Sex?,
+			Isolate?
+			)
+			">
+<!ENTITY	 % T_date		"(#PCDATA)">
+
+<!-- Members definition of Structure type: T_Anomalous -->
+<!ELEMENT	Property		%T_string;>
+<!ELEMENT	Pubmed		%T_string;>
+
+<!-- Definition of Structure type: T_Anomalous -->
+<!--~~ <Anomalous>
+~~json <object/>
+~~-->
+<!ENTITY	 % T_Anomalous "(
+			Property?,
+			Pubmed?
+			)
+			">
+
+<!-- Definition of List type: T_AnomalousListT -->
+<!ELEMENT	Anomalous	%T_Anomalous;>
+<!ENTITY	 % T_AnomalousListT	"(Anomalous)*">
+
+<!-- Definition of List type: T_StrList -->
+<!ELEMENT	string	%T_string;>
+<!ENTITY	 % T_StrList	"(string)*">
+
+<!-- Members definition of Structure type: T_SynStruct -->
+<!ELEMENT	Genbank		%T_string;>
+<!ELEMENT	RefSeq		%T_string;>
+<!ELEMENT	Similarity		%T_string;>
+
+<!-- Definition of Structure type: T_SynStruct -->
+<!--~~ <SynStruct>
+~~json <object/>
+~~-->
+<!ENTITY	 % T_SynStruct "(
+			Genbank?,
+			RefSeq?,
+			Similarity?
+			)
+			">
+<!ENTITY	 % T_xml		"(#PCDATA)">
+
+<!-- Members definition of Structure type: T_DocSum -->
+<!ELEMENT	RsUid		%T_string;>
+<!ELEMENT	GbUid		%T_string;>
+<!ELEMENT	AssemblyAccession		%T_string;>
+<!ELEMENT	LastMajorReleaseAccession		%T_string;>
+<!ELEMENT	LatestAccession		%T_string;>
+<!ELEMENT	ChainId		%T_string;>
+<!ELEMENT	AssemblyName		%T_string;>
+<!ELEMENT	UCSCName		%T_string;>
+<!ELEMENT	EnsemblName		%T_string;>
+<!ELEMENT	Taxid		%T_string;>
+<!ELEMENT	Organism		%T_string;>
+<!ELEMENT	SpeciesTaxid		%T_string;>
+<!ELEMENT	SpeciesName		%T_string;>
+<!ELEMENT	AssemblyType		%T_string;>
+<!ELEMENT	AssemblyClass		%T_string;>
+<!ELEMENT	AssemblyStatus		%T_string;>
+<!ELEMENT	WGS		%T_string;>
+<!ELEMENT	GB_BioProjects		%T_BioProjList;>
+<!ELEMENT	GB_Projects		%T_IntList;>
+<!ELEMENT	RS_BioProjects		%T_BioProjList;>
+<!ELEMENT	RS_Projects		%T_IntList;>
+<!ELEMENT	BioSampleAccn		%T_string;>
+<!ELEMENT	BioSampleId		%T_string;>
+<!ELEMENT	Biosource		%T_BiosourceStruct;>
+<!ELEMENT	Coverage		%T_string;>
+<!ELEMENT	PartialGenomeRepresentation		%T_string;>
+<!ELEMENT	Primary		%T_string;>
+<!ELEMENT	AssemblyDescription		%T_string;>
+<!ELEMENT	ReleaseLevel		%T_string;>
+<!ELEMENT	ReleaseType		%T_string;>
+<!ELEMENT	AsmReleaseDate_GenBank		%T_date;>
+<!ELEMENT	AsmReleaseDate_RefSeq		%T_date;>
+<!ELEMENT	SeqReleaseDate		%T_date;>
+<!ELEMENT	AsmUpdateDate		%T_date;>
+<!ELEMENT	SubmissionDate		%T_date;>
+<!ELEMENT	LastUpdateDate		%T_date;>
+<!ELEMENT	SubmitterOrganization		%T_string;>
+<!ELEMENT	RefSeq_category		%T_string;>
+<!ELEMENT	AnomalousList		%T_AnomalousListT;>
+<!ELEMENT	ExclFromRefSeq		%T_StrList;>
+<!ELEMENT	PropertyList		%T_StrList;>
+<!ELEMENT	FromType		%T_string;>
+<!ELEMENT	Synonym		%T_SynStruct;>
+<!--~~ <ContigN50>
+~~json <number/>
+~~-->
+<!ELEMENT	ContigN50		%T_int;>
+<!--~~ <ScaffoldN50>
+~~json <number/>
+~~-->
+<!ELEMENT	ScaffoldN50		%T_int;>
+<!ELEMENT	FtpPath_GenBank		%T_string;>
+<!ELEMENT	FtpPath_RefSeq		%T_string;>
+<!ELEMENT	FtpPath_Assembly_rpt		%T_string;>
+<!ELEMENT	FtpPath_Stats_rpt		%T_string;>
+<!ELEMENT	FtpPath_Regions_rpt		%T_string;>
+<!ELEMENT	SortOrder		%T_string;>
+<!ELEMENT	Meta		%T_xml;>
+<!ELEMENT	error		%T_string;>
+
+<!-- Definition of Structure type: T_DocSum -->
+<!--~~ <DocumentSummary>
+~~json <object name='@uid'/>
+~~-->
+<!ENTITY	 % T_DocSum "((
+			RsUid?,
+			GbUid?,
+			AssemblyAccession?,
+			LastMajorReleaseAccession?,
+			LatestAccession?,
+			ChainId?,
+			AssemblyName?,
+			UCSCName?,
+			EnsemblName?,
+			Taxid?,
+			Organism?,
+			SpeciesTaxid?,
+			SpeciesName?,
+			AssemblyType?,
+			AssemblyClass?,
+			AssemblyStatus?,
+			WGS?,
+			GB_BioProjects?,
+			GB_Projects?,
+			RS_BioProjects?,
+			RS_Projects?,
+			BioSampleAccn?,
+			BioSampleId?,
+			Biosource?,
+			Coverage?,
+			PartialGenomeRepresentation?,
+			Primary?,
+			AssemblyDescription?,
+			ReleaseLevel?,
+			ReleaseType?,
+			AsmReleaseDate_GenBank?,
+			AsmReleaseDate_RefSeq?,
+			SeqReleaseDate?,
+			AsmUpdateDate?,
+			SubmissionDate?,
+			LastUpdateDate?,
+			SubmitterOrganization?,
+			RefSeq_category?,
+			AnomalousList?,
+			ExclFromRefSeq?,
+			PropertyList?,
+			FromType?,
+			Synonym?,
+			ContigN50?,
+			ScaffoldN50?,
+			FtpPath_GenBank?,
+			FtpPath_RefSeq?,
+			FtpPath_Assembly_rpt?,
+			FtpPath_Stats_rpt?,
+			FtpPath_Regions_rpt?,
+			SortOrder?,
+			Meta?
+			)
+			| error)
+			">
+
+<!ELEMENT DocumentSummary %T_DocSum;>
+<!ATTLIST DocumentSummary uid CDATA #IMPLIED>
+
+<!ELEMENT DbBuild      %T_string;>
+<!ELEMENT DocumentSummarySet (DbBuild?, DocumentSummary*)>
+<!ATTLIST DocumentSummarySet status CDATA #REQUIRED>
+<!--~~ <DocumentSummarySet>
+~~json
+   <object key="result">
+       <array key="uids" select='DocumentSummary/@uid'/>
+       <members select='DocumentSummary'/>
+   </object>
+~~-->
+<!--~~ <eSummaryResult>
+~~ json <member/>
+~~-->
+
+<!ELEMENT eSummaryResult (DocumentSummarySet?)>

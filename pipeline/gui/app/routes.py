@@ -19,6 +19,7 @@ app_dir = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = app_dir.split('gui')[0]
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+daemon_path = os.path.join(pipe_dir, "gui", "daemon", "daemonize.py")
 
 
 def update_tmp_db(update_dict):
@@ -28,6 +29,35 @@ def update_tmp_db(update_dict):
     tmp_db.update(update_dict)
     with open(tmp_db_path, 'w') as f:
         f.write(json.dumps(tmp_db))
+
+
+def start_frontail():
+    tmpdir = os.path.join("/", "programs", "tmp")
+    if not os.path.isdir(tmpdir):
+        try:
+            os.makedirs(tmpdir)
+        except OSError:
+            if not os.path.isdir(tmpdir):
+                raise
+    today = time.strftime("%Y_%m_%d", time.localtime())
+    log_file = os.path.join(
+            "/", "primerdesign", "speciesprimer_" + today + ".log")
+    pidfile = os.path.join(tmpdir, "frontail.pid")
+    if os.path.isfile(pidfile):
+        with open(pidfile) as f:
+            for line in f:
+                pid = line.strip()
+        pidint = int(pid)
+        if isinstance(pidint, int):
+            try:
+                os.kill(pidint, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        os.remove(pidfile)
+    frontail_cmd = [
+            "frontail-linux", "-d", "-n", "20", "--pid-path",
+            pidfile, log_file]
+    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -270,6 +300,10 @@ def get_settings(form):
         assemblylevel = ['offline']
     if exception == [""]:
         exception = []
+    else:
+        while "" in exception:
+            exception.remove("")
+            
     if customdb == "":
         customdb = None
     if 'all' in assemblylevel:
@@ -324,7 +358,7 @@ def settings():
         if tmp_db['new_run']['same_settings']:
             flash('Saved settings for {}'.format(target_choice_list))
             return redirect(url_for('controlrun'))
-        elif tmp_db['new_run']['change_settings']:
+        if tmp_db['new_run']['change_settings']:
             conf_path = tmp_db['new_run']['targets'][target]['path']
             save_to = os.path.join(conf_path, target, "config", "config.json")
             try:
@@ -353,11 +387,11 @@ def primerdesign():
     if form.validate_on_submit():
         if form.new.data:
             return redirect(url_for('new'))
-        elif form.search.data:
+        if form.search.data:
             return redirect(url_for('search_continue'))
-        elif form.control.data:
+        if form.control.data:
             return redirect(url_for('controlrun'))
-        elif form.change.data:
+        if form.change.data:
             return redirect(url_for('change_settings'))
 
     return render_template(
@@ -365,55 +399,21 @@ def primerdesign():
 
 
 def start_pipeline():
-    subprocess.Popen(["daemonize.py", "start", "100", "SpeciesPrimer"])
-    today = time.strftime("%Y_%m_%d", time.localtime())
-    log_file = os.path.join(
-            "/", "primerdesign", "speciesprimer_" + today + ".log")
-    if os.path.isfile("/tmp/frontail.pid"):
-        with open("/tmp/frontail.pid") as f:
-            for line in f:
-                pid = line.strip()
-        pidint = int(pid)
-        if isinstance(pidint, int):
-            try:
-                os.kill(pidint, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        os.remove("/tmp/frontail.pid")
-    frontail_cmd = [
-            "frontail-linux", "-d", "-n", "20", "--pid-path",
-            "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
+    start_frontail()
+    subprocess.Popen([daemon_path, "start", "100", "SpeciesPrimer"])
 
 
 def stop_pipeline():
-    subprocess.Popen(["daemonize.py", "stop", "100", "SpeciesPrimer"])
+    subprocess.Popen([daemon_path, "stop", "100", "SpeciesPrimer"])
 
 
 def start_db_download():
-    subprocess.Popen(["daemonize.py", "start", "200", 'GetBlastDB'])
-    today = time.strftime("%Y_%m_%d", time.localtime())
-    log_file = os.path.join(
-            "/", "primerdesign", "speciesprimer_" + today + ".log")
-    if os.path.isfile("/tmp/frontail.pid"):
-        with open("/tmp/frontail.pid") as f:
-            for line in f:
-                pid = line.strip()
-        pidint = int(pid)
-        if isinstance(pidint, int):
-            try:
-                os.kill(pidint, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        os.remove("/tmp/frontail.pid")
-    frontail_cmd = [
-            "frontail-linux", "-d", "-n", "20", "--pid-path",
-            "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
+    start_frontail()
+    subprocess.Popen([daemon_path, "start", "200", 'GetBlastDB'])
 
 
 def stop_db_download():
-    subprocess.Popen(["daemonize.py", "stop", "200", 'GetBlastDB'])
+    subprocess.Popen([daemon_path, "stop", "200", 'GetBlastDB'])
 
 
 @app.route('/dbdownload', methods=['GET', 'POST'])
@@ -430,25 +430,9 @@ def dbdownload():
 
 
 def start_updatedb(command):
+    start_frontail()
     subprocess.Popen(command)
-    today = time.strftime("%Y_%m_%d", time.localtime())
-    log_file = os.path.join(
-            "/", "primerdesign", "speciesprimer_" + today + ".log")
-    if os.path.isfile("/tmp/frontail.pid"):
-        with open("/tmp/frontail.pid") as f:
-            for line in f:
-                pid = line.strip()
-        pidint = int(pid)
-        if isinstance(pidint, int):
-            try:
-                os.kill(pidint, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        os.remove("/tmp/frontail.pid")
-    frontail_cmd = [
-            "frontail-linux", "-d", "-n", "20", "--pid-path",
-            "/tmp/frontail.pid", log_file]
-    subprocess.Popen(frontail_cmd, cwd=pipe_dir)
+
 
 
 def stop_updatedb(command):
@@ -457,15 +441,14 @@ def stop_updatedb(command):
 
 @app.route('/updatedb', methods=['GET', 'POST'])
 def updatedb():
-    ["updateblastdbdaemon.py", "start", "200"]
     form = DBForm()
     if form.validate_on_submit():
         if form.submit.data:
-            command = ["daemonize.py", "start", "200", "Update_ntDB"]
+            command = [daemon_path, "start", "200", "Update_ntDB"]
             start_updatedb(command)
             time.sleep(1)
         elif form.stop.data:
-            command = ["daemonize.py", "stop", "200", "Update_ntDB"]
+            command = [daemon_path, "stop", "200", "Update_ntDB"]
             stop_updatedb(command)
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
@@ -476,11 +459,11 @@ def updatedb_ref():
     form = DBForm()
     if form.validate_on_submit():
         if form.submit.data:
-            command = ["daemonize.py", "start", "200", "Update_prokDB"]
+            command = [daemon_path, "start", "200", "Update_prokDB"]
             start_updatedb(command)
             time.sleep(1)
         elif form.stop.data:
-            command = ["daemonize.py", "stop", "200", "Update_prokDB"]
+            command = [daemon_path, "stop", "200", "Update_prokDB"]
             stop_updatedb(command)
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
@@ -535,17 +518,16 @@ def blastdb():
     if form.validate_on_submit():
         if form.update_blastdb.data is True:
             return redirect(url_for('updatedb'))
-        elif form.update_refprok.data is True:
+        if form.update_refprok.data is True:
             return redirect(url_for('updatedb_ref'))
-        elif form.update_txids.data is True:
-            get_bacteria_taxids()
-        elif form.get_blastdb.data is True:
+        if form.get_blastdb.data is True:
             delete = form.delete.data
             db = form.whichdb.data
             update_dict = {'BLAST_DB': {'delete': delete, 'db': db}}
             update_tmp_db(update_dict)
             return redirect(url_for('dbdownload'))
-
+        if form.update_txids.data is True:
+            get_bacteria_taxids()
     return render_template(
             'blastdb.html', title='Download nt database', form=form)
 
@@ -554,77 +536,44 @@ def blastdb():
 def pipelineconfig():
     form = PipeConfig()
     if form.validate_on_submit():
-        if form.up_list.data:
-            f = form.up_list.data
-            filename = secure_filename(f.filename)
-            if filename:
-                f.save(os.path.join(dict_path, "species_list.txt"))
-                flash("saved species list")
-            else:
-                flash("not a supported file")
-            return redirect(url_for('pipelineconfig'))
-        elif form.up_abbrev.data:
-            f = form.up_abbrev.data
-            filename = secure_filename(f.filename)
-            if filename:
-                f.save(os.path.join(dict_path, "genus_abbrev.csv"))
-                flash("saved genus abbreviations")
-            else:
-                flash("not a supported file")
-            return redirect(url_for('pipelineconfig'))
-        elif form.up_p3sett.data:
-            f = form.up_p3sett.data
-            filename = secure_filename(f.filename)
-            if filename:
-                f.save(os.path.join(dict_path, "p3parameters"))
-                flash("saved primer3 parameters")
-            else:
-                flash("not a supported file")
-        elif form.up_noblast.data:
-            f = form.up_noblast.data
-            filename = secure_filename(f.filename)
-            if filename:
-                f.save(os.path.join(dict_path, "no_blast.gi"))
-                flash("saved no_blast.gi")
-            else:
-                flash("not a supported file")
-        elif form.down_list.data is True:
-            return send_file(
-                    os.path.join(dict_path, "species_list.txt"),
-                    as_attachment=True, attachment_filename="species_list.txt")
-        elif form.down_abbrev.data is True:
-            return send_file(
-                    os.path.join(dict_path, "genus_abbrev.csv"),
-                    as_attachment=True, attachment_filename="genus_abbrev.csv")
-        elif form.down_p3sett.data is True:
-            return send_file(
-                    os.path.join(dict_path, "p3parameters"),
-                    as_attachment=True, attachment_filename="p3parameters")
-        elif form.down_noblast.data is True:
-            return send_file(
-                    os.path.join(dict_path, "no_blast.gi"),
-                    as_attachment=True, attachment_filename='no_blast.gi')
+        upload_data = [
+            [form.up_list.data, "species_list.txt"],
+            [form.up_abbrev.data, "genus_abbrev.csv"],
+            [form.up_p3sett.data, "p3parameters"],
+            [form.up_noblast.data, "no_blast.gi"]]
+        download_data = [
+            [form.down_list.data, "species_list.txt"],
+            [form.down_abbrev.data, "genus_abbrev.csv"],
+            [form.down_p3sett.data, "p3parameters"],
+            [form.down_noblast.data, "no_blast.gi"]]
 
-        elif form.reset_list.data is True:
-            old_file = os.path.join(dict_path, "species_list.txt")
-            default = os.path.join(dict_path, "default", "species_list.txt")
-            shutil.copy(default, old_file)
-            flash("Reset species_list.txt")
-        elif form.reset_abbrev.data is True:
-            old_file = os.path.join(dict_path, "genus_abbrev.csv")
-            default = os.path.join(dict_path, "default", "genus_abbrev.csv")
-            shutil.copy(default, old_file)
-            flash("Reset genus_abbrev.csv")
-        elif form.reset_noblast.data is True:
-            old_file = os.path.join(dict_path, "no_blast.gi")
-            default = os.path.join(dict_path, "default", "no_blast.gi")
-            shutil.copy(default, old_file)
-            flash("Reset no_blast.gi")
-        elif form.reset_p3sett.data is True:
-            old_file = os.path.join(dict_path, "p3parameters")
-            default = os.path.join(dict_path, "default", "p3parameters")
-            shutil.copy(default, old_file)
-            flash("Reset p3parameters")
+        reset_data = [
+            [form.reset_list.data, "species_list.txt"],
+            [form.reset_abbrev.data, "genus_abbrev.csv"],
+            [form.reset_p3sett.data, "p3parameters"],
+            [form.reset_noblast.data, "no_blast.gi"]]
+
+        for upform in upload_data:
+            if upform[0]:
+                filename = secure_filename(upform[0].filename)
+                if filename:
+                    upform[0].save(os.path.join(dict_path, upform[1]))
+                    flash("saved " + upform[1])
+                else:
+                    flash("not a supported file")
+
+        for downform in download_data:
+            if downform[0]:
+                return send_file(
+                        os.path.join(dict_path, downform[1]),
+                        as_attachment=True, attachment_filename=downform[1])
+
+        for resform in reset_data:
+            if resform[0]:
+                old_file = os.path.join(dict_path, resform[1])
+                default = os.path.join(dict_path, "default", resform[1])
+                shutil.copy(default, old_file)
+                flash("Reset " + resform[1])
 
     return render_template(
             'pipelineconfig.html',

@@ -245,6 +245,22 @@ def test_auto_run_config():
 
 
 def test_DataCollection(config, monkeypatch):
+    dtd_path = os.path.join(
+            "/", "root", ".config", "biopython", "Bio", "Entrez", "DTDs")
+    dtd1 = os.path.join(dtd_path, "esummary_assembly.dtd")
+    dtd2 = os.path.join(dtd_path, "efetch.dtd")
+    mockdtd1 = os.path.join(
+                    testfiles_dir, "entrezmocks", "esummary_assembly.dtd")
+    mockdtd2 = os.path.join(
+                    testfiles_dir, "entrezmocks", "efetch.dtd")
+    mocks = [mockdtd1, mockdtd2]
+    if not os.path.isdir(dtd_path):
+        G.create_directory(dtd_path)
+    for i, filepath in enumerate([dtd1, dtd2]):
+        if not os.path.isfile(filepath):
+            shutil.copy(mocks[i], filepath)
+
+
     from speciesprimer import DataCollection
     shutil.rmtree(os.path.join(config.path, config.target))
     downdir = os.path.join(

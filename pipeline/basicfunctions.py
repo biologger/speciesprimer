@@ -270,15 +270,16 @@ class HelperFunctions:
             taxid = taxidresult["IdList"]
             if len(taxid) == 1:
                 return taxid[0]
-            else:
-                error = taxidresult['ErrorList']
-                info = "No taxid was found on NCBI\nError: " + str(error)
-                print(info)
-                GeneralFunctions().logger("> " + info)
+
+            error = taxidresult['ErrorList']
+            info = "No taxid was found on NCBI\nError: " + str(error)
+            print(info)
+            GeneralFunctions().logger("> " + info)
+            return None
         except OSError:
             info = (
                 "ERROR: Taxid for " + target
-                + " not found, please check spelling and internet connection")
+                + " not found, please check internet connection")
             print(info)
             GeneralFunctions().logger("> " + info)
             time.sleep(2)
@@ -293,9 +294,7 @@ class HelperFunctions:
         synonym = synresult[0]['OtherNames']['Synonym']
         includes = synresult[0]['OtherNames']['Includes']
         synonyms = synonym + includes
-        if synonyms == []:
-            return None
-        else:
+        if synonyms != []:
             synwarn = []
             target_name = " ".join(target.split("_"))
             if not target_name == scienctificname:
@@ -303,9 +302,7 @@ class HelperFunctions:
             for item in synonyms:
                 if not item == target_name:
                     synwarn.append(item)
-            if synwarn == []:
-                return None
-            else:
+            if synwarn != []:
                 info = ("Warning synonyms for this species were found...")
                 info2 = ("Adding synonyms to exception in config.json.")
                 print("\n" + info)
@@ -315,6 +312,7 @@ class HelperFunctions:
                 GeneralFunctions().logger(synwarn)
                 GeneralFunctions().logger("> " + info2)
                 return synwarn
+        return None
 
     @staticmethod
     def get_email_for_Entrez(email=None):
@@ -346,9 +344,7 @@ class HelperFunctions:
                     print("Not a valid email adress")
                     HelperFunctions().get_email_for_Entrez()
         else:
-            if email:
-                pass
-            else:
+            if not email:
                 email = input(
                     "To make use of NCBI's E-utilities, "
                     "Please enter your email address. \n")
@@ -384,9 +380,9 @@ class HelperFunctions:
                 os.path.join("/", "blastdb", DBname + ".nal")) is True
         ):
             return 0
-        else:
-            msg = "No BLAST DB was found " + DBname
-            raise BlastDBError(msg)
+
+        msg = "No BLAST DB was found " + DBname
+        raise BlastDBError(msg)
 
 
 class BlastDBError(Exception):
@@ -438,10 +434,8 @@ class ParallelFunctions:
             ):
                 ppc_val = ppc - float(mfethreshold)
                 return [[nameF, seqF, nameR, seqR, templ_seq, ppc_val], result]
-            else:
-                return [[None], result]
-        else:
-            return [[None], result]
+
+        return [[None], result]
 
     @staticmethod
     def MFEprimer_nontarget(primerinfo, args):
@@ -461,7 +455,7 @@ class ParallelFunctions:
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
-        if not len(result) == 1:
+        if len(result) != 1:
             for index, item in enumerate(result):
                 if index > 0:
                     val = item.split("\t")
@@ -503,8 +497,8 @@ class ParallelFunctions:
         for item in counts.keys():
             if counts[item] == 1:
                 return [primerinfo, result]
-            else:
-                return [[None], result]
+
+        return [[None], result]
 
     @staticmethod
     def index_database(inputfilepath):
@@ -516,7 +510,7 @@ class ParallelFunctions:
             print(msg)
             GeneralFunctions().logger(msg)
             return 0
-        elif os.stat(inputfilepath).st_size == 0:
+        if os.stat(inputfilepath).st_size == 0:
             db_name = os.path.basename(inputfilepath)
             msg = " ".join(["Problem with", db_name, "input file is empty"])
             GeneralFunctions().logger("> " + msg)

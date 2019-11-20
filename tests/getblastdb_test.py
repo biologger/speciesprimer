@@ -213,7 +213,6 @@ def test_skipdownload():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 
@@ -230,7 +229,6 @@ def test_skipdownload_nomd5():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 
@@ -251,7 +249,6 @@ def test_archiveextract():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 
@@ -274,7 +271,6 @@ def test_onlymd5():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 
@@ -297,7 +293,6 @@ def test_no_old_md5():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 
@@ -325,7 +320,6 @@ def test_checksum_incorrect():
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
-        pass
         shutil.rmtree(tmpdir)
 
 

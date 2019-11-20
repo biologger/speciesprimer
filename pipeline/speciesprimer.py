@@ -175,9 +175,10 @@ class DataCollection():
         taxid = H.check_input(target, Entrez.email)
         if taxid:
             syn = H.check_species_syn(taxid, Entrez.email, target)
-            return syn, taxid
         else:
-            return None, None
+            syn = None
+
+        return syn, taxid
 
     def prepare_dirs(self):
         G.create_directory(self.target_dir)
@@ -235,7 +236,7 @@ class DataCollection():
                 name = assembly["AssemblyName"]
                 status = assembly["AssemblyStatus"]
                 ftp_path = assembly["FtpPath_RefSeq"]
-                if ftp_path is "":
+                if ftp_path == "":
                     ftp_link = "None"
                 else:
                     ftp_link = (
@@ -292,11 +293,38 @@ class DataCollection():
         write_links(link_list)
         os.chdir(self.target_dir)
 
-    def ncbi_download(self):
-        G.logger("Run: ncbi_download(" + self.target + ")")
-        G.create_directory(self.gff_dir)
-        G.create_directory(self.ffn_dir)
-        G.create_directory(self.fna_dir)
+
+    def check_download_files(self, input_line):
+        line = input_line.strip()
+        zip_file = line.split("/")[-1]
+        name_start = (
+            zip_file.split(".")[0]
+            + "v" + zip_file.split(".")[1].split("_")[0])
+        directories = [self.gff_dir, self.ffn_dir]
+        gff = False
+        ffn = False
+        genomic = False
+        for directory in directories:
+            for files in [f for f in os.listdir(directory)]:
+                if files.startswith(name_start):
+                    if directory == self.gff_dir:
+                        if files.endswith(".gff"):
+                            gff = True
+                    elif directory == self.ffn_dir:
+                        if files.endswith(".ffn"):
+                            ffn = True
+        for files in [f for f in os.listdir(self.genomic_dir)]:
+            if files == zip_file.split(".gz")[0]:
+                genomic = True
+        if (gff and ffn) is True:
+            status = True
+        elif genomic is True:
+            status = "Extracted"
+        else:
+            status = False
+        return status
+
+    def get_excluded_assemblies(self):
         excluded = []
         # a list of excluded Genomes to keep information
         # after directories are (manually) removed (to save diskspace)
@@ -308,43 +336,21 @@ class DataCollection():
                         line = line.strip()
                         if line not in excluded:
                             excluded.append(line)
+        return excluded
 
-        def check_files(input_line):
-            line = input_line.strip()
-            zip_file = line.split("/")[-1]
-            name_start = (
-                zip_file.split(".")[0]
-                + "v" + zip_file.split(".")[1].split("_")[0])
-            directories = [self.gff_dir, self.ffn_dir]
-            gff = False
-            ffn = False
-            genomic = False
-            for directory in directories:
-                for files in [f for f in os.listdir(directory)]:
-                    if files.startswith(name_start):
-                        if directory == self.gff_dir:
-                            if files.endswith(".gff"):
-                                gff = True
-                        elif directory == self.ffn_dir:
-                            if files.endswith(".ffn"):
-                                ffn = True
-            for files in [f for f in os.listdir(self.genomic_dir)]:
-                if files == zip_file.split(".gz")[0]:
-                    genomic = True
-            if (gff and ffn) is True:
-                return True
-            elif genomic is True:
-                return "Extracted"
-            else:
-                return False
-
+    def ncbi_download(self):
+        G.logger("Run: ncbi_download(" + self.target + ")")
+        G.create_directory(self.gff_dir)
+        G.create_directory(self.ffn_dir)
+        G.create_directory(self.fna_dir)
+        excluded = self.get_excluded_assemblies()
         os.chdir(self.genomic_dir)
         with open(os.path.join(self.config_dir, "genomic_links.txt")) as r:
             for line in r:
                 zip_file = line.split("/")[-1].strip()
                 target_path = os.path.join(self.genomic_dir, zip_file)
                 ftp_path = line.strip()
-                file_status = check_files(line)
+                file_status = self.check_download_files(line)
                 if file_status is True:
                     info = "all required files found for " + zip_file
                     G.logger(info)
@@ -490,7 +496,7 @@ class DataCollection():
                     "_".join("-".join(name.split(".")).split("_")[0:-1]))
 
             if file_name in dirs:
-                if not file_name == '':
+                if file_name != '':
                     annotated.append(file_name)
             elif file_name in qc_fail_dir:
                 excluded.append(file_name)
@@ -587,10 +593,6 @@ class DataCollection():
 
         if not self.config.offline:
             syn, taxid = self.get_taxid(self.target)
-            if taxid is None:
-                error_msg = (
-                    "No taxid was found on NCBI, check internet connection")
-                errors.append([self.target, error_msg])
             if syn:
                 self.add_synonym_exceptions(syn)
 
@@ -878,14 +880,14 @@ class QualityControl:
                         file_path = os.path.join(self.ffn_dir, file_name)
                         for record in SeqIO.parse(file_path, "fasta"):
                             if seq_id in record.id:
-                                if not len(str(record.seq)) == 0:
+                                if len(str(record.seq)) != 0:
                                     if record.id not in recid:
                                         recid.append(record.id)
                                     if str(record.seq) not in recseq:
                                         recseq.append(str(record.seq))
 
                 # get longest sequence and write to file
-                if not len(recseq) == 0:
+                if len(recseq) != 0:
                     q = max(recseq, key=len)
                     z = dict(zip(tuple(recid), tuple(recseq)))
                     a = {v: k for k, v in z.items()}
@@ -924,7 +926,7 @@ class QualityControl:
                 errors.append([self.target, error_msg])
                 raise BlastDBError(error_msg)
 
-            elif alignment.hit_def == "No definition line":
+            if alignment.hit_def == "No definition line":
                 error_msg = (
                     "Error: No definition line in " + alignment.title +
                     "\nData is missing in the custom BLAST DB. At least "
@@ -936,24 +938,23 @@ class QualityControl:
                 errors.append([self.target, error_msg])
                 raise BlastDBError(error_msg)
 
+            if "gi|" in alignment.hit_id:
+                gi = alignment.hit_id.split("gi|")[1].split("|")[0]
             else:
-                if "gi|" in alignment.hit_id:
-                    gi = alignment.hit_id.split("gi|")[1].split("|")[0]
-                else:
-                    gi = alignment.accession
+                gi = alignment.accession
 
-                db_id = alignment.accession
-                lname = alignment.hit_def
-                name = lname.split(" ")
-                if len(name) >= 3:
-                    if "subsp" in str(" ".join(name)):
-                        spec = str(" ".join(name[0:4]))
-                    else:
-                        spec = str(" ".join(name[0:2]))
+            db_id = alignment.accession
+            lname = alignment.hit_def
+            name = lname.split(" ")
+            if len(name) >= 3:
+                if "subsp" in str(" ".join(name)):
+                    spec = str(" ".join(name[0:4]))
                 else:
                     spec = str(" ".join(name[0:2]))
+            else:
+                spec = str(" ".join(name[0:2]))
 
-                return spec, gi, db_id
+            return spec, gi, db_id
 
         def parse_blastresults():
             exceptions = []
@@ -1222,24 +1223,25 @@ class QualityControl:
             print("\n" + info)
             return 0
 
-        elif passed_list:
-            if len(passed_list) < 2:
-                error_msg = "Error: Less than two genomes survived QC"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                self.remove_qc_failures(qc_gene)
-                return 1
-            else:
-                self.remove_qc_failures(qc_gene)
-                return 0
-        else:
+        if len(passed_list) == 0:
             error_msg = "Error: No genomes survived QC"
             print(error_msg)
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
             self.remove_qc_failures(qc_gene)
             return 1
+
+        if len(passed_list) < 2:
+            error_msg = "Error: Less than two genomes survived QC"
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+            self.remove_qc_failures(qc_gene)
+            return 1
+        else:
+            self.remove_qc_failures(qc_gene)
+            return 0
+
 
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
@@ -1249,26 +1251,25 @@ class QualityControl:
             G.logger("> " + info)
             print(info)
             return 0
+
+        print("\nRun: quality_control(" + qc_gene + ")")
+        G.logger("Run: quality_control(" + qc_gene + ")")
+
+        if self.get_qc_seqs(qc_gene) == 0:
+            qc_seqs = self.choose_sequence(qc_gene)
+            if len(qc_seqs) > 0:
+                use_cores, inputseqs = BlastPrep(
+                        qc_dir, qc_seqs, qc_gene,
+                        self.config.blastseqs).run_blastprep()
+                Blast(
+                    self.config, qc_dir, "quality_control"
+                ).run_blast(qc_gene, use_cores)
+
+            passed_list = self.qc_blast_parser(qc_gene)
+            exitcode = self.check_passed_list(passed_list, qc_gene)
         else:
-            print("\nRun: quality_control(" + qc_gene + ")")
-            G.logger("Run: quality_control(" + qc_gene + ")")
-
-            if self.get_qc_seqs(qc_gene) == 0:
-                qc_seqs = self.choose_sequence(qc_gene)
-                if len(qc_seqs) > 0:
-                    use_cores, inputseqs = BlastPrep(
-                            qc_dir, qc_seqs, qc_gene,
-                            self.config.blastseqs).run_blastprep()
-                    Blast(
-                        self.config, qc_dir, "quality_control"
-                    ).run_blast(qc_gene, use_cores)
-
-                passed_list = self.qc_blast_parser(qc_gene)
-                exitcode = self.check_passed_list(passed_list, qc_gene)
-                return exitcode
-
-            else:
-                return 1
+            exitcode = 1
+        return exitcode
 
 
 class PangenomeAnalysis:
@@ -1321,15 +1322,8 @@ class PangenomeAnalysis:
         G.logger("> Start pan-genome analysis")
         print("Start pan-genome analysis")
         G.logger("Run: run_pangenome_analysis(" + self.target + ")")
-        if not os.path.isdir(self.pangenome_dir):
-            if self.config.skip_tree:
-                self.run_roary()
-                return 1
-            else:
-                self.run_roary()
-                self.run_fasttree()
-                return 0
-        else:
+        exitstat = 0
+        if os.path.isdir(self.pangenome_dir):
             filepath = os.path.join(
                 self.pangenome_dir, "gene_presence_absence.csv")
             if os.path.isfile(filepath):
@@ -1338,16 +1332,15 @@ class PangenomeAnalysis:
                     "Continue with existing Pangenome data")
                 print(info)
                 G.logger("> " + info)
-                return 2
+                exitstat = 2
             else:
                 shutil.rmtree(self.pangenome_dir)
-                if self.config.skip_tree:
-                    self.run_roary()
-                    return 1
-                else:
-                    self.run_roary()
-                    self.run_fasttree()
-                    return 0
+                self.run_roary()
+                self.run_fasttree()
+        else:
+            self.run_roary()
+            self.run_fasttree()
+        return exitstat
 
 
 class CoreGenes:
@@ -1556,7 +1549,25 @@ class CoreGeneSequences:
         self.conserved_dict = {}
 
     def seq_alignments(self):
-        cmds = []
+
+        def get_run_commands(run_file):
+            cmds = []
+            for files in os.listdir(self.fasta_dir):
+                if files.endswith(".fasta"):
+                    file_name = files.split(".")[0]
+                    fasta_files.append(files)
+                    result_path = os.path.join(
+                        self.alignments_dir, file_name + ".best.fas")
+                    if not os.path.isfile(result_path):
+                        fasta_path = os.path.join("fasta", files)
+                        aligned_path = os.path.join("alignments", file_name)
+                        cmds.append(
+                            "prank -d=" + fasta_path + " -o=" + aligned_path)
+            if len(cmds) > 0:
+                with open(run_file, "w") as w:
+                    for cmd in cmds:
+                        w.write(cmd + "\n")
+
         fasta_files = []
         print("Start alignment of core gene sequences")
         G.logger("> " + "Start alignment of core gene sequences")
@@ -1570,63 +1581,36 @@ class CoreGeneSequences:
             info = "Skip " + " ".join(["parallel", "-a", run_file])
             print(info)
             G.logger(info)
-        else:
-            os.chdir(self.results_dir)
-            for files in os.listdir(self.fasta_dir):
-                if files.endswith(".fasta"):
-                    file_name = files.split(".")[0]
-                    fasta_files.append(files)
-                    result_path = os.path.join(
-                        self.alignments_dir, file_name + ".best.fas")
-                    if not os.path.isfile(result_path):
-                        fasta_path = os.path.join("fasta", files)
-                        aligned_path = os.path.join("alignments", file_name)
-                        cmds.append(
-                            "prank -d=" + fasta_path + " -o=" + aligned_path)
+            return
 
-            if len(cmds) > 0:
-                with open(run_file, "w") as w:
-                    for cmd in cmds:
-                        w.write(cmd + "\n")
+        os.chdir(self.results_dir)
+        get_run_commands(run_file)
+        if os.path.isfile(run_file):
+            try:
+                G.run_subprocess(
+                    ["parallel", "-a", run_file], True, True, False)
+            except (KeyboardInterrupt, SystemExit):
+                G.keyexit_rollback(
+                    "Prank MSA run", dp=self.alignments_dir, fp=run_file)
+                raise
 
-            if os.path.isfile(run_file):
-                try:
-                    G.run_subprocess(
-                        ["parallel", "-a", run_file], True, True, False)
-                except (KeyboardInterrupt, SystemExit):
-                    G.keyexit_rollback(
-                        "Prank MSA run", dp=self.alignments_dir, fp=run_file)
-                    raise
-
-            with open(coregenes, "w") as f:
-                for fastafile in fasta_files:
+        with open(coregenes, "w") as f:
+            for fastafile in fasta_files:
+                f.write(fastafile + "\n")
+                if self.config.intermediate is False:
                     filepath = os.path.join(self.fasta_dir, fastafile)
-                    if self.config.intermediate is False:
-                        os.remove(filepath)
-                    f.write(fastafile + "\n")
-            if self.config.intermediate is False:
-                if os.path.isfile(run_file):
-                    os.remove(run_file)
-            os.chdir(self.target_dir)
+                    os.remove(filepath)
 
-    def seq_consensus(self):
+        if self.config.intermediate is False:
+            if os.path.isfile(run_file):
+                os.remove(run_file)
+        os.chdir(self.target_dir)
+
+    def get_consensus_input(self, cons_summary):
         input_files = []
         output_files = []
-        info = "Find consensus sequence for aligned core gene sequences"
-        print(info)
-        G.logger("> " + info)
-        G.logger("Run: seq_consensus(" + self.target + ")")
         aln_summary = os.path.join(
-            self.alignments_dir, "alignments_summary.txt")
-        cons_summary = os.path.join(
-            self.consensus_dir, "consensus_summary.txt")
-
-        G.create_directory(self.consensus_dir)
-        run_file = os.path.join(self.results_dir, "run_consensus")
-        if os.path.isfile(run_file):
-            os.remove(run_file)
-        os.chdir(self.results_dir)
-
+                                self.alignments_dir, "alignments_summary.txt")
         if not os.path.isfile(aln_summary):
             with open(aln_summary, "w") as f:
                 for files in os.listdir(self.alignments_dir):
@@ -1650,46 +1634,71 @@ class CoreGeneSequences:
                     filename = files.split("_consens.fasta")[0]
                     output_files.append(filename)
 
-        task = set(input_files) - set(output_files)
+        task =  set(input_files) - set(output_files)
+
+        return list(task), input_files
+
+    def write_consensus_data(self, cons_summary):
+        recordlist = []
+        if os.path.isfile(cons_summary):
+            records = list(SeqIO.parse(cons_summary, "fasta"))
+            recordlist.append(records)
+        for files in os.listdir(self.consensus_dir):
+            if files.endswith("_consens.fasta"):
+                filepath = os.path.join(self.consensus_dir, files)
+                records = list(SeqIO.parse(filepath, "fasta"))
+                recordlist.append(records)
+                if self.config.intermediate is False:
+                    os.remove(filepath)
+
+        with open(cons_summary, "w") as out:
+            for records in recordlist:
+                SeqIO.write(records, out, "fasta")
+
+    def write_consensus_commands(self, run_file, task):
+        with open(run_file, "w") as w:
+            for file_name in task:
+                seqname = self.target + "_" + file_name + "_consensus"
+                result_path = os.path.join(
+                    "consensus", file_name + "_consens.fasta")
+                aligned_path = os.path.join(
+                    "alignments", file_name + ".best.fas")
+                w.write(
+                    "consambig -sequence " + aligned_path
+                    + " -outseq " + result_path
+                    + " -name " + seqname + " -auto\n")
+
+    def seq_consensus(self):
+
+        info = "Find consensus sequence for aligned core gene sequences"
+        print(info)
+        G.logger("> " + info)
+        G.logger("Run: seq_consensus(" + self.target + ")")
+        cons_summary = os.path.join(
+                self.consensus_dir, "consensus_summary.txt")
+        G.create_directory(self.consensus_dir)
+        run_file = os.path.join(self.results_dir, "run_consensus")
+        if os.path.isfile(run_file):
+            os.remove(run_file)
+        os.chdir(self.results_dir)
+        task, input_files = self.get_consensus_input(cons_summary)
         if len(task) == 0:
             info = "Skip " + " ".join(["parallel", "-a", run_file])
             print(info)
             G.logger(info)
-        else:
-            with open(run_file, "w") as w:
-                for file_name in task:
-                    seqname = self.target + "_" + file_name + "_consensus"
-                    result_path = os.path.join(
-                        "consensus", file_name + "_consens.fasta")
-                    aligned_path = os.path.join(
-                        "alignments", file_name + ".best.fas")
-                    w.write(
-                        "consambig -sequence " + aligned_path
-                        + " -outseq " + result_path
-                        + " -name " + seqname + " -auto\n")
-            try:
-                G.run_subprocess(
-                    ["parallel", "-a", run_file], True, True, False)
-            except (KeyboardInterrupt, SystemExit):
-                G.keyexit_rollback(
-                    "consensus run", dp=self.consensus_dir, fp=run_file)
-                raise
+            return
 
-            records = []
-            for files in os.listdir(self.consensus_dir):
-                if files.endswith("_consens.fasta"):
-                    filepath = os.path.join(self.consensus_dir, files)
-                    for record in SeqIO.parse(filepath, "fasta"):
-                        records.append(record)
-                    if self.config.intermediate is False:
-                        os.remove(filepath)
+        self.write_consensus_commands(run_file, task)
 
-            if os.path.isfile(cons_summary):
-                with open(cons_summary, "a") as out:
-                    SeqIO.write(records, out, "fasta")
-            else:
-                with open(cons_summary, "w") as out:
-                    SeqIO.write(records, out, "fasta")
+        try:
+            G.run_subprocess(
+                ["parallel", "-a", run_file], True, True, False)
+        except (KeyboardInterrupt, SystemExit):
+            G.keyexit_rollback(
+                "consensus run", dp=self.consensus_dir, fp=run_file)
+            raise
+
+        self.write_consensus_data(cons_summary)
 
         if self.config.intermediate is False:
             for filename in input_files:
@@ -1748,18 +1757,7 @@ class CoreGeneSequences:
                         conserv_seqs.append([seq_name, seq])
                         self.conserved_dict.update({seq_name: seq})
 
-        if len(conserv_seqs) > 0:
-            with open(result_path, "w") as f:
-                for seq in conserv_seqs:
-                    f.write(">" + seq[0] + "\n")
-                    f.write(seq[1] + "\n")
-            info = "Number of conserved sequences: " + str(len(conserv_seqs))
-            PipelineStatsCollector(self.target_dir).write_stat(info)
-            print(info)
-            G.logger("> " + info)
-            return conserv_seqs
-
-        else:
+        if len(conserv_seqs) == 0:
             error_msg = "Error: no conserved target sequences found"
             info = "Number of conserved sequences: 0"
             print(error_msg)
@@ -1768,6 +1766,17 @@ class CoreGeneSequences:
             G.logger("> " + info)
             PipelineStatsCollector(self.target_dir).write_stat(info)
             return 1
+
+        with open(result_path, "w") as f:
+            for seq in conserv_seqs:
+                f.write(">" + seq[0] + "\n")
+                f.write(seq[1] + "\n")
+        info = "Number of conserved sequences: " + str(len(conserv_seqs))
+        PipelineStatsCollector(self.target_dir).write_stat(info)
+        print(info)
+        G.logger("> " + info)
+        return conserv_seqs
+
 
     def run_coregeneanalysis(self):
         G.logger("Run: run_coregeneanalysis(" + self.target + ")")
@@ -1993,7 +2002,7 @@ class BlastParser:
             errors.append([self.target, error_msg])
             raise BlastDBError(error_msg)
 
-        elif alignment.hit_def == "No definition line":
+        if alignment.hit_def == "No definition line":
             error_msg = (
                 "Error: No definition line in " + alignment.title +
                 "\nData is missing in the custom BLAST DB. At least "
@@ -2005,25 +2014,25 @@ class BlastParser:
             errors.append([self.target, error_msg])
             raise BlastDBError(error_msg)
 
-        else:
-            if "gi|" in alignment.hit_id:
-                gi = alignment.hit_id.split("gi|")[1].split("|")[0]
-            else:
-                gi = alignment.accession
 
-            db_id = alignment.accession
-            lname = alignment.hit_def
-            if not "PREDICTED" in lname:
-                name = lname.split(" ")
-                if len(name) >= 3:
-                    if "subsp" in str(" ".join(name)):
-                        identity = str(" ".join(name[0:4]))
-                    else:
-                        identity = str(" ".join(name[0:2]))
+        if "gi|" in alignment.hit_id:
+            gi = alignment.hit_id.split("gi|")[1].split("|")[0]
+        else:
+            gi = alignment.accession
+
+        db_id = alignment.accession
+        lname = alignment.hit_def
+        if not "PREDICTED" in lname:
+            name = lname.split(" ")
+            if len(name) >= 3:
+                if "subsp" in str(" ".join(name)):
+                    identity = str(" ".join(name[0:4]))
                 else:
                     identity = str(" ".join(name[0:2]))
             else:
-                identity = None
+                identity = str(" ".join(name[0:2]))
+        else:
+            identity = None
 
         for hsp in alignment.hsps:
             score = hsp.score
@@ -2083,6 +2092,55 @@ class BlastParser:
             pass
             # csv
 
+    def changed_primer3_input(self, file_path, controlfile_path):
+
+        def find_difference():
+            new = []
+            old = []
+            with open(file_path) as n:
+                for line in n:
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+
+            with open(controlfile_path) as o:
+                for line in o:
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+
+            diff = list(set(new) ^ set(old))
+            return diff
+
+        if os.path.isfile(controlfile_path):
+            diff = find_difference()
+            if len(diff) > 0:
+                info1 = (
+                    "Due to changed settings primer design "
+                    "and quality control will start from scratch")
+                info2 = "Differences in primer3 input:"
+                G.logger(info1)
+                G.logger(info2)
+                G.logger(diff)
+                print(info1)
+                print(info2)
+                print(diff)
+                primer_dir = os.path.join(self.results_dir, "primer")
+                if os.path.isdir(primer_dir):
+                    G.logger("Delete primer directory")
+                    print("Delete primer directory")
+                    shutil.rmtree(primer_dir)
+
+                shutil.copy(file_path, controlfile_path)
+        else:
+            shutil.copy(file_path, controlfile_path)
+
     def write_primer3_input(self, selected_seqs, conserved_seq_dict):
         G.logger("Run: write_primer3_input(" + self.target + ")")
         file_path = os.path.join(self.results_dir, "primer3_input")
@@ -2111,48 +2169,7 @@ class BlastParser:
                         + str(self.config.minsize) + "-"
                         + str(self.config.maxsize) + probe + "\n=\n")
 
-        if os.path.isfile(controlfile_path):
-            new = []
-            old = []
-            with open(file_path) as n:
-                for line in n:
-                    if "SEQUENCE_ID=" in line:
-                        if line.strip() not in new:
-                            new.append(line.strip())
-                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
-                        if line.strip() not in new:
-                            new.append(line.strip())
-
-            with open(controlfile_path) as o:
-                for line in o:
-                    if "SEQUENCE_ID=" in line:
-                        if line.strip() not in old:
-                            old.append(line.strip())
-                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
-                        if line.strip() not in old:
-                            old.append(line.strip())
-
-            diff = list(set(new) ^ set(old))
-            if len(diff) > 0:
-                info1 = (
-                    "Due to changed settings primer design "
-                    "and quality control will start from scratch")
-                info2 = "Differences in primer3 input:"
-                G.logger(info1)
-                G.logger(info2)
-                G.logger(diff)
-                print(info1)
-                print(info2)
-                print(diff)
-                primer_dir = os.path.join(self.results_dir, "primer")
-                if os.path.isdir(primer_dir):
-                    G.logger("Delete primer directory")
-                    print("Delete primer directory")
-                    shutil.rmtree(primer_dir)
-
-                shutil.copy(file_path, controlfile_path)
-        else:
-            shutil.copy(file_path, controlfile_path)
+        self.changed_primer3_input(file_path, controlfile_path)
 
     def parse_BLASTfile(self, filename):
         record_list = []
@@ -2186,9 +2203,36 @@ class BlastParser:
                         excluded_gis.append(str(gi))
         return excluded_gis
 
+
+
     def parse_blastrecords(self, blast_record):
+
+        def add_align_dict_data(aln_data):
+            [
+                identity, gi, db_id, score, e_value, query, match,
+                subject, subject_start, align_length, nuc_ident] = aln_data
+            perc_coverage = round(100/query_length * align_length, 0)
+            perc_ident = round(100/align_length * nuc_ident, 0)
+            ids = {identity: {
+                "gi": gi, "db_id": db_id, "score": score,
+                "e_value": e_value, "query": query,
+                "match": match, "subject": subject,
+                "subject_start": subject_start,
+                "perc_coverage": perc_coverage,
+                "perc_ident": perc_ident,
+                "query_length": query_length}}
+            if ids not in hits:
+                hits.append(ids)
+            if self.mode == "normal":
+                self.get_seq_ends(
+                    blast_record, alignment,
+                    query_start, query_end)
+
         align_dict = {}
         hits = []
+        query_start = []
+        query_end = []
+        query_length = blast_record.query_length
         exceptions = []
         if not self.exception == []:
             for item in self.exception:
@@ -2196,64 +2240,28 @@ class BlastParser:
                 if exception not in exceptions:
                     exceptions.append(exception)
 
-        query_start = []
-        query_end = []
-        query_length = blast_record.query_length
-
         if len(blast_record.alignments) == 0:
             align_dict.update({blast_record.query: {}})
 
         for alignment in blast_record.alignments:
             align_dict.update({blast_record.query: {}})
-            (
-                identity, gi, db_id, score, e_value, query, match,
-                subject, subject_start, align_length, nuc_ident
 
-            ) = self.get_alignmentdata(alignment)
+            aln_data = self.get_alignmentdata(alignment)
 
-            perc_coverage = round(100/query_length * align_length, 0)
-            perc_ident = round(100/align_length * nuc_ident, 0)
             if self.config.nolist:
                 targetspecies = " ".join(str(self.target).split("_"))
                 if "subsp" in self.target:
                     targetspecies = "subsp.".join(targetspecies.split("subsp"))
-
                 if not (
-                    str(identity) == str(targetspecies) or
-                    str(identity) in exceptions
+                    str(aln_data[0]) == str(targetspecies) or
+                    str(aln_data[0]) in exceptions
                 ):
-                    ids = {identity: {
-                        "gi": gi, "db_id": db_id, "score": score,
-                        "e_value": e_value, "query": query,
-                        "match": match, "subject": subject,
-                        "subject_start": subject_start,
-                        "perc_coverage": perc_coverage,
-                        "perc_ident": perc_ident,
-                        "query_length": query_length}}
-                    if ids not in hits:
-                        hits.append(ids)
-                    if self.mode == "normal":
-                        self.get_seq_ends(
-                            blast_record, alignment,
-                            query_start, query_end)
+                    add_align_dict_data(aln_data)
             else:
-                if not str(identity) in exceptions:
+                if str(aln_data[0]) not in exceptions:
                     for species in self.nontargetlist:
-                        if str(identity) == str(species):
-                            ids = {identity: {
-                                "gi": gi, "db_id": db_id, "score": score,
-                                "e_value": e_value, "query": query,
-                                "match": match, "subject": subject,
-                                "subject_start": subject_start,
-                                "perc_coverage": perc_coverage,
-                                "perc_ident": perc_ident,
-                                "query_length": query_length}}
-                            if ids not in hits:
-                                hits.append(ids)
-                            if self.mode == "normal":
-                                self.get_seq_ends(
-                                    blast_record, alignment,
-                                    query_start, query_end)
+                        if str(aln_data[0]) == str(species):
+                            add_align_dict_data(aln_data)
 
             align_dict.update({blast_record.query: hits})
         if self.mode == "normal":
@@ -2293,6 +2301,19 @@ class BlastParser:
         print("\n" + info2)
         return selected_seqs
 
+    def create_posdict(self, nonred_dict):
+        from collections import defaultdict
+        posdict = defaultdict(list)
+        for key in nonred_dict.keys():
+            if not len(nonred_dict[key]) == 0:
+                for species in nonred_dict[key]:
+                    poskey = nonred_dict[key][species]['main_id']
+                    pos = int(
+                        nonred_dict[key][species]["subject_start"])
+                    if pos not in posdict[poskey]:
+                        posdict[poskey].append(pos)
+        return posdict
+
     def sort_nontarget_sequences(self, nonred_dict):
         nonreddata = []
         filepath = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
@@ -2303,48 +2324,40 @@ class BlastParser:
                 next(reader, None)
                 for row in reader:
                     nonreddata.append(row)
-        else:
-            from collections import defaultdict
-            posdict = defaultdict(list)
-            for key in nonred_dict.keys():
-                if not len(nonred_dict[key]) == 0:
-                    for species in nonred_dict[key]:
-                        poskey = nonred_dict[key][species]['main_id']
-                        pos = int(
-                            nonred_dict[key][species]["subject_start"])
-                        if pos not in posdict[poskey]:
-                            posdict[poskey].append(pos)
+            return nonreddata
 
-            for key in posdict.keys():
-                posdict[key].sort()
-                inrange = []
-                for index, item in enumerate(posdict[key]):
-                    if index == 0:
+        posdict = self.create_posdict(nonred_dict)
+
+        for key in posdict.keys():
+            posdict[key].sort()
+            inrange = []
+            for index, item in enumerate(posdict[key]):
+                if index == 0:
+                    stop = item + overhang
+                    if item > overhang:
+                        start = item - overhang
+                    else:
+                        start = 1
+                    inrange.append([key, start, stop])
+                else:
+                    if item < stop:
                         stop = item + overhang
+                        inrange.append([key, start, stop])
+                        if index == len(posdict[key]) - 1:
+                            nonreddata.append(inrange[-1])
+                    else:
+                        nonreddata.append(inrange[-1])
+                        inrange = []
                         if item > overhang:
                             start = item - overhang
                         else:
                             start = 1
+                        stop = item + overhang
                         inrange.append([key, start, stop])
-                    else:
-                        if item < stop:
-                            stop = item + overhang
-                            inrange.append([key, start, stop])
-                            if index == len(posdict[key]) - 1:
-                                nonreddata.append(inrange[-1])
-                        else:
-                            nonreddata.append(inrange[-1])
-                            inrange = []
-                            if item > overhang:
-                                start = item - overhang
-                            else:
-                                start = 1
-                            stop = item + overhang
-                            inrange.append([key, start, stop])
 
-            if len(nonreddata) > 0:
-                header = ["Accession", "Start pos", "Stop pos"]
-                G.csv_writer(filepath, nonreddata, header)
+        if len(nonreddata) > 0:
+            header = ["Accession", "Start pos", "Stop pos"]
+            G.csv_writer(filepath, nonreddata, header)
 
         return nonreddata
 
@@ -2412,9 +2425,9 @@ class BlastParser:
             print(msg)
             G.logger("> " + msg)
             return 1
-        else:
-            self.write_nontarget_sequences(nonreddata)
-            return 0
+
+        self.write_nontarget_sequences(nonreddata)
+        return 0
 
     def remove_redundanthits(self, align_dict):
         nonred_dict = {}
@@ -2456,60 +2469,76 @@ class BlastParser:
             nonred_dict.update({key: summarydict})
         return nonred_dict
 
+    def bp_read_nontarget_hits(self, file_path, excluded_gis):
+        align_dict = {}
+        info = "Read nontargethits"
+        print(info)
+        G.logger("> " + info)
+        with open(file_path, 'r') as f:
+            for line in f:
+                align_dict = json.loads(line)
+        if len(excluded_gis) > 0:
+            ex_gis = []
+            deletekey = []
+            for key in align_dict.keys():
+                for species in align_dict[key].keys():
+                    gi = align_dict[key][species]['main_id']
+                    if str(gi) in excluded_gis:
+                        if gi not in ex_gis:
+                            ex_gis.append(gi)
+                        deletekey.append([key, species])
+            for item in deletekey:
+                del align_dict[item[0]][item[1]]
+
+            if len(ex_gis) > 0:
+                info = "removed GI's in excluded GI list from results"
+                G.logger(info, ex_gis)
+                print("\n" + info, ex_gis)
+
+        return align_dict
+
+    def bp_parse_xml_files(self, blast_dir):
+        align_dict = {}
+        xmlblastresults = self.blastresult_files(blast_dir)
+        nr = 1
+        for filename in xmlblastresults:
+            print(
+                "\nopen BLAST result file " + str(nr)
+                + "/" + str(len(xmlblastresults)))
+            blastrecords = self.parse_BLASTfile(filename)
+            print(
+                "read BLAST results file " + str(nr)
+                + "/" + str(len(xmlblastresults)))
+            nr = nr + 1
+            total = len(blastrecords)
+            rec = 1
+            for record in blastrecords:
+                print(
+                    '\r read record ' + str(rec) + "/" + str(total), end=''
+                )
+                result = self.parse_blastrecords(record)
+                align_dict.update(result)
+                rec = rec + 1
+
+        if self.config.intermediate is False:
+            for file_name in xmlblastresults:
+                os.remove(file_name)
+                name = os.path.basename(file_name)
+                n = name.split("_")
+                filename = n[0] + ".part-" + n[1]
+                filepath = os.path.join(blast_dir, filename)
+                os.remove(filepath)
+
+        return align_dict
+
     def blast_parser(self, blast_dir):
         G.logger("Run: blast_parser")
         file_path = os.path.join(blast_dir, "nontargethits.json")
-        align_dict = {}
         excluded_gis = self.get_excluded_gis()
         if os.path.isfile(file_path):
-            info = "Read nontargethits"
-            print(info)
-            G.logger("> " + info)
-            with open(file_path, 'r') as f:
-                for line in f:
-                    align_dict = json.loads(line)
-            if len(excluded_gis) > 0:
-                ex_gis = []
-                deletekey = []
-                for key in align_dict.keys():
-                    for species in align_dict[key].keys():
-                        gi = align_dict[key][species]['main_id']
-                        if str(gi) in excluded_gis:
-                            if gi not in ex_gis:
-                                ex_gis.append(gi)
-                            deletekey.append([key, species])
-                for item in deletekey:
-                    del align_dict[item[0]][item[1]]
-
-                if len(ex_gis) > 0:
-                    info = "removed GI's in excluded GI list from results"
-                    info2 = ex_gis
-                    G.logger(info)
-                    G.logger(info2)
-                    print("\n" + info)
-                    print(info2)
-
+            align_dict = self.bp_read_nontarget_hits(file_path, excluded_gis)
         else:
-            xmlblastresults = self.blastresult_files(blast_dir)
-            nr = 1
-            for filename in xmlblastresults:
-                print(
-                    "\nopen BLAST result file " + str(nr)
-                    + "/" + str(len(xmlblastresults)))
-                blastrecords = self.parse_BLASTfile(filename)
-                print(
-                    "read BLAST results file " + str(nr)
-                    + "/" + str(len(xmlblastresults)))
-                nr = nr + 1
-                total = len(blastrecords)
-                rec = 1
-                for record in blastrecords:
-                    print(
-                        '\r read record ' + str(rec) + "/" + str(total), end=''
-                    )
-                    result = self.parse_blastrecords(record)
-                    align_dict.update(result)
-                    rec = rec + 1
+            align_dict = self.bp_parse_xml_files(blast_dir)
 
             if len(excluded_gis) > 0:
                 ex_gis = []
@@ -2531,15 +2560,6 @@ class BlastParser:
                     G.logger(info2)
                     print("\n" + info)
                     print(info2)
-
-            if self.config.intermediate is False:
-                for file_name in xmlblastresults:
-                    os.remove(file_name)
-                    name = os.path.basename(file_name)
-                    n = name.split("_")
-                    filename = n[0] + ".part-" + n[1]
-                    filepath = os.path.join(blast_dir, filename)
-                    os.remove(filepath)
 
         return align_dict
 
@@ -2574,7 +2594,7 @@ class BlastParser:
         total_hits = sum(x[1] for x in uniq_count)
         for uniq in uniq_count:
             perc = round(100 / keycount * int(uniq[1]), 2)
-            if float(perc) > 10:
+            if float(perc) > 1:
                 gi = uniq[0].split(" ")[0]
                 spec = " ".join(uniq[0].split(" ")[1::])
                 results.append([gi, spec, perc, uniq[1]])
@@ -2597,7 +2617,7 @@ class BlastParser:
             else:
                 nonred_dict = align_dict
 
-            exitstatus = self.get_primerBLAST_DBIDS(nonred_dict)
+            self.get_primerBLAST_DBIDS(nonred_dict)
 
             duration = time.time() - self.start
             G.logger(
@@ -2635,8 +2655,8 @@ class BlastParser:
                 G.logger("> " + msg)
                 errors.append([self.target, msg])
                 return 1
-            else:
-                return 0
+
+            return 0
 
 
 class PrimerDesign():
@@ -2756,7 +2776,7 @@ class PrimerDesign():
                         primerdatasets.append(primerdata)
                         primerdata = []
 
-            if not primererror == []:
+            if primererror != []:
                 errfile = os.path.join(self.primer_dir, "primer3_errors.csv")
                 msg = "Detected errors during primer3 run, check:\n" + errfile
                 G.logger(">" + msg)
@@ -2868,16 +2888,15 @@ class PrimerQualityControl:
             errors.append([self.target, error_msg])
             return 1
 
-        else:
-            info = (
-                "Number of potential primer pair(s) found "
-                + str(len(self.primerlist)//2))
-            print("\n" + info + "\n")
-            G.logger("> " + info)
-            PipelineStatsCollector(self.target_dir).write_stat(
-                "potential primer pair(s): "
-                + str(len(self.primerlist)//2))
-            return 0
+        info = (
+            "Number of potential primer pair(s) found "
+            + str(len(self.primerlist)//2))
+        print("\n" + info + "\n")
+        G.logger("> " + info)
+        PipelineStatsCollector(self.target_dir).write_stat(
+            "potential primer pair(s): "
+            + str(len(self.primerlist)//2))
+        return 0
 
     def get_blast_input(self, item):
         # start new primername definition here
@@ -2984,26 +3003,11 @@ class PrimerQualityControl:
                             qc_data.append(row)
         return qc_data
 
-    def create_assembly_db_file(self):
-        # add option to choose a folder for Reference genomes?
-        def assembly_selection(stat):
-            for item in check:
-                if len(ref_assembly) < self.referencegenomes:
-                    if stat == "":
-                        if item not in ref_assembly:
-                            ref_assembly.append(item)
-                    else:
-                        if assembly_dict[item] == stat:
-                            if item not in ref_assembly:
-                                ref_assembly.append(item)
-                else:
-                    break
-
+    def find_QC_assemblies(self):
         qc_data = self.get_QC_data()
         remove = []
         qc_acc = []
         assembly_dict = {}
-        ref_assembly = []
         for item in qc_data:
             accession, assembly_stat, rRNA, tuf, recA, dnaK, pheS = (
                 item[0], item[2], item[4], item[6],
@@ -3026,14 +3030,33 @@ class PrimerQualityControl:
                     else:
                         if accession not in remove:
                             remove.append(accession)
-        check = set(qc_acc) - set(remove)
-        check = list(check)
+        check = list(set(qc_acc) - set(remove))
         check.sort()
+
+        return assembly_dict, check
+
+    def create_assembly_db_file(self):
+        # add option to choose a folder for Reference genomes?
+        def assembly_selection(stat):
+            for item in check:
+                if len(ref_assembly) < self.referencegenomes:
+                    if stat == "":
+                        if item not in ref_assembly:
+                            ref_assembly.append(item)
+                    else:
+                        if assembly_dict[item] == stat:
+                            if item not in ref_assembly:
+                                ref_assembly.append(item)
+                else:
+                    break
+
+        ref_assembly = []
+        assembly_dict, check = self.find_QC_assemblies()
         assembly_stats = ["Complete Genome", "Chromosome", "Scaffold", ""]
         for stat in assembly_stats:
             assembly_selection(stat)
-
         ref_assembly.sort()
+
         target_fasta = []
         for files in os.listdir(self.fna_dir):
             for item in ref_assembly:
@@ -3225,6 +3248,45 @@ class PrimerQualityControl:
             os.chdir(self.mfold_dir)
 
     def mfold_parser(self):
+
+        def multiple_structures():
+            selected = test[0][0]
+            selected_primer.append(selected)
+            for index, structure_nr in enumerate(mfold):
+                selected_name, passed, excluded, failed = structure_nr
+                filename, structure, dG, dH, dS, Tm = passed
+                if index == 0:
+                    pos_results.append(
+                        [selected, structure, dG, dH, dS, Tm])
+                else:
+                    pos_results.append(
+                        ["", structure, dG, dH, dS, Tm])
+
+        def multiple_failed_structures():
+            if mfold[0][2] is None:
+                excluded = mfold[0][0]
+            else:
+                excluded = mfold[0][2]
+            excluded_primer.append(excluded)
+            for index, structure_nr in enumerate(mfold):
+                selected, passed, excluded_name, failed = structure_nr
+                if passed is None:
+                    filename, structure, dG, dH, dS, Tm = failed
+                    if index == 0:
+                        neg_results.append(
+                            [excluded, structure, dG, dH, dS, Tm])
+                    else:
+                        neg_results.append(
+                            ["", structure, dG, dH, dS, Tm])
+                if failed is None:
+                    filename, structure, dG, dH, dS, Tm = passed
+                    if index == 0:
+                        neg_results.append(
+                            [excluded, structure, dG, dH, dS, Tm])
+                    else:
+                        neg_results.append(
+                            ["", structure, dG, dH, dS, Tm])
+
         selected_primer = []
         excluded_primer = []
         pos_results = []
@@ -3255,45 +3317,9 @@ class PrimerQualityControl:
                         test.append([selected, passed, excluded, failed])
 
                 if len(test) == len(mfold):
-                    selected = test[0][0]
-                    selected_primer.append(selected)
-
-                    for index, structure_nr in enumerate(mfold):
-                        selected_name, passed, excluded, failed = structure_nr
-                        filename, structure, dG, dH, dS, Tm = passed
-                        if index == 0:
-                            pos_results.append(
-                                [selected, structure, dG, dH, dS, Tm])
-                        else:
-                            pos_results.append(
-                                ["", structure, dG, dH, dS, Tm])
+                    multiple_structures()
                 else:
-                    if mfold[0][2] is None:
-                        excluded = mfold[0][0]
-                    else:
-                        excluded = mfold[0][2]
-                    excluded_primer.append(excluded)
-                    for index, structure_nr in enumerate(mfold):
-                        selected, passed, excluded_name, failed = structure_nr
-                        if passed is None:
-                            filename, structure, dG, dH, dS, Tm = failed
-                            if index == 0:
-                                neg_results.append(
-                                    [excluded, structure, dG, dH, dS, Tm])
-                            else:
-                                neg_results.append(
-                                    ["", structure, dG, dH, dS, Tm])
-                        if failed is None:
-                            filename, structure, dG, dH, dS, Tm = passed
-                            if index == 0:
-                                neg_results.append(
-                                    [excluded, structure, dG, dH, dS, Tm])
-                            else:
-                                neg_results.append(
-                                    ["", structure, dG, dH, dS, Tm])
-
-            else:
-                pass
+                    multiple_failed_structures()
 
         passfile = os.path.join(self.mfold_dir, "mfold_passed.csv")
         failfile = os.path.join(self.mfold_dir, "mfold_failed.csv")
@@ -3340,7 +3366,6 @@ class PrimerQualityControl:
         Tm = v.split("=")[4].strip(" ").split(" ", 1)[0]
         try:
             y = float(Tm)
-            y
         except ValueError:
             Tm = "999"
 
@@ -3352,8 +3377,8 @@ class PrimerQualityControl:
 
         if float(dG) <= float(self.config.mfold):
             return [None, None, primername, mfold_output]
-        else:
-            return [primername, mfold_output, None, None]
+
+        return [primername, mfold_output, None, None]
 
     def get_primername(self, name):
         # adds the genus species info again to the
@@ -3375,7 +3400,6 @@ class PrimerQualityControl:
                     results.append(
                         self.interpret_values(
                             name, primername, mfoldvalues))
-
         return results
 
     def dimercheck_primer(self, selected_seqs, excluded_primer):
@@ -3500,6 +3524,7 @@ class PrimerQualityControl:
 
     def write_results(self, choice):
         G.logger("Run: write_results(" + self.target + ")")
+        results = []
         header = [
             "Primer name", "PPC", "Primer penalty", "Gene",
             "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
@@ -3513,13 +3538,9 @@ class PrimerQualityControl:
             file_path = os.path.join(
                     self.results_dir,
                     H.abbrev(self.target) + "_primer.csv")
-
             G.csv_writer(file_path, results, header)
 
-            return results
-        else:
-            results = []
-            return results
+        return results
 
     def run_primer_qc(self):
         G.logger("Run: run_primer_qc(" + self.target + ")")
@@ -3565,7 +3586,16 @@ class PrimerQualityControl:
 
             total_results = self.write_results(choice)
 
-            if not total_results == []:
+            if total_results == []:
+                error_msg = "No compatible primers found"
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                duration = time.time() - self.start
+                G.logger(
+                    "> PrimerQC time: "
+                    + str(timedelta(seconds=duration)).split(".")[0])
+            else:
                 info = (
                     "Found " + str(len(total_results))
                     + " primer pair(s) for " + self.target)
@@ -3575,17 +3605,7 @@ class PrimerQualityControl:
                 G.logger(
                     "> PrimerQC time: "
                     + str(timedelta(seconds=duration)).split(".")[0])
-                return total_results
-            else:
-                error_msg = "No compatible primers found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                duration = time.time() - self.start
-                G.logger(
-                    "> PrimerQC time: "
-                    + str(timedelta(seconds=duration)).split(".")[0])
-                return total_results
+
         else:
             error_msg = "No compatible primers found"
             duration = time.time() - self.start
@@ -3595,7 +3615,8 @@ class PrimerQualityControl:
             print(error_msg)
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
-            return total_results
+
+        return total_results
 
 
 class Summary:
@@ -3692,7 +3713,6 @@ class Summary:
 
     def write_genome_info(self):
         G.logger("Run: write_genome_info(" + self.target + ")")
-        """write qc infos to csv file"""
         file_name = self.aka + "_qc_sequences.csv"
         filepath = os.path.join(self.summ_dir, file_name)
         header = [
@@ -3804,6 +3824,37 @@ class Summary:
             except OSError:
                 pass
 
+    def last_summary_nolist(self):
+        specieslist = []
+        blast_path = os.path.join(
+                self.blast_dir, "nontargethits.json")
+        primerblast_path = os.path.join(
+                self.primerblast_dir, "nontargethits.json")
+        filelist = [blast_path, primerblast_path]
+        for file_path in filelist:
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as f:
+                    for line in f:
+                        blast_dict = json.loads(line)
+
+                for key in blast_dict.keys():
+                    for speciesname in blast_dict[key]:
+                        if speciesname not in specieslist:
+                            specieslist.append(speciesname)
+
+        listpath = os.path.join(
+            self.summ_dir, "potential_specieslist.txt")
+        with open(listpath, "w") as sp_l:
+            for speciesname in specieslist:
+                genus = speciesname.split(" ")[0]
+                if not (
+                    "." in genus or "-" in speciesname or
+                    len(re.findall(r'[A-Z]', genus)) == len(genus)
+                ):
+                    if len(re.findall(r'[0-9]', speciesname)) == 0:
+                        sp_l.write(speciesname + "\n")
+
+
     def run_summary(self, mode="normal"):
         G.logger("Run: run_summary(" + self.target + ")")
         G.create_directory(self.summ_dir)
@@ -3815,47 +3866,7 @@ class Summary:
         self.write_genome_info()
         if mode == "last":
             if self.config.nolist:
-                specieslist = []
-                try:
-                    file_path = os.path.join(
-                        self.blast_dir, "nontargethits.json")
-                    with open(file_path, 'r') as f:
-                        for line in f:
-                            blast_dict = json.loads(line)
-
-                    for key in blast_dict.keys():
-                        for speciesname in blast_dict[key]:
-                            if speciesname not in specieslist:
-                                specieslist.append(speciesname)
-                except FileNotFoundError:
-                    pass
-
-                try:
-                    file_path = os.path.join(
-                        self.primerblast_dir, "nontargethits.json")
-                    with open(file_path, 'r') as f:
-                        for line in f:
-                            primerblast_dict = json.loads(line)
-
-                    for key in primerblast_dict.keys():
-                        for speciesname in primerblast_dict[key]:
-                            if speciesname not in specieslist:
-                                specieslist.append(speciesname)
-                except FileNotFoundError:
-                    pass
-
-                listpath = os.path.join(
-                    self.summ_dir, "potential_specieslist.txt")
-                with open(listpath, "w") as sp_l:
-                    for speciesname in specieslist:
-                        genus = speciesname.split(" ")[0]
-                        if not (
-                            "." in genus or "-" in speciesname or
-                            len(re.findall(r'[A-Z]', genus)) == len(genus)
-                        ):
-                            if len(re.findall(r'[0-9]', speciesname)) == 0:
-                                sp_l.write(speciesname + "\n")
-
+                self.last_summary_nolist()
             # copy coregenealignment, trees to summary_dir
             self.copy_pangenomeinfos()
             self.copy_config()
@@ -4001,6 +4012,47 @@ def auto_run():
     return targets, conf_from_file, use_configfile
 
 
+def get_configuration_from_file(target, conf_from_file):
+    (
+        minsize, maxsize, mpprimer, exception, target, path,
+        intermediate, qc_gene, mfold, skip_download,
+        assemblylevel, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold, customdb,
+        blastseqs, probe, blastdbv5
+    ) = conf_from_file.get_config(target)
+    if nolist:
+        nontargetlist = []
+    else:
+        nontargetlist = H.create_non_target_list(target)
+
+    config = CLIconf(
+        minsize, maxsize, mpprimer, exception, target, path,
+        intermediate, qc_gene, mfold, skip_download,
+        assemblylevel, nontargetlist, skip_tree,
+        nolist, offline, ignore_qc, mfethreshold, customdb,
+        blastseqs, probe, blastdbv5)
+
+    return config
+
+
+def get_configuration_from_args(target, args):
+    if args.nolist:
+        nontargetlist = []
+    else:
+        nontargetlist = H.create_non_target_list(target)
+
+    config = CLIconf(
+        args.minsize, args.maxsize, args.mpprimer, args.exception,
+        target, args.path, args.intermediate,
+        args.qc_gene, args.mfold, args.skip_download,
+        args.assemblylevel, nontargetlist,
+        args.skip_tree, args.nolist, args.offline,
+        args.ignore_qc, args.mfethreshold, args.customdb,
+        args.blastseqs, args.probe, args.blastdbv5)
+
+    return config
+
+
 def main(mode=None):
     today = time.strftime("%Y_%m_%d", time.localtime())
     use_configfile = False
@@ -4035,49 +4087,14 @@ def main(mode=None):
     for target in targets:
         target = target.capitalize()
         if use_configfile:
-            (
-                minsize, maxsize, mpprimer, exception, target, path,
-                intermediate, qc_gene, mfold, skip_download,
-                assemblylevel, skip_tree, nolist,
-                offline, ignore_qc, mfethreshold, customdb,
-                blastseqs, probe, blastdbv5
-            ) = conf_from_file.get_config(target)
-            if nolist:
-                nontargetlist = []
-                config = CLIconf(
-                    minsize, maxsize, mpprimer, exception, target, path,
-                    intermediate, qc_gene, mfold, skip_download,
-                    assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, customdb,
-                    blastseqs, probe, blastdbv5)
-            else:
-                nontargetlist = H.create_non_target_list(target)
-                config = CLIconf(
-                    minsize, maxsize, mpprimer, exception, target, path,
-                    intermediate, qc_gene, mfold, skip_download,
-                    assemblylevel, nontargetlist, skip_tree,
-                    nolist, offline, ignore_qc, mfethreshold, customdb,
-                    blastseqs, probe, blastdbv5)
+            config = get_configuration_from_file(target, conf_from_file)
         else:
-            if args.nolist:
-                nontargetlist = []
-            else:
-                nontargetlist = H.create_non_target_list(target)
-
-            config = CLIconf(
-                args.minsize, args.maxsize, args.mpprimer, args.exception,
-                target, args.path, args.intermediate,
-                args.qc_gene, args.mfold, args.skip_download,
-                args.assemblylevel, nontargetlist,
-                args.skip_tree, args.nolist, args.offline,
-                args.ignore_qc, args.mfethreshold, args.customdb,
-                args.blastseqs, args.probe, args.blastdbv5)
+            config = get_configuration_from_args(target, args)
 
         today = time.strftime("%Y_%m_%d", time.localtime())
         G.logger("> Start log: " + target + " " + today)
-        G.logger(config.__dict__)
-
         H.BLASTDB_check(config)
+        G.logger(config.__dict__)
 
         try:
             print("\nStart searching primer for " + target)
@@ -4088,9 +4105,7 @@ def main(mode=None):
             PipelineStatsCollector(target_dir).write_stat(
                 "Start: " + str(time.ctime()))
             newconfig = DataCollection(config).collect()
-            if newconfig == 0:
-                pass
-            else:
+            if newconfig != 0:
                 config = newconfig
             qc_count = []
             for qc_gene in config.qc_gene:
