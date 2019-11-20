@@ -311,7 +311,7 @@ def test_DataCollection(config, monkeypatch):
         syn, taxid = DC.get_taxid(target)
         assert taxid is None
 
-    def test_syn_exceptions(config):       
+    def test_syn_exceptions(config):
         # standard case
         confdict = config.__dict__
         config.exception = ["Lactobacillus curvatus"]
@@ -654,14 +654,25 @@ def test_QualityControl(config):
             ).run_blast(qc_gene, use_cores)
 
     def test_qc_blast_parser(gi_list=False):
+        from speciesprimer import errors
         passed = QC.qc_blast_parser(qc_gene)
         if gi_list is True:
+            error_msg = "Error: Less than two genomes survived QC"
             assert passed == [[
                 'GCF_004088235v2_00210', '343201711',
                 'NR_042437', 'Lactobacillus curvatus',
                 'Lactobacillus curvatus', 'passed QC']]
+            exstat = QC.check_passed_list(passed, qc_gene)
+            assert exstat == 1
+            assert errors[-1] == [QC.config.target, error_msg]
+
+
         else:
+            error_msg = "Error: No genomes survived QC"
+            exstat = QC.check_passed_list(passed, qc_gene)
             assert passed == []
+            assert exstat == 1
+            assert errors[-1] == [QC.config.target, error_msg]
 
         qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
         corrfile = os.path.join(testfiles_dir, "rRNA_0_results_err.xml")
@@ -729,6 +740,16 @@ def test_QualityControl(config):
         assert errstart[0:29] == "Error: No definition line in "
 
     def test_remove_qc_failures():
+        gen_dir = os.path.join(
+                QC.config.path, "excludedassemblies", "Lactobacillus_curvatus",
+                "genomic_fna")
+        G.create_directory(gen_dir)
+        infile = os.path.join(
+            testfiles_dir, "GCF_002224565.1_ASM222456v1_genomic.fna")
+        to_dir = os.path.join(
+            QC.ex_dir, "genomic_fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna")
+        shutil.copy(infile, to_dir)
         delete = QC.remove_qc_failures(qc_gene)
         fna_files = os.path.join(QC.ex_dir, "fna_files")
         genomic_files = os.path.join(QC.ex_dir, "genomic_fna")
@@ -750,7 +771,7 @@ def test_QualityControl(config):
             'GCF_004088235v1_20191001.fna',
             'GCF_maxcontigs_date.fna',
             'GCF_noseq_date.fna']
-        assert genomic == ['GCF_004088235v1_20191001.fna']
+        assert genomic == ["GCF_002224565.1_ASM222456v1_genomic.fna"]
         assert sumf == ['GCF_noseq', 'GCF_maxcontigs', 'GCF_004088235v1']
 
     test_get_excluded_gis()
@@ -778,6 +799,9 @@ def test_QualityControl(config):
     qc_seqs = test_choose_sequence(qc_gene)
     qc_blast(qc_gene)
     test_qc_blast_parser(gi_list=True)
+    if os.path.isdir(QC.ex_dir):
+        shutil.rmtree(QC.ex_dir)
+    prepare_QC_testfiles(config)
     test_remove_qc_failures()
 
     test_DBError()

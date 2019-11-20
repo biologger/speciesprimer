@@ -216,6 +216,11 @@ def test_run(monkeypatch):
         shutil.rmtree(summ_dir)
 
 def test_rerun(monkeypatch):
+    confdir = os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
+    noblastpath = os.path.join(confdir, "no_blast.gi")
+    with open(noblastpath, "w") as f:
+        f.write("Mockseq12.1")
     pandir = os.path.join(
         "/", "primerdesign", "test", "Lactobacillus_curvatus", "Pangenome")
     with open(testconfig) as f:

@@ -472,7 +472,7 @@ class DataCollection():
                         info = "Removed " + filepath
                         G.logger(info)
 
-        def start_prokka(filename):
+        def start_prokka(filename, fna):
             date = time.strftime("%Y%m%d")
             genus = self.target.split("_")[0]
             outdir = filename + "_" + date
@@ -534,7 +534,7 @@ class DataCollection():
             elif file_name in qc_fail_dirs:
                 excluded.append(file_name)
             else:
-                start_prokka(file_name)
+                start_prokka(file_name, fna)
 
         if len(annotated) > 0:
             info = "Already annotated: "
@@ -572,9 +572,7 @@ class DataCollection():
                     if ">" in line:
                         contigcount += 1
                 if contigcount >= self.contiglimit:
-                    if self.config.ignore_qc:
-                        pass
-                    else:
+                    if self.config.ignore_qc is False:
                         msg = (
                             files + " has more than " + str(self.contiglimit)
                             + " contigs and will be removed before annotation "
@@ -1063,8 +1061,6 @@ class QualityControl:
             except shutil.Error:
                 if os.path.isdir(from_dir):
                     shutil.rmtree(from_dir)
-                else:
-                    raise
 
         def move_file(from_file, to_file):
             try:
@@ -1182,9 +1178,9 @@ class QualityControl:
             errors.append([self.target, error_msg])
             self.remove_qc_failures(qc_gene)
             return 1
-        else:
-            self.remove_qc_failures(qc_gene)
-            return 0
+
+        self.remove_qc_failures(qc_gene)
+        return 0
 
 
     def quality_control(self, qc_gene):
@@ -2151,7 +2147,7 @@ class BlastParser:
 
     def parse_blastrecords(self, blast_record):
 
-        def add_align_dict_data(aln_data):
+        def add_align_dict_data(aln_data, alignment):
             [
                 identity, gi, db_id, score, e_value, query, match,
                 subject, subject_start, align_length, nuc_ident] = aln_data
@@ -2191,23 +2187,24 @@ class BlastParser:
             align_dict.update({blast_record.query: {}})
 
             aln_data = self.get_alignmentdata(alignment)
+            if aln_data:
+                if self.config.nolist:
+                    targetspecies = " ".join(str(self.target).split("_"))
+                    if "subsp" in self.target:
+                        targetspecies = (
+                            "subsp.".join(targetspecies.split("subsp")))
+                    if not (
+                        str(aln_data[0]) == str(targetspecies) or
+                        str(aln_data[0]) in exceptions
+                    ):
+                        add_align_dict_data(aln_data, alignment)
+                else:
+                    if str(aln_data[0]) not in exceptions:
+                        for species in self.nontargetlist:
+                            if str(aln_data[0]) == str(species):
+                                add_align_dict_data(aln_data, alignment)
 
-            if self.config.nolist:
-                targetspecies = " ".join(str(self.target).split("_"))
-                if "subsp" in self.target:
-                    targetspecies = "subsp.".join(targetspecies.split("subsp"))
-                if not (
-                    str(aln_data[0]) == str(targetspecies) or
-                    str(aln_data[0]) in exceptions
-                ):
-                    add_align_dict_data(aln_data)
-            else:
-                if str(aln_data[0]) not in exceptions:
-                    for species in self.nontargetlist:
-                        if str(aln_data[0]) == str(species):
-                            add_align_dict_data(aln_data)
-
-            align_dict.update({blast_record.query: hits})
+                align_dict.update({blast_record.query: hits})
         if self.mode == "normal":
             self.check_seq_ends(blast_record, query_start, query_end)
         return align_dict
@@ -3979,6 +3976,51 @@ def get_configuration_from_file(target, conf_from_file):
     return config
 
 
+def run_pipeline_for_target(target, config):
+    print("\nStart searching primer for " + target)
+    G.logger("> Start searching primer for " + target)
+    target_dir = os.path.join(config.path, target)
+    PipelineStatsCollector(target_dir).write_stat(
+        target + " pipeline statistics:")
+    PipelineStatsCollector(target_dir).write_stat(
+        "Start: " + str(time.ctime()))
+    newconfig = DataCollection(config).collect()
+    if newconfig != 0:
+        config = newconfig
+    qc_count = []
+    for qc_gene in config.qc_gene:
+        qc = QualityControl(config).quality_control(qc_gene)
+        qc_count.append(qc)
+    if not sum(qc_count) == 0:
+        total_results = []
+        Summary(config, total_results).run_summary()
+    else:
+        # writes QC summary in summary directory
+        try:
+            total_results = []
+            Summary(config, total_results).run_summary()
+        except FileNotFoundError:
+            pass
+        # end
+        PangenomeAnalysis(config).run_pangenome_analysis()
+        CoreGenes(config).run_CoreGenes()
+        conserved_seq_dict = CoreGeneSequences(
+                config).run_coregeneanalysis()
+        if not conserved_seq_dict == 1:
+            conserved = BlastParser(
+                    config).run_blastparser(conserved_seq_dict)
+            if conserved == 0:
+                primer_dict = PrimerDesign(config).run_primerdesign()
+                total_results = PrimerQualityControl(
+                    config, primer_dict).run_primer_qc()
+                Summary(config, total_results).run_summary(mode="last")
+
+            else:
+                Summary(config, total_results).run_summary(mode="last")
+        else:
+            Summary(config, total_results).run_summary(mode="last")
+
+
 def get_configuration_from_args(target, args):
     if args.nolist:
         nontargetlist = []
@@ -4041,51 +4083,10 @@ def main(mode=None):
         G.logger(config.__dict__)
 
         try:
-            print("\nStart searching primer for " + target)
-            G.logger("> Start searching primer for " + target)
-            target_dir = os.path.join(config.path, target)
-            PipelineStatsCollector(target_dir).write_stat(
-                target + " pipeline statistics:")
-            PipelineStatsCollector(target_dir).write_stat(
-                "Start: " + str(time.ctime()))
-            newconfig = DataCollection(config).collect()
-            if newconfig != 0:
-                config = newconfig
-            qc_count = []
-            for qc_gene in config.qc_gene:
-                qc = QualityControl(config).quality_control(qc_gene)
-                qc_count.append(qc)
-            if not sum(qc_count) == 0:
-                total_results = []
-                Summary(config, total_results).run_summary()
-            else:
-                # writes QC summary in summary directory
-                try:
-                    total_results = []
-                    Summary(config, total_results).run_summary()
-                except FileNotFoundError:
-                    pass
-                # end
-                PangenomeAnalysis(config).run_pangenome_analysis()
-                CoreGenes(config).run_CoreGenes()
-                conserved_seq_dict = CoreGeneSequences(
-                        config).run_coregeneanalysis()
-                if not conserved_seq_dict == 1:
-                    conserved = BlastParser(
-                            config).run_blastparser(conserved_seq_dict)
-                    if conserved == 0:
-                        primer_dict = PrimerDesign(config).run_primerdesign()
-                        total_results = PrimerQualityControl(
-                            config, primer_dict).run_primer_qc()
-                        Summary(config, total_results).run_summary(mode="last")
-
-                    else:
-                        Summary(config, total_results).run_summary(mode="last")
-                else:
-                    Summary(config, total_results).run_summary(mode="last")
-
+            run_pipeline_for_target(target, config)
         except Exception as exc:
             msg = "fatal error while working on " + target + " check logfile"
+            target_dir = os.path.join(config.path, config.target)
             PipelineStatsCollector(target_dir).write_stat(
                 "Error: " + str(time.ctime()))
             print(msg)
