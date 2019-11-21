@@ -50,6 +50,21 @@ def md5Checksum(filePath):
             m.update(data)
     return m.hexdigest()
 
+def wget_download(BASEURL, filename, delete, extractedendings):
+    archivename = filename.split(".md5")[0]
+    url = BASEURL + "/" + archivename
+    logger("> Downloading..." + archivename)
+    wget.download(url, archivename)
+    try:
+        dbfile = check_md5(filename)
+    except Exception:
+        logger(
+            "Problem with " + filename + ". Please run getblastdb"
+            " again to check if files are missing")
+        if os.path.isfile(filename):
+            os.remove(filename)
+        raise
+    extract_archives(dbfile, delete, extractedendings)
 
 def check_md5(inputfile):
     archivename = inputfile.split(".md5")[0]
@@ -64,11 +79,11 @@ def check_md5(inputfile):
         if filesum == md5sumcheck:
             logger("md5checksum correct " + str(md5sumcheck))
             return archivename
-        else:
-            logger("Error MD5 checksum not correct")
-            logger("File: " + str(filesum))
-            logger("Expected: " + str(md5sumcheck))
-            raise Exception
+
+        logger("Error MD5 checksum not correct")
+        logger("File: " + str(filesum))
+        logger("Expected: " + str(md5sumcheck))
+        raise Exception
 
 
 def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
@@ -87,17 +102,10 @@ def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
         else:
             logger("Problem with " + archivename + " try to download it again")
             os.remove(archivename)
-            url = BASEURL + "/" + archivename
-            logger("Downloading..." + archivename)
-            wget.download(url, archivename)
             try:
-                dbfile = check_md5(inputfile)
+                wget_download(BASEURL, inputfile, delete, extractedendings)
             except Exception:
-                logger(
-                    "Problem with " + inputfile + ". Please run getblastdb"
-                    "  again to check if files are missing")
-                if os.path.isfile(inputfile):
-                    os.remove(inputfile)
+                pass
             extract_archives(archivename, delete, extractedendings)
 
 
@@ -109,12 +117,7 @@ def compare_md5_files(filename, delete, BASEURL, extractedendings):
     else:
         os.remove(old_file)
         shutil.copy(filename, os.path.join("md5_files", filename))
-        archivename = filename.split(".md5")[0]
-        url = BASEURL + "/" + archivename
-        logger("Downloading..." + archivename)
-        wget.download(url, archivename)
-        dbfile = check_md5(filename)
-        extract_archives(dbfile, delete, extractedendings)
+        wget_download(BASEURL, filename, delete, extractedendings)
 
 
 def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
@@ -149,23 +152,17 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
                                 filename, delete, BASEURL, extractedendings)
                         extract_archives(archivename, delete, extractedendings)
                     else:
-                        url = BASEURL + "/" + archivename
-                        logger("> Downloading..." + archivename)
-                        wget.download(url, archivename)
-                        dbfile = check_md5(filename)
-                        extract_archives(dbfile, delete, extractedendings)
+                        wget_download(
+                                BASEURL, filename, delete, extractedendings)
                 else:
                     if os.path.isfile(archivename):
                         compare_md5_archive(
                                 filename, delete, BASEURL, extractedendings)
                     else:
-                        url = BASEURL + "/" + archivename
-                        logger("> Downloading..." + archivename)
-                        wget.download(url, archivename)
-                        dbfile = check_md5(filename)
-                        extract_archives(dbfile, delete, extractedendings)
+                        wget_download(
+                                BASEURL, filename, delete, extractedendings)
                         os.rename(
-                            filename, os.path.join("md5_files", filename))
+                                filename, os.path.join("md5_files", filename))
 
             if os.path.isfile(filename):
                 os.rename(filename, os.path.join("md5_files", filename))
@@ -174,15 +171,15 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
             logging.error(
                 "KeyboardInterrupt while working on "
                 + filename, exc_info=True)
-            for files in os.listdir(blastdb_dir):
-                if files.endswith(".tmp"):
-                    filepath = os.path.join(blastdb_dir, files)
+            for tmpfiles in os.listdir(blastdb_dir):
+                if tmpfiles.endswith(".tmp"):
+                    filepath = os.path.join(blastdb_dir, tmpfiles)
                     os.remove(filepath)
             raise
-    for files in os.listdir(blastdb_dir):
-        if files.endswith(".tmp"):
-            filepath = os.path.join(blastdb_dir, files)
-            os.remove(filepath)
+        for tmpfiles in os.listdir(blastdb_dir):
+            if tmpfiles.endswith(".tmp"):
+                filepath = os.path.join(blastdb_dir, tmpfiles)
+                os.remove(filepath)
 
 
 def extract_archives(dbfile, delete, extractedendings):

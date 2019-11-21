@@ -1,10 +1,11 @@
 FROM biologger/speciesprimerdeps:simpler
 
-MAINTAINER biologger
+LABEL maintainer="biologger@protonmail.com"
 
 # Copy the directory contents into the docker directory
 COPY . /
 COPY boot.sh /
+
 # Set env variables and change mod
 ENV FLASK_APP="/pipeline/gui/speciesprimergui.py"
 ENV LC_ALL=C.UTF-8

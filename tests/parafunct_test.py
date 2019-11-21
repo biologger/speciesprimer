@@ -176,8 +176,29 @@ def test_make_DBs(pqc, config):
         assert os.path.isfile(tempDB) is False
 
 
-def test_qc_nottrue(pqc, config):
-    confargs["ignore_qc"] is False
+def test_qc_nottrue():
+    from speciesprimer import CLIconf
+    confargs["ignore_qc"] = False
+    args = AttrDict(confargs)
+    nontargetlist = []
+    config = CLIconf(
+            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.target, args.path, args.intermediate,
+            args.qc_gene, args.mfold, args.skip_download,
+            args.assemblylevel, nontargetlist,
+            args.skip_tree, args.nolist, args.offline,
+            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.blastseqs, args.probe, args.blastdbv5)
+    reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
+    with open(reffile) as f:
+        for line in f:
+            primer3dict = json.loads(line)
+    pqc = PrimerQualityControl(config, primer3dict)
+    G.create_directory(pqc.summ_dir)
+    qc_file = os.path.join(testfiles_dir, "Lb_curva_qc_sequences_ignoreqc.csv")
+    qc_out = os.path.join(pqc.summ_dir, "Lb_curva_qc_sequences.csv")
+    shutil.copy(qc_file, qc_out)
+
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     primer_qc_list = []

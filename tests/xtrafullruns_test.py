@@ -217,7 +217,6 @@ def test_run(monkeypatch):
     if os.path.isfile(resfile):
         shutil.copy(resfile, represult)
     monkeypatch.setattr('builtins.input', start_allinput)
-    from speciesprimer import main
     main()
 
 

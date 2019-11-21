@@ -9,12 +9,6 @@ DEBUG = 1
 
 
 def get_args():
-    '''
-    >>> get_args()
-    ('start', 5)
-    >>> get_args()
-    ('stop', 4)
-    '''
 
     try:
         parser = argparse.ArgumentParser()
@@ -31,8 +25,8 @@ def get_args():
     except Exception as err:
         if DEBUG:
             raise
-        else:
-            sys.stderr.write('%s\n' % (err))
+
+        sys.stderr.write('%s\n' % (err))
 
         result = (None, None, None)
 
@@ -42,12 +36,12 @@ def get_args():
 def main_daemon():
     DAEMON_NAME = 'SpeciesPrimer background (id: #ID#)'
     DAEMON_STOP_TIMEOUT = 10
-    PIDFILE = '/tmp/pipeline_#ID#.pid'
-    RUNFILE = '/tmp/pipeline_#ID#.run'
+    PIDFILE = '/programs/tmp/pipeline_#ID#.pid'
+    RUNFILE = '/programs/tmp/pipeline_#ID#.run'
     DEBUG = 1
     try:
         (action, uniqid, dclass) = get_args()
-        # Create daemon object.
+
         import importlib
         daemonclass = importlib.import_module('daemonclass')
         Runner = getattr(daemonclass, dclass)
@@ -58,7 +52,6 @@ def main_daemon():
         d = Runner(name=DAEMON_NAME, pidfile=PIDFILE, runfile=RUNFILE,
                    stoptimeout=DAEMON_STOP_TIMEOUT, debug=DEBUG)
 
-        # Action requested.
         if action == 'start':
             d.start()
         elif action == 'stop':
@@ -72,12 +65,11 @@ def main_daemon():
     except Exception as err:
         if DEBUG:
             raise
-        else:
-            sys.stderr.write('%s\n' % err)
+
+        sys.stderr.write('%s\n' % err)
 
     sys.exit(1)
 
 
-# -----------------------------------------------------------------------------
 if __name__ == '__main__':
     main_daemon()
