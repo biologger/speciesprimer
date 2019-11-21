@@ -11,15 +11,12 @@ import fnmatch
 import re
 import shutil
 import multiprocessing
-from multiprocessing import Process
 import wget
 import json
-import tempfile
 import urllib
 import itertools
 from itertools import islice
 from datetime import timedelta
-from collections import Counter
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord

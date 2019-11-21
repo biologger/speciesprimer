@@ -22,11 +22,10 @@ class Input:
     def gui_runner(self, mode, data):
         if mode == "continue":
             path, targets = data
-
             config_dict = Output().run_gui_output(targets, path)
             return config_dict
 
-        elif mode == "new":
+        if mode == "new":
             self.config_dict = data
             for target in self.config_dict.keys():
                 self.target_list.append(target)
@@ -40,12 +39,12 @@ class Input:
         if (mode.lower() == "n" or mode.lower() == "new"):
             config_dict = self.main()
             return config_dict
-        elif (mode.lower() == "s" or mode.lower() == "start"):
+        if (mode.lower() == "s" or mode.lower() == "start"):
             config_dict = Output().run_output()
             return config_dict
-        else:
-            print("no valid input, type: (n)ew or (s)tart")
-            sys.exit()
+
+        print("no valid input, type: (n)ew or (s)tart")
+        sys.exit()
 
     def targetinput(self):
         targets = input(
@@ -168,8 +167,8 @@ class Input:
                             {"assemblylevel": assembly_list})
                 else:
                     if skip_download:
-                        for target in self.target_list:
-                            self.config_dict[target].update(
+                        for selectedtarget in self.target_list:
+                            self.config_dict[selectedtarget].update(
                                 {"assemblylevel": assembly_list})
             else:
                 self.config_dict[target].update(
@@ -187,7 +186,7 @@ class Input:
                 "Specifiy the absolute filepath of the custom database "
                 "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
                 " to skip, default=None\n> ")
-            if type(customdb) == str and len(customdb) > 0:
+            if isinstance(customdb, str) and len(customdb) > 0:
                 if (
                     os.path.isfile(customdb + ".nsq") is True or
                     os.path.isfile(customdb + ".nal") is True or
@@ -245,12 +244,12 @@ class Input:
                 "Use this value for all targets?\n(y)es/(n)o, default=(y)\n> ")
             if forall.lower() == "n" or forall.lower() == "no":
                 return False
-            else:
-                for target in self.target_list:
-                    self.config_dict[target].update({key: value})
-                return True
-        else:
-            return False
+
+            for target in self.target_list:
+                self.config_dict[target].update({key: value})
+            return True
+
+        return False
 
     def write_config_file(self, target):
         path = self.config_dict[target]["path"]
@@ -265,65 +264,78 @@ class Input:
         with open(config_file, "w") as f:
             f.write(json.dumps(self.config_dict[target]))
 
+    def boolean_evaluation(self, userinput):
+        return userinput.lower() == "y" or userinput.lower() == "yes"
+
+    def number_evaluation(self, userinput, settings):
+        [target, index, listlen, key] = settings
+        evalnum = self.input_dict[key]["eval"][1][0]
+        if evalnum == "int":
+            ntype = int
+        else:
+            ntype = float
+        if userinput:
+            try:
+                value = ntype(userinput)
+            except ValueError:
+                print("No valid input of type " + evalnum)
+                return self.evaluation(target, index, listlen, key)
+        else:
+            value = self.input_dict[key]["eval"][1][1]
+        return value
+
+    def option_evaluation(self, userinput, settings):
+        [target, index, listlen, key] = settings
+        options = self.input_dict[key]["eval"][1]
+        if userinput:
+            try:
+                valid = int(userinput)
+            except ValueError:
+                print("No valid input of type", int)
+                return self.evaluation(target, index, listlen, key)
+
+            if valid in options:
+                value = valid
+            else:
+                print("No valid input, see options", options)
+                return self.evaluation(target, index, listlen, key)
+        else:
+            value = self.input_dict[key]["eval"][1][0]
+        return value
+
+    def options_evaluation(self, userinput, settings):
+        [target, index, listlen, key] = settings
+        strippedlist = []
+        options = self.input_dict[key]["eval"][1]
+        if userinput:
+            items = list(userinput.split(","))
+            for i, item in enumerate(items):
+                x = item.strip()
+                strippedlist.insert(i, x)
+            value = []
+            for s_item in strippedlist:
+                if s_item in options:
+                    value.append(s_item)
+                else:
+                    print("\nNo valid input:")
+                    print(s_item)
+                    return self.evaluation(target, index, listlen, key)
+        else:
+            value = [self.input_dict[key]["eval"][1][0]]
+        return value
+
     def evaluation(self, target, index, listlen, key):
+        settings = [target, index, listlen, key]
         userinput = input(self.input_dict[key]["prompt"])
         evaltype = self.input_dict[key]["eval"][0]
         if evaltype == "boolean":
-            if userinput.lower() == "y" or userinput.lower() == "yes":
-                value = True
-            else:
-                value = False
-        elif evaltype == "number":
-            evalnum = self.input_dict[key]["eval"][1][0]
-            if evalnum == "int":
-                ntype = int
-            else:
-                ntype = float
-            if userinput:
-                try:
-                    value = ntype(userinput)
-                except ValueError:
-                    print("No valid input of type " + evalnum)
-                    return self.evaluation(target, index, listlen, key)
-            else:
-                value = self.input_dict[key]["eval"][1][1]
-        elif evaltype == "option":
-            options = self.input_dict[key]["eval"][1]
-            if userinput:
-                try:
-                    valid = int(userinput)
-                except ValueError:
-                    print("No valid input of type", int)
-                    return self.evaluation(target, index, listlen, key)
-
-                if valid in options:
-                    value = valid
-                else:
-                    print("No valid input, see options", options)
-                    return self.evaluation(target, index, listlen, key)
-            else:
-                value = self.input_dict[key]["eval"][1][0]
-        elif evaltype == "options":
-            strippedlist = []
-            options = self.input_dict[key]["eval"][1]
-            if userinput:
-                items = list(userinput.split(","))
-                for i, item in enumerate(items):
-                    x = item.strip()
-                    strippedlist.insert(i, x)
-                value = []
-                for s_item in strippedlist:
-                    if s_item in options:
-                        value.append(s_item)
-                    else:
-                        print("\nNo valid input:")
-                        print(s_item)
-                        return self.evaluation(target, index, listlen, key)
-            else:
-                value = [self.input_dict[key]["eval"][1][0]]
-        else:
-            print("Problem with prompt dict")
-            sys.exit()
+            value = self.boolean_evaluation(userinput)
+        if evaltype == "number":
+            value = self.number_evaluation(userinput, settings)
+        if evaltype == "option":
+            value = self.option_evaluation(userinput, settings)
+        if evaltype == "options":
+            value = self.options_evaluation(userinput, settings)
         return value
 
     def get_userinput(self, target, index, listlen, key):
