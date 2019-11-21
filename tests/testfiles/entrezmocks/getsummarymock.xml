@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
+<eSearchResult><Count>24</Count><RetMax>1</RetMax><RetStart>0</RetStart><IdList>
+<Id>4416701</Id>
+</IdList><TranslationSet/><TranslationStack>   <TermSet>    <Term>txid28038[Orgn]</Term>    <Field>Orgn</Field>    <Count>24</Count>    <Explode>Y</Explode>   </TermSet>   <OP>GROUP</OP>  </TranslationStack><QueryTranslation>txid28038[Orgn]</QueryTranslation></eSearchResult>

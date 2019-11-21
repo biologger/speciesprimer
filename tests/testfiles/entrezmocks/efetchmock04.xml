@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE TaxaSet PUBLIC "-//NLM//DTD Taxon, 14th January 2002//EN" "https://www.ncbi.nlm.nih.gov/entrez/query/DTD/taxon.dtd">
+<TaxaSet><Taxon>
+    <TaxId>83558</TaxId>
+    <ScientificName>Chlamydia pneumoniae</ScientificName>
+    <OtherNames>
+        <Synonym>Chlamydophila pneumoniae</Synonym>
+        <Name>
+            <ClassCDE>authority</ClassCDE>
+            <DispName>Chlamydia pneumoniae Grayston et al. 1989 (Approved Lists 1980)</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>authority</ClassCDE>
+            <DispName>Chlamydophila pneumoniae (Grayston et al. 1989) Everett et al. 1999</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>ATCC VR-2282</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>ATCC:VR:2282</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>DSM 19748</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>DSM:19748</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>personal::TW-183</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>personal::TWAR</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>strain TW-183</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>strain TWAR</DispName>
+        </Name>
+    </OtherNames>
+    <ParentTaxId>810</ParentTaxId>
+    <Rank>species</Rank>
+    <Division>Bacteria</Division>
+    <GeneticCode>
+        <GCId>11</GCId>
+        <GCName>Bacterial, Archaeal and Plant Plastid</GCName>
+    </GeneticCode>
+    <MitoGeneticCode>
+        <MGCId>0</MGCId>
+        <MGCName>Unspecified</MGCName>
+    </MitoGeneticCode>
+    <Lineage>cellular organisms; Bacteria; PVC group; Chlamydiae; Chlamydiia; Chlamydiales; Chlamydiaceae; Chlamydia/Chlamydophila group; Chlamydia</Lineage>
+    <LineageEx>
+        <Taxon>
+            <TaxId>131567</TaxId>
+            <ScientificName>cellular organisms</ScientificName>
+            <Rank>no rank</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>2</TaxId>
+            <ScientificName>Bacteria</ScientificName>
+            <Rank>superkingdom</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>1783257</TaxId>
+            <ScientificName>PVC group</ScientificName>
+            <Rank>no rank</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>204428</TaxId>
+            <ScientificName>Chlamydiae</ScientificName>
+            <Rank>phylum</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>204429</TaxId>
+            <ScientificName>Chlamydiia</ScientificName>
+            <Rank>class</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>51291</TaxId>
+            <ScientificName>Chlamydiales</ScientificName>
+            <Rank>order</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>809</TaxId>
+            <ScientificName>Chlamydiaceae</ScientificName>
+            <Rank>family</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>1113537</TaxId>
+            <ScientificName>Chlamydia/Chlamydophila group</ScientificName>
+            <Rank>no rank</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>810</TaxId>
+            <ScientificName>Chlamydia</ScientificName>
+            <Rank>genus</Rank>
+        </Taxon>
+    </LineageEx>
+    <CreateDate>1998/10/16 15:05:00</CreateDate>
+    <UpdateDate>2018/11/26 13:53:14</UpdateDate>
+    <PubDate>1998/10/16 15:05:00</PubDate>
+</Taxon>
+
+</TaxaSet>

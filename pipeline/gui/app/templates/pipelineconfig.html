@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    p {
+      border: 1px solid lightgray;
+      padding: 10px;
+      margin: 10px;
+    }
+</style>
+<form action="" method="post" enctype="multipart/form-data" novalidate>
+  {{ form.hidden_tag() }}
+
+<h1>SpeciesPrimer settings<h1>
+
+<h3>Species list (non-target species)</h3>
+<p>
+The species list is used to evaluate the specificity of the primer.
+Reported primer pairs should not amplify genomic regions of species in this list. <br>
+(The evaluation is based on the nucleotide collection database (nt))
+</p>
+<p>
+  <strong>Download the current list</strong>
+  <br>
+  <br>
+  {{ form.down_list }}
+</p>
+<p>
+  <strong>Upload your modified species list</strong>
+  <br>
+  <br>
+  {{ form.up_list }}
+  <br>
+  <br>
+  {{ form.submit }}
+</p>
+<p>
+  Get the default species list back, your modified file will be overwritten
+  <br>
+  <br>
+  {{ form.reset_list }}
+</p>
+
+<h3>Genus abbreviations file</h3>
+<p>
+  The genus abbreviations file is a .csv file with abbreviations for genus names. 
+  <br> The abbreviations make the names of the output files and primer pairs shorter. 
+  <br> e.g. Lb for Lactobacillus
+</p>
+
+<p>
+  <strong>Download the current genus abbreviations file</strong>
+  <br>
+  <br>
+  {{ form.down_abbrev }}
+</p>
+<p>
+  <strong>Upload your modified genus abbreviations file</strong>
+  <br>
+  <br>
+  {{ form.up_abbrev }}
+  <br>
+  <br>
+  {{ form.submit }}
+</p>
+<p>
+  Get the default genus abbreviations file back, your modified file will be overwritten
+  <br>
+  <br>
+  {{ form.reset_abbrev }}
+</p>
+
+
+<h3>Primer3 settings file</h3>
+
+<p>
+Primer3 settings are saved in this file. <br> For an explanation of the parameters see 
+<a href="http://primer3.ut.ee/primer3web_help.htm" target="_blank">Primer3 help</a>
+</p>
+<p>
+  <strong>Download the current primer3 settings</strong>
+   <br>
+  <br>
+  {{ form.down_p3sett }}
+</p>
+<p>
+  <strong>Upload your modified primer3 settings</strong>
+  <br>
+  <br>
+  {{ form.up_p3sett }}
+  <br>
+  <br>
+  {{ form.submit }}
+</p>
+<p>
+  Get the default primer3 settings back, your modified file will be overwritten
+  <br>
+  <br>
+  {{ form.reset_p3sett }}
+</p>
+
+<h3>Exclude geneidentifier from BLAST</h3>
+
+<p>
+BLAST databases can sometimes contain sequences with wrong taxonomic labels. 
+This can prevent primer design by speciesprimer because no species specific sequences 
+are identified or no specific primers can be found. 
+Therefore such sequences can be excluded from the specificity evaluation.
+</p>
+<p>
+  <strong>Download the current list of geneidentifier which are excluded from BLAST searches</strong>
+   <br>
+  <br>
+  {{ form.down_noblast }}
+</p>
+<p>
+  <strong>Upload your modified list of geneidentifier which are excluded from BLAST searches</strong>
+  <br>
+  <br>
+  {{ form.up_noblast }}
+  <br>
+  <br>
+  {{ form.submit }}
+</p>
+<p>
+  Remove all geneidentifiers, your modified file will be overwritten
+  <br>
+  <br>
+  {{ form.reset_noblast }}
+</p>
+</form>
+{% endblock %}

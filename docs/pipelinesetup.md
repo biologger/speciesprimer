@@ -9,7 +9,7 @@ In your internetbrowser [http://localhost:5000] Navigate to the BLAST DB link.
 To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.
 
 #### Troubleshooting:
-The script changes to the "/home/blastdb" directory in the container and runs the command below
+The script changes to the "/blastdb" directory in the container and runs the command below
 
 	$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
 	
@@ -23,7 +23,7 @@ __Example__
 
 * __Container__
 	
-		$ cd /home/blastdb
+		$ cd /blastdb
 		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
 
 As an alternative the python script __getblastdb.py__ can be used.
@@ -41,7 +41,7 @@ __Example:__
 
 * __Container__
 
-		$ getblastdb.py -dbpath /home/blastdb --delete	
+		$ getblastdb.py -dbpath /blastdb --delete	
 
 --------------------------------------------------
 ### Create a species_list.txt file

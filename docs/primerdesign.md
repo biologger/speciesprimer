@@ -61,15 +61,15 @@ Alternative 1:
 
 	* Container
 	
-			$ mkdir /home/primerdesign/Lactobacillus_curvatus
-			$ mkdir /home/primerdesign/Lactobacillus_curvatus/genomic_fna
-			$ cp /home/primerdesign/mygenomes/* /home/primerdesign/Lactobacillus_curvatus/genomic_fna
+			$ mkdir /primerdesign/Lactobacillus_curvatus
+			$ mkdir /primerdesign/Lactobacillus_curvatus/genomic_fna
+			$ cp /primerdesign/mygenomes/* /primerdesign/Lactobacillus_curvatus/genomic_fna
 
 			# Start a normal run
 			$ speciesprimer.py
 			$ n # start a new run (hit return)
 			# working directory
-			$ /home/primerdesign/
+			$ /primerdesign/
 			# target
 			$ Lactobacillus curvatus
 			$ ...

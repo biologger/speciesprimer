@@ -1,6 +1,12 @@
 
 # SpeciesPrimer
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=speciesprimer2.1)](https://travis-ci.com/biologger/speciesprimer)
+[![docker build](https://img.shields.io/docker/build/biologger/speciesprimer)](https://img.shields.io/docker/build/biologger/speciesprimer)
+[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/speciesprimer2.1/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
+[![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/speciesprimer2.1)](https://www.codefactor.io/repository/github/biologger/speciesprimer/overview/speciesprimer2.1)
+
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
 * [quick start (Ubuntu 16.04)](https://github.com/biologger/speciesprimer/tree/master#quick-start-ubuntu-1604)

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    p {
+      border: 1px solid lightgray;
+      padding: 10px;
+      margin: 10px;
+    }
+</style>
+
+<h1>SpeciesPrimer settings</h1>
+    
+<form action="" method="post" novalidate>
+  {{ form.hidden_tag() }}
+  {{ form.reset() }}
+  <div id="target"> 
+      <h3>Target:</h3>  
+      <p> 
+         <strong>{{ form.targets.label }}</strong>
+         <br>
+         {{ form.targets() }}
+       </p> 
+  </div> 
+  
+  <div id="input"> 
+      <h3>Input settings:</h3>    
+      <p>
+        <strong>{{ form.qc_gene.label }}</strong> (--qc_gene)
+        <br>    
+        Select multiple answers using Ctrl
+        <br>
+        <br>
+        {{ form.qc_gene(size=5) }} 
+        {% for error in form.qc_gene.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}      
+      </p>
+  
+      <p>    
+        {{ form.ignore_qc() }} <strong>{{ form.ignore_qc.label }}</strong> (--ignore_qc)
+      </p>
+      <p> 
+        {{ form.skip_download() }} <strong>{{ form.skip_download.label }}</strong> (--skip_download)
+      </p>
+        
+      <p>
+        <strong>{{ form.assemblylevel.label }}</strong> (--assemblylevel)
+        <br>    
+        Select multiple answers using Ctrl
+        <br>
+        <br>
+        {{ form.assemblylevel(size=5) }}
+        {% for error in form.assemblylevel.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}    
+      </p>
+  </div>
+  
+  <div id="troubleshooting">    
+      <h3>Troubleshooting settings:</h3>         
+      <p>
+         {{ form.skip_tree() }} <strong>{{ form.skip_tree.label }}</strong> (--skip_tree)
+      </p>
+      <p>
+        <strong>Define one or more bacterial species for which assay target sequence similarity is tolerated (comma separated)</strong> (--exception) {{ form.exception() }} 
+        {% for error in form.exception.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}  
+      </p>  
+  </div>
+
+  <div id="primerdesign">    
+      <h3>Primer design settings:</h3>
+        
+      <p>
+        <strong>{{ form.minsize.label }}</strong> (--minsize)
+        <br>
+        <br>
+        {{ form.minsize() }}
+      </p>
+        
+      <p>
+        <strong>{{ form.maxsize.label }}</strong> (--maxsize)
+        <br>
+        <br>
+        {{ form.maxsize() }}
+      </p>        
+      <p>
+        {{ form.designprobe() }} <strong>{{ form.designprobe.label }}</strong> (--probe)  
+      </p>
+  </div>  
+
+  <div id="primerqualitycontrol">     
+      <h3>Primer quality control settings:</h3>            
+      <p>
+        <strong>{{ form.mfold.label}}</strong> (--mfold)
+        <br>
+        <br>
+        {{ form.mfold() }} 
+      </p>        
+      <p>
+        <strong>{{ form.mpprimer.label }}</strong> (--mpprimer)
+        <br>
+        <br>
+        {{ form.mpprimer() }}
+      </p>         
+      <p>
+        <strong>{{ form.mfeprimer_threshold.label }}</strong> (--mfethreshold)
+        <br>
+        higher threshold values mean more stringent selection
+        <br>
+        <br>
+        {{ form.mfeprimer_threshold() }}
+        <br>
+        {% for error in form.mfeprimer_threshold.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+      </p>
+  </div>
+
+  <div id="generalsettings">    
+    <h3>General settings:</h3>    
+    <p>
+      {{ form.work_offline() }} <strong>{{ form.work_offline.label }}</strong> (--offline)
+    </p>
+    <p>
+    {{ form.intermediate() }} <strong>{{ form.intermediate.label }}</strong> (--intermediate)
+    </p>
+    <p>
+
+      <br>
+      Only needed if no local copy of the nt database is available.
+      Specifiy the absolute filepath of the custom database (e.g. '/home/blastdb/nontarget.fasta')
+      or if you downloaded the ref_prok_rep_genomes DB (/home/blastdb/ref_prok_rep_genomes).
+      <br>
+      <br>
+      {{ form.customdb() }} <strong>{{ form.customdb.label }}</strong> (--customdb)
+    </p>      
+    <p>
+    
+      <strong>Not recommended!</strong>
+      <br>
+      May be used for custom BLAST DBs. May increase time for primer QC.
+
+      <br>
+      <br>
+      {{ form.nolist() }} <strong>{{ form.nolist.label }}</strong> (--nolist)
+    </p>      
+    <p>    
+      <strong>{{ form.blastseqs.label }}</strong> (--blastseqs)
+      <br>
+      lower values are recommended for computers with less than 16 GB of RAM.<br>
+      higher values for fast computers with at least 32 GB RAM (can slightly increase the BLAST speed). 
+      See also: <a href="https://www.ncbi.nlm.nih.gov/books/NBK279668/" target="_blank">Section: Concatenation of queries</a> 
+      <br>
+      <br>
+      {{ form.blastseqs() }}
+      <br>
+      {% for error in form.blastseqs.errors %}
+      <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}      
+    </p>
+    <p>
+    If you have a local copy of the nt_v5 BLAST database select this option.
+    This allows to search the BLAST nt DB only for bacteria (NCBItxid:2).
+    <br>
+      {{ form.blastdbv5() }} <strong>{{ form.blastdbv5.label }}</strong> (--blastdbv5)
+    </p>    
+    <p>
+        {{ form.change_wd.label }}
+        {{ form.change_wd() }}    
+  </div>  
+    <p>
+      <strong>{{ form.submit.label }}</strong>
+      <br>
+      {{ form.submit() }} {{ form.reset() }}
+    </p>  
+    </form>
+{% endblock %}

@@ -1,0 +1,16 @@
+language: python
+
+services:
+ - docker
+
+before_install:
+ - docker build -t biologger/speciesprimer .
+ - docker run -d -t -e TZ=Europe/Amsterdam -p 5000:5000 -p 9001:9001 --name testenv biologger/speciesprimer /bin/bash
+ - docker ps
+ - ci_env=`bash <(curl -s https://codecov.io/env)`
+
+script:
+  - docker exec $ci_env testenv /bin/bash -c "cd / && pytest -vv --cov=pipeline /tests/"
+  - docker exec $ci_env testenv /bin/bash -c "bash <(curl -s https://codecov.io/bash)"
+
+sudo: false
