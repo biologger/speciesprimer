@@ -2,10 +2,10 @@
 # SpeciesPrimer
 
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
-![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)
+[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
 ![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
-![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)
-![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/master)
+[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
+[![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 
 new in SpeciesPrimer v2.1
 * Custom Blast DB support
@@ -13,6 +13,7 @@ new in SpeciesPrimer v2.1
 * Increased speed
 * Species synonyms are added to exceptions
 * Bugfixes and KeyboardInterrupt rollback
+* Simpler directory structure
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
@@ -89,8 +90,8 @@ new in SpeciesPrimer v2.1
 * Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
 
 		$ nano /pipeline/dictionaries/species_list.txt
-		$ nano /pipeline/p3parameters
-		$ nano /pipeline/NO_Blast/NO_BLAST.gi
+		$ nano /pipeline/dictionaries/p3parameters
+		$ nano /pipeline/dictionaries/no_blast.gi
 
 * Start primer design
 
