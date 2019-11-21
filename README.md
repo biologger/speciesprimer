@@ -99,7 +99,7 @@ new in SpeciesPrimer v2.1
 
 * Starting the script will start an assistant for the configuration of a new run
 
-### If you want to use the ref_prok_rep_genomes DB provide the path to the customdb 
+#### If you want to use the ref_prok_rep_genomes DB use the customdb option 
 
 		customdb: /blastdb/ref_prok_rep_genomes
 
@@ -118,14 +118,14 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 |<tr><td colspan=3>__Core gene sequences__</td></tr>|
 |- identification|Roary|[Page et al. 2015](https://doi.org/10.1093/bioinformatics/btv421)|
 |- phylogeny|FastTree 2|[Price et al. 2010](https://doi.org/10.1371/journal.pone.0009490)|
-|- selection of conserved sequences|SQlite3, Prank, consambig (EMBOSS),GNU parallel, DBGenerator.py|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool); [microgenomcis](https://github.com/microgenomics/tutorials)|
+|- selection of conserved sequences|Prank, consambig (EMBOSS),GNU parallel, DBGenerator.py|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool); [microgenomcis](https://github.com/microgenomics/tutorials)|
 |- evaluation of specificity|BLAST+|[Altschul et al. 1990](https://doi.org/10.1016/s0022-2836%2805%2980360-2)|
 ||||
 |<tr><td colspan=3>__Primer__</td></tr>|
 |- design|Primer3|[Untergasser et al. 2012](https://doi.org/10.1093/nar/gks596)|
 |- quality control|BLAST+, Mfold, MFEPrimer 2.0, MPprimer|[Altschul et al. 1990](https://doi.org/10.1016/s0022-2836%2805%2980360-2); [Zuker et al. 1999](https://doi.org/10.1007/978-94-011-4485-8_2); [Qu et al. 2012](https://doi.org/10.1093/nar/gks552); [Shen et al. 2010](https://doi.org/10.1186/1471-2105-11-143)|
 
-The DBGenerator.py script from [Microbial Genomics Lab at CBIB](https://github.com/microgenomics/tutorials) was used in an earlier version to create an SQL database from the Roary output.
+The DBGenerator.py script from [Microbial Genomics Lab at CBIB](https://github.com/microgenomics/tutorials) and SQlite3 was used in an earlier version to create an SQL database from the Roary output.
 
 Python modules and software used for the GUI:
 
@@ -142,15 +142,15 @@ Python modules and software used for the GUI:
 |Section|Command line option [Input]|Description|Default|
 |--|--|--|--|
 |General| target [str]|Name of the target species|None (required)|
-|	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|None|
+|	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|[]|
 |	|path [str]|Absolute path of the working directory|Current working directory|
 |	|offline|Work offline with local genome assemblies|False|
 |	|skip\_download | Skips download of genome assemblies from NCBI RefSeq FTP server|False|
 |	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server| ['all']|
 |	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 | Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). Increases speed.|False|
-|	|email [str]| Provide your email in the command line to access NCBI. No prompt input required during the run.|None|
+|	|blastdbv5 | Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). May increase speed.|False|
+|	|email [str]| Provide your email in the command line to access NCBI. No input required during the run.|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
