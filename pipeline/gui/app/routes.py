@@ -165,6 +165,10 @@ def change_settings():
         if f and allowed_file(filename):
             for line in f:
                 old_settings = json.loads(line.decode("utf-8"))
+        else:
+            flash('File has to be a config.json file')
+            return render_template(
+                    'change_settings.html', title='Change settings', form=form)           
         path = old_settings['path']
         update_dict = {"new_run": {
             'path': path, 'same_settings': False,

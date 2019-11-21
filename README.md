@@ -2,10 +2,17 @@
 # SpeciesPrimer
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=speciesprimer2.1)](https://travis-ci.com/biologger/speciesprimer)
+[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
 [![docker build](https://img.shields.io/docker/build/biologger/speciesprimer)](https://img.shields.io/docker/build/biologger/speciesprimer)
-[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/speciesprimer2.1/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
-[![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/speciesprimer2.1)](https://www.codefactor.io/repository/github/biologger/speciesprimer/overview/speciesprimer2.1)
+[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
+[![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/master)](https://www.codefactor.io/repository/github/biologger/speciesprimer/overview/master)
+
+new in SpeciesPrimer v2.1
+* Bugfixes
+* Custom Blast DB support
+* Email option for command line
+* Increased speed
+* Includes tests
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
@@ -13,12 +20,13 @@
 * [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
 	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
 	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
-* [Tutorial Docker Setup](https://github.com/biologger/speciesprimer/tree/master#Tutorial-ubuntu-1604)
 
 ## Docs
+* [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/tutorial.md)
 * [Pipeline setup](https://github.com/biologger/speciesprimer/tree/master/docs/pipelinesetup.md)
 * [Primerdesign](https://github.com/biologger/speciesprimer/tree/master/docs/primerdesign.md)
 * [Troubleshooting](https://github.com/biologger/speciesprimer/tree/master/docs/troubleshooting.md)
+* [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/customdbtutorial.md)
 * [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/master/docs/dockertroubleshooting.md)
 * [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/master/docs/dockerproxy.md)
 
@@ -39,8 +47,8 @@
 		$ mkdir $HOME/primerdesign
 		$ mkdir $HOME/blastdb
 		$ sudo docker run \
-		-v $HOME/blastdb:/home/blastdb \
-		-v $HOME/primerdesign:/home/primerdesign \
+		-v $HOME/blastdb:/blastdb \
+		-v $HOME/primerdesign:/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
 		--name speciesprimer biologger/speciesprimer
 
@@ -48,9 +56,10 @@
 * Open the address [http://localhost:5000] or [http://127.0.0.1:5000] in your favorite webbrowser
 * Enter your E-mail address (required for the biopython NCBI Entrez module)
 * Navigate to SpeciesPrimer settings [http://localhost:5000/pipelineconfig]
-* Download the nt BLAST DB
+* Download the nt BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~6.5 GB)
 * Customize the species list and other parameters if required
 * Navigate to Primer design [http://localhost:5000/primerdesign] and start primer design for new targets
+* If you want to use the ref_prok_rep_genomes DB provide the path (/blastdb/ref_prok_rep_genomes) in the customdb settings field
 
 #### Use the pipeline with the command line
 
@@ -59,25 +68,39 @@
 		# open an interactive terminal in the docker container
 		$ sudo docker exec -it speciesprimer bash
 
-* Download the nt BLAST DB:
+* Download the nt BLAST DB (>60 GB):
 
-		$ getblastdb.py -dbpath /home/blastdb --delete
+		$ getblastdb.py -dbpath /blastdb --delete
+
+* or download the ref_prok_rep_genomes DB (~6.5 GB):
+
+		$ getblastdb.py -db ref_prok_rep_genomes -dbpath /blastdb --delete
 
 * or alternatively
 
-		$ cd /home/blastdb
-		update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
-		$ cd /home/primerdesign
+		$ cd /blastdb
+
+		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+		# or
+		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes	
+
+		$ cd /primerdesign
 
 * Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
 
-		$ nano /home/pipeline/dictionaries/species_list.txt
-		$ nano /home/pipeline/p3parameters
-		$ nano /home/pipeline/NO_Blast/NO_BLAST.gi
+		$ nano /pipeline/dictionaries/species_list.txt
+		$ nano /pipeline/p3parameters
+		$ nano /pipeline/NO_Blast/NO_BLAST.gi
 
 * Start primer design
 
 		$ speciesprimer.py
+
+* Starting the script will start an assistant for the configuration of a new run
+
+### If you want to use the ref_prok_rep_genomes DB provide the path to the customdb 
+
+		customdb: /blastdb/ref_prok_rep_genomes
 
 # Introduction
 The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.
@@ -101,7 +124,7 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 |- design|Primer3|[Untergasser et al. 2012](https://doi.org/10.1093/nar/gks596)|
 |- quality control|BLAST+, Mfold, MFEPrimer 2.0, MPprimer|[Altschul et al. 1990](https://doi.org/10.1016/s0022-2836%2805%2980360-2); [Zuker et al. 1999](https://doi.org/10.1007/978-94-011-4485-8_2); [Qu et al. 2012](https://doi.org/10.1093/nar/gks552); [Shen et al. 2010](https://doi.org/10.1186/1471-2105-11-143)|
 
-The DBGenerator.py script from [Microbial Genomics Lab at CBIB](https://github.com/microgenomics/tutorials) is used to create an SQL database from the Roary output.
+The DBGenerator.py script from [Microbial Genomics Lab at CBIB](https://github.com/microgenomics/tutorials) was used in an earlier version to create an SQL database from the Roary output.
 
 Python modules and software used for the GUI:
 
@@ -123,9 +146,10 @@ Python modules and software used for the GUI:
 |	|offline|Work offline with local genome assemblies|False|
 |	|skip\_download | Skips download of genome assemblies from NCBI RefSeq FTP server|False|
 |	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server| ['all']|
-|	|remote|Use the BLAST+ remote flag for BLAST searches|False|
+|	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 | Uses the nt_v5 database and limits all BLAST searches to taxid:2 (bacteria). Increases speed.|False|
+|	|blastdbv5 | Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). Increases speed.|False|
+|	|email [str]| Provide your email in the command line to access NCBI. No prompt input required during the run.|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
@@ -135,222 +159,3 @@ Python modules and software used for the GUI:
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
 
-# Tutorial (Ubuntu 16.04):
-
-## Docker setup
-
-### Download and install docker
-Download from <https://www.docker.com/get-docker> and
-see the docs for installation instructions <https://docs.docker.com/>
-
-### Download images from docker hub
-
-1. Open a terminal:
-		
-	* __HOST:__
-  
-			$ sudo docker pull biologger/speciesprimer
-
-2. Now you have the image, you can display the image with
-	* __HOST:__
-  
-			$ sudo docker images
-
-3. If there is more than one image from the repository __biologger/speciesprimer__, you can remove the image with the <none\> Tag
- 	* __HOST:__
- 
-			$ sudo docker rmi {image_id}
- 		
-### Choose directories
-
-1. Decide which directories (on the host) should be used by the container
-
-* If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path\_to\_host\_blastdb_dir:/home/blastdb) 
-
-* Create a directory for primerdesign and one for the BLAST database
-
-* __Example:__
-
-	* Create two new directories in the home directory
- 
- 	* __HOST:__
-	
- 			# one for the primer design files
-			$ mkdir /home/biologger/primerdesign
-  			# one for the nucleotide blast database
- 			$ mkdir /home/biologger/blastdb
-
-### Run a container instance
-Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /home/blastdb and /home/primerdesign. The name of the container can be changed (--name).
-The -p option defines the ports which are open for the container so you can access the container app http://127.0.0.1:{hostport1/2} / http://localhost:{hostport1/2}}.
-On the left side the host port is given and on the right side the container port. The container port is fixed and cannot be changed, if the host port is already used another port can be selected.
-The link on the page where you can control the runs is however fixed to port 9001, but you can open the log file stream by opening http://localhost:{hostport2} in your browser.
-
-#### docker run
-
-1. __HOST:__
-
-		$ sudo docker run \
-		-v path_to_host_blastdb_dir:/home/blastdb \
-		-v path_to_host_primerdesign_dir:/home/primerdesign \
-		-p {hostport1}:5000 -p {hostport2}:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimer
-
-__Example:__
-
-* __HOST:__
-
-		$ sudo docker run \
-		-v /home/biologger/blastdb:/home/blastdb \
-		-v /home/biologger/primerdesign:/home/primerdesign \
-		-p 5000:5000 -p 9001:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimer
-
-In the terminal you see that the server in the container was started.
-Afterwards you can open the address [http://localhost:5000] or what port you have choosen for {hostport1} in your webbrowser.
-
-#### docker stop		
-You can shutdown the container by opening a terminal and the command 
-
-        $ sudo docker stop {containername/id}
-
-__Example:__
-
-* __HOST:__
-
-        $ sudo docker stop speciesprimer_pipeline
-
-#### docker start        
-The next time you do not have to repeat the docker run command (this would create a new container, without your modified settings)
-Instead you simply start the container with the command 
-
-        $ sudo docker start {containername/id}
-
-__Example:__
-
-* __HOST:__
-
-        $ sudo docker start speciesprimer_pipeline
-        
-Afterwards you can open the address [http://localhost:5000] or what port you have choosen for {hostport1} in your webbrowser.
-
-#### docker attach
-If you want to see the status of the webserver in the container in your terminal (like after the docker run command)
-
-        $ sudo docker attach {containername/id}
-
-__Example:__
-
-* __HOST:__
-
-        $ sudo docker attach speciesprimer_pipeline
-        
-#### docker exec
-If you w to access the container with the terminal you can use (the -it option is for the interactive terminal)
-
-        $ sudo docker exec -it {containername/id} bash
-        
-__Example:__
-
-* __HOST:__
-
-        $ sudo docker exec -it speciesprimer_pipeline bash
-
-#### Leave the container terminal
-You can leave the docker container by typing exit        
-
-__Example:__
-
-* __CONTAINER:__
-
-        $ exit
-        
-
-### Test the container
-
-If not already started 
-
-$ sudo docker start {containername/id} 
-
-$ sudo docker exec -it {containername/id} bash
-
-If you see __root@{containerID}:/home/primerdesign#__ in the terminal, you have now access to the terminal of the container.
-
-Test if you have mounted the volumes correctly 
-
-* __CONTAINER:__
-  
-		$ echo test > test.txt
-
-	* Check if you find test.txt
-  
-			$ ls -l	
-  	 
-* __HOST:__
-
-	* Check if you find test.txt on the host
-  
-			$ ls -l /home/{linux_username}/primerdesign
-
-If you want to delete this test.txt file there are two options
-
-1. Do it in the container 
-	* __CONTAINER:__
- 
-			$ rm test.txt
-
-2. Do it on the host
- 	* Change the owner of the files in the primerdesign directory on the host (recursively).
-
- 	* __HOST:__
- 
-			$ sudo chown -R {linux_username} {path_to_primerdesign_dir}
- 
-	 * Now you can move and delete the files and directories.
-
-	__Example__:
-
-	* __HOST:__
- 
-			$ sudo chown -R biologger /home/biologger/primerdesign
-			
-## Troubleshooting Docker
-
-#### Conflict with the container name 
-	"docker: Error response from daemon: Conflict. The container name "/speciesprimer_pipeline" is already in use by container 	"e9d0de003ce8eff06b34f8f46e4934797052e16dcdbd7e60214d05ea3828a70", You have to remove (or rename) that container to be able to reuse that name"
-1. Display your containers
-	* __HOST:__
- 
-			$ sudo docker ps -a
-
-2. Stop the container with the container ID or the container name
-	* 
- 			
-			$ sudo docker stop {ContainerID/containername}
-
-3. Delete the container
-	* 
- 			
-			$ sudo docker rm {ContainerID/containername}
- 		
- 
-
-Now you can try again to create a container with the sudo docker run command
-
-* __HOST:__
-
-		$ sudo docker run \
-		-v /home/{linux_username}/blastdb:/home/blastdb \
-		-v /home/{linux_username}/primerdesign:/home/primerdesign \
-		-p {hostport1}:5000 -p {hostport2}:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimer
-
-__Example:__
-
-* __HOST:__
-
-		$ sudo docker run \
-		-v /home/biologger/blastdb:/home/blastdb \
-		-v /home/biologger/primerdesign:/home/primerdesign \
-		-p 5000:5000 -p 9001:9001 \
-		--name speciesprimer_pipeline -it biologger/speciesprimer__
