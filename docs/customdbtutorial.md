@@ -47,4 +47,4 @@ After some time 414 Genomes were downloaded by ncbi-genome-download
 
 		$ blastdb_aliastool -dblist "ref_prok_rep_genomes lb_genomic" -dbtype nucl -out repandlb -title "RefSeq Prok Rep and complete Lb genomes"
  
-Now use in the command line -customdb /blastdb/repandlb.nal or with the GUI path to customBLASTDB :/blastdb/repandlb.nal and both databases are searched.
+Now use in the command line -customdb /blastdb/repandlb.nal or with the GUI path to customBLASTDB: /blastdb/repandlb.nal and both databases are searched.

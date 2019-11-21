@@ -9,6 +9,12 @@ Therefore there is a way to run a container without the local server and the GUI
 
 * This docker run command will override the start of the GUI server (boot.sh)
 
-            $ sudo docker run -v $HOME/blastdb:/blastdb \
-            -v $HOME/primerdesign:/primerdesign \
-            --name cmdline -it biologger/speciesprimer /bin/bash
+		$ sudo docker run -v $HOME/blastdb:/blastdb \
+		-v $HOME/primerdesign:/primerdesign \
+		--name cmdline -it biologger/speciesprimer /bin/bash
+
+* This docker run command will search for primers (using the default species list and primer settings) and removes the container afterwards.
+
+		$ sudo docker run --rm -v $HOME/blastdb:/blastdb -v $HOME/primerdesign:/primerdesign \
+		biologger/speciesprimer speciesprimer.py --target Lactobacillus_curvatus \
+		--email your@email.com --assemblylevel complete

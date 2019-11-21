@@ -1,18 +1,18 @@
 
 # SpeciesPrimer
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
-[![docker build](https://img.shields.io/docker/build/biologger/speciesprimer)](https://img.shields.io/docker/build/biologger/speciesprimer)
-[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
-[![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/master)](https://www.codefactor.io/repository/github/biologger/speciesprimer/overview/master)
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
+![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)
+![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge/master)
 
 new in SpeciesPrimer v2.1
-* Bugfixes
 * Custom Blast DB support
 * Email option for command line
 * Increased speed
-* Includes tests
+* Species synonyms are added to exceptions
+* Bugfixes and KeyboardInterrupt rollback
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)

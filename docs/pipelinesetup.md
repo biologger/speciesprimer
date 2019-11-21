@@ -93,7 +93,7 @@ As an alternative if the __Entrez EDirect Utility__ and __the BLAST+ command lin
 
 __Example__
 
-		$ get_species_taxids.sh -t 2 > /home/pipeline/dictionaries/2.txids
+		$ get_species_taxids.sh -t 2 > /pipeline/dictionaries/2.txids
 
 ------------------------------------------------------
 ### Abbreviations of genus names
