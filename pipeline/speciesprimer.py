@@ -3194,11 +3194,11 @@ class PrimerQualityControl:
                 selected_name, passed, excluded, failed = structure_nr
                 filename, structure, dG, dH, dS, Tm = passed
                 if index == 0:
-                    pos_results.append(
-                        [selected, structure, dG, dH, dS, Tm])
+                    first = selected
                 else:
-                    pos_results.append(
-                        ["", structure, dG, dH, dS, Tm])
+                    first = ""
+                pos_results.append(
+                    [first, structure, dG, dH, dS, Tm])
 
         def multiple_failed_structures():
             if mfold[0][2] is None:
@@ -3211,19 +3211,20 @@ class PrimerQualityControl:
                 if passed is None:
                     filename, structure, dG, dH, dS, Tm = failed
                     if index == 0:
-                        neg_results.append(
-                            [excluded, structure, dG, dH, dS, Tm])
+                        first = excluded
                     else:
-                        neg_results.append(
-                            ["", structure, dG, dH, dS, Tm])
+                        first = ""
+                    neg_results.append(
+                        [first, structure, dG, dH, dS, Tm])
+
                 if failed is None:
                     filename, structure, dG, dH, dS, Tm = passed
                     if index == 0:
-                        neg_results.append(
-                            [excluded, structure, dG, dH, dS, Tm])
+                        first = excluded
                     else:
-                        neg_results.append(
-                            ["", structure, dG, dH, dS, Tm])
+                        first = ""
+                    neg_results.append(
+                        [first, structure, dG, dH, dS, Tm])
 
         selected_primer = []
         excluded_primer = []

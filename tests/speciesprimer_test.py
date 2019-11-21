@@ -1656,6 +1656,26 @@ def test_PrimerQualityControl_structures(config):
         assert selected_primer == ref_output
         assert excluded_primer == ['Lb_curva_comFA_2_P0']
 
+    def test_multiple_structures():
+        pqc.config.mfold = -3.0
+        primerinfos = [
+            [
+                'g600_3',
+                'Primer_pair_0',
+                'ACAATTCTGCTGGACATATGCGACCGCATTTTATCAACTACCTTTGGTCAATGAGCATTCA'
+                'TGGCAATTACAGTGGTGTCGGNAGATTTTACAACAATGGCAATGTCAGGATGTGCTGCGGT'
+                'TACAGGGTGCTGTTCTGCACTATCATGAGGCCA', 'Lb_curva_g600_3_P0'],
+            [
+                'g3202_1', 'Primer_pair_7',
+                'TGTCACCAGTGCCGCAATTAGGGAGACAACTAGTGCACAAGTTCACGCGGCCAGCAGTGGT'
+                'AAACCAACAGTTGCCAGTGCGGCAACAGCTGATAATACTGCTAGTTTAGCGGCTTTAGTTG'
+                'CTCAGGTGCAAAGCAACCAAGCTGTGGTCAATCAAATGTTAGCCCAGCTACAAAGTGATCA'
+                'AGCCGC', 'Lb_curva_g3202_1_P7']]
+        pqc.mfold_analysis(primerinfos)
+        selected_primer, excluded_primer = pqc.mfold_parser()
+        assert selected_primer == ['Lb_curva_g600_3_P0']
+        assert excluded_primer == ['Lb_curva_g3202_1_P7']
+
     def test_dimercheck():
         selected_primer = [
             'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1',
@@ -1680,6 +1700,7 @@ def test_PrimerQualityControl_structures(config):
         return choice
 
     test_mfold()
+    test_multiple_structures()
     choice = test_dimercheck()
     total_results = pqc.write_results(choice)
     total_results.sort()
