@@ -193,11 +193,19 @@ def assert_ref_files(nolist=False):
     assert files == ref_files
 
 def test_run(monkeypatch):
+    noblast = os.path.join(dict_path, "no_blast.gi")
+    noblastorig = os.path.join(dict_path, "default", "no_blast.gi")
+    exc_accession = "Mockseq13.2"
+    with open(noblast, "w") as f:
+        f.write(exc_accession)
     prepare_testfiles()
     prepare_files()
     os.chdir(os.path.join("/", "primerdesign"))
     from speciesprimer import main
-    main(mode="auto")
+    try:
+        main(mode="auto")
+    finally:
+        shutil.copy(noblastorig, noblast)
     maxcontig = os.path.join(genomic_dir, "GCF_007MOCKv1_genomic.fna")
     # compare primer results
     assert os.path.isfile(maxcontig) is False
@@ -211,6 +219,7 @@ def test_run(monkeypatch):
     monkeypatch.setattr('builtins.input', start_allinput)
     from speciesprimer import main
     main()
+
 
     if os.path.isdir(summ_dir):
         shutil.rmtree(summ_dir)

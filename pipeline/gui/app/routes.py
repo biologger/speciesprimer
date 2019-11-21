@@ -198,11 +198,11 @@ def check_targets():
             item = item.capitalize()
             target_choice_list.append(' '.join(item.split('_')))
         return target_choice_list, tmp_db
-    else:
-        for item in target_list:
-            item = item.capitalize()
-            target_choice_list.append((item, ' '.join(item.split('_'))))
-        return target_choice_list, tmp_db
+
+    for item in target_list:
+        item = item.capitalize()
+        target_choice_list.append((item, ' '.join(item.split('_'))))
+    return target_choice_list, tmp_db
 
 
 def update_db(sub_dict, target, data):
@@ -303,7 +303,7 @@ def get_settings(form):
     else:
         while "" in exception:
             exception.remove("")
-            
+
     if customdb == "":
         customdb = None
     if 'all' in assemblylevel:
@@ -505,7 +505,7 @@ def get_bacteria_taxids():
             db="taxonomy", term="txid2[orgn]", retmax="500000")
     taxidresult = Entrez.read(searchtaxid)
     taxids = taxidresult["IdList"]
-    taxids.sort(key=lambda x: int(x))
+    taxids.sort(key=int)
     filename = os.path.join(dict_path, "2.txids")
     with open(filename, "w") as f:
         for txid in taxids:

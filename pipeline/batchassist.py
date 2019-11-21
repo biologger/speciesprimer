@@ -128,10 +128,10 @@ class Input:
 
                 else:
                     if skip_download:
-                        for target in self.target_list:
-                            self.config_dict[target].update(
+                        for selectedtarget in self.target_list:
+                            self.config_dict[selectedtarget].update(
                                 {"skip_download": skip_download})
-                            self.config_dict[target].update(
+                            self.config_dict[selectedtarget].update(
                                 {"assemblylevel": assembly_list})
 
             else:

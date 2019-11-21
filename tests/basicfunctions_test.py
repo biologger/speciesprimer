@@ -145,8 +145,7 @@ def test_subsp_abbrev():
 def a_function(inputitem):
     if inputitem == "lactis subsp. lactis":
         raise Exception
-    else:
-        return inputitem
+    return inputitem
 
 
 def test_run_parallel_exceptions():
