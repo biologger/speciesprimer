@@ -145,12 +145,14 @@ Python modules and software used for the GUI:
 |	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|[]|
 |	|path [str]|Absolute path of the working directory|Current working directory|
 |	|offline|Work offline with local genome assemblies|False|
-|	|skip\_download | Skips download of genome assemblies from NCBI RefSeq FTP server|False|
-|	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server| ['all']|
+|	|skip\_download|Skips download of genome assemblies from NCBI RefSeq FTP server|False|
+|	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server|['all']|
 |	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 | Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). May increase speed.|False|
-|	|email [str]| Provide your email in the command line to access NCBI. No input required during the run.|None|
+|	|blastdbv5 |Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). May increase speed.|False|
+|	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
+|	|intermediate|Select this option to keep intermediate files.|False|
+|	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
