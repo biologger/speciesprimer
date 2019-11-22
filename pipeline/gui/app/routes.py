@@ -329,8 +329,16 @@ def settings():
         form = SettingsForm(change_wd=def_path)
         form.targets.choices = [("All targets", "All targets")]
     elif tmp_db['new_run']['change_settings']:
-        form = SettingsForm(data=load_settings(tmp_db))
-        form.targets.choices = target_choice_list
+        try:
+            form = SettingsForm(data=load_settings(tmp_db))
+            form.targets.choices = target_choice_list
+        except KeyError as exc:
+            flash(" ".join([
+                'Setting not found:', str(exc),
+                'maybe you are using an outdated config file']))
+            def_path = tmp_db['new_run']['path']
+            form = SettingsForm(change_wd=def_path)
+            form.targets.choices = target_choice_list
     else:
         def_path = tmp_db['new_run']['path']
         form = SettingsForm(change_wd=def_path)
