@@ -466,7 +466,7 @@ def updatedb():
             'dbdownload.html', title='Control BLAST db download', form=form)
 
 
-@app.route('/updatedb', methods=['GET', 'POST'])
+@app.route('/updatedb_ref', methods=['GET', 'POST'])
 def updatedb_ref():
     form = DBForm()
     if form.validate_on_submit():
