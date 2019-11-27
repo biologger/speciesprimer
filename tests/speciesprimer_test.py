@@ -311,6 +311,38 @@ def test_DataCollection(config, monkeypatch):
         syn, taxid = DC.get_taxid(target)
         assert taxid is None
 
+    def test_maxcontigs(config):
+        DC = DataCollection(config)
+        G.create_directory(DC.genomic_dir)
+        name1 = "GCF_maxcontigs.1_date_genomic.fna"
+        name2 = "GCF_maxcontigs_date.fna"
+        names = [name1, name2]
+        for name in names:
+            filepath = os.path.join(DC.genomic_dir, name)
+            nonsense = ">nonsense_contig\nATTAG\n"
+            with open(filepath, "w") as f:
+                for i in range(0, 500):
+                    f.write(nonsense)
+
+        DC.remove_max_contigs()
+        exdir = os.path.join(DC.ex_dir, "genomic_fna")
+        assert os.path.isfile(os.path.join(exdir, name1)) is True
+        assert os.path.isfile(os.path.join(exdir, name2)) is True
+        assert os.path.isfile(os.path.join(DC.genomic_dir, name1)) is False
+        assert os.path.isfile(os.path.join(DC.genomic_dir, name2)) is False
+        filecont = []
+        refcont = ["GCF_maxcontigsv1", "GCF_maxcontigs"]
+        with open(os.path.join(DC.ex_dir, "excluded_list.txt")) as f:
+            for line in f:
+                filecont.append(line.strip())
+        filecont.sort()
+        refcont.sort()
+        assert filecont == refcont
+
+        shutil.rmtree(DC.ex_dir)
+        shutil.rmtree(DC.genomic_dir)
+
+
     def test_syn_exceptions(config):
         # standard case
         confdict = config.__dict__
@@ -459,6 +491,7 @@ def test_DataCollection(config, monkeypatch):
             G.create_directory(dirpath)
 
     test_get_email_from_config(config)
+    test_maxcontigs(config)
     DC.prepare_dirs()
     test_get_taxid(config.target, monkeypatch)
     test_ncbi_download("28038", monkeypatch)
