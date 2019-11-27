@@ -365,6 +365,7 @@ class DataCollection():
                         ]:
                             msg = " already in excludedassemblies"
                             print(zip_file + msg)
+                            G.logger(zip_file + msg)
                         else:
                             print_msg = "\n\nDownload..." + zip_file + "\n"
                             info = "Downloaded " + zip_file
@@ -561,6 +562,7 @@ class DataCollection():
                         r.write(line)
 
     def remove_max_contigs(self):
+        maxcontigs = []
         for files in os.listdir(self.genomic_dir):
             if files.endswith(".fna"):
                 contigcount = 0
@@ -570,6 +572,17 @@ class DataCollection():
                         contigcount += 1
                 if contigcount >= self.contiglimit:
                     if self.config.ignore_qc is False:
+                        if files.endswith("_genomic.fna"):
+                            file_name = (
+                                files.split(".")[0] + "v" +
+                                files.split(".")[1].split("_")[0])
+                        else:
+                            name = files.split(".fna")[0]
+                            file_name = (
+                                "_".join(
+                                    "-".join(name.split(".")).split("_")[0:-1])
+                            )
+                        maxcontigs.append(file_name)
                         msg = (
                             files + " has more than " + str(self.contiglimit)
                             + " contigs and will be removed before annotation "
@@ -577,7 +590,24 @@ class DataCollection():
                         )
                         print(msg)
                         G.logger(msg)
-                        os.remove(filepath)
+                        excl_path = os.path.join(self.ex_dir, "genomic_fna")
+                        if not os.path.isdir(excl_path):
+                            G.create_directory(excl_path)
+                        shutil.move(filepath, os.path.join(excl_path, files))
+
+        if len(maxcontigs) > 0:
+            if os.path.isfile(os.path.join(self.ex_dir, "excluded_list.txt")):
+                with open(
+                    os.path.join(self.ex_dir, "excluded_list.txt"), "a"
+                ) as f:
+                    for item in maxcontigs:
+                        f.write(item + "\n")
+            else:
+                with open(
+                    os.path.join(self.ex_dir, "excluded_list.txt"), "w"
+                ) as f:
+                    for item in maxcontigs:
+                        f.write(item + "\n")
 
     def add_synonym_exceptions(self, syn):
         for item in syn:
