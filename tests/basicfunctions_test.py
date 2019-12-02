@@ -8,6 +8,7 @@ import json
 from Bio import Entrez
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
+import filecmp
 
 msg = (
     """
@@ -42,6 +43,55 @@ def test_BLASTDB_check():
     config = AttrDict(confargs)
     with pytest.raises(Exception):
         H.BLASTDB_check(config)
+
+
+def test_configfile():
+    CONFFILE = os.path.join(testfiles_dir, "advanced_config.json")
+    H.advanced_pipe_config(CONFFILE)
+    filenames = [
+        "no_blast.gi", "genus_abbrev.csv", "p3parameters", "species_list.txt"]
+
+    for filename in filenames:
+        ref = os.path.join(ref_data, "advanced_config", filename)
+        newfile = os.path.join(dict_path, filename)
+        assert filecmp.cmp(newfile, ref) is True
+        deffile =  os.path.join(dict_path, "default", filename)
+        os.remove(newfile)
+        shutil.copy(deffile, newfile)
+
+    G.create_directory(tmpdir)
+    for filename in filenames:
+        ref = os.path.join(ref_data, "advanced_config", filename)
+        tmp = os.path.join(tmpdir, filename)
+        shutil.copy(ref, tmp)
+    CONFFILE = os.path.join(testfiles_dir, "advanced_config2.json")
+    H.advanced_pipe_config(CONFFILE)
+    for filename in filenames:
+        ref = os.path.join(ref_data, "advanced_config", filename)
+        newfile = os.path.join(dict_path, filename)
+        assert filecmp.cmp(newfile, ref) is True
+        deffile =  os.path.join(dict_path, "default", filename)
+        os.remove(newfile)
+        shutil.copy(deffile, newfile)
+
+    CONFFILE = os.path.join(testfiles_dir, "advanced_config3.json")
+    tmp = os.path.join(tmpdir, "p3parameters")
+    wrong_ext = os.path.join(tmpdir, "p3parameters.txt")
+    shutil.copy(tmp, wrong_ext)
+    exitstat = H.advanced_pipe_config(CONFFILE)
+    assert exitstat == 1
+
+    CONFFILE = os.path.join(testfiles_dir, "advanced_config4.json")
+    exitstat = H.advanced_pipe_config(CONFFILE)
+    assert exitstat == 1
+    for filename in filenames:
+        ref = os.path.join(ref_data, "advanced_config", filename)
+        newfile = os.path.join(dict_path, filename)
+        deffile =  os.path.join(dict_path, "default", filename)
+        os.remove(newfile)
+        shutil.copy(deffile, newfile)
+
+    shutil.rmtree(tmpdir)
 
 
 def prepare_tmp_db():

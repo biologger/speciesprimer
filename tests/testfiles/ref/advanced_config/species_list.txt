@@ -1,0 +1,6 @@
+Acidipropionibacterium acidipropionici
+Acidipropionibacterium jensenii
+Acidipropionibacterium thoenii
+Acinetobacter baumannii
+Acinetobacter bereziniae
+Acinetobacter johnsonii

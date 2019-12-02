@@ -3951,9 +3951,20 @@ def commandline():
         "-e", "--email", type=str, default=None,
         help="A valid email address to make use of NCBI's E-utilities"
         " default=None (user input is required later for online functions)")
+    parser.add_argument(
+        "--configfile", type=str, default=None,
+        help="Provide the path to a JSON format inputfile, "
+        "with keys and a list of "
+        "settings or a path to a custom settings file. "
+        "Key and example file name: "
+        '["genus_abbrev", "genus_abbrev.csv"], '
+        '["species_list","species_list.txt"], '
+        '["p3settings", "p3parameters"], '
+        '["excludedgis", "no_blast.gi"]'
+        )
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1")
+        "-V", "--version", action="version", version="%(prog)s 2.1.1")
     return parser
 
 
@@ -4061,6 +4072,9 @@ def get_configuration_from_args(target, args):
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
         args.blastseqs, args.probe, args.blastdbv5)
+
+    if args.configfile:
+        H.advanced_pipe_config(args.configfile)
 
     return config
 

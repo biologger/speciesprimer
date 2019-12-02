@@ -196,6 +196,52 @@ class GeneralFunctions:
 class HelperFunctions:
 
     @staticmethod
+    def advanced_pipe_config(path_to_configfile):
+        options = [
+            ["genus_abbrev", os.path.join(dict_path, "genus_abbrev.csv")],
+            ["species_list", os.path.join(dict_path, "species_list.txt")],
+            ["p3settings", os.path.join(dict_path, "p3parameters")],
+            ["excludedgis", os.path.join(dict_path, "no_blast.gi")]]
+        with open(path_to_configfile) as f:
+            for line in f:
+                adv_sett = json.loads(line)
+        for option in options:
+            if option[0] in adv_sett.keys():
+                settings = adv_sett[option[0]]
+                print(settings)
+                if isinstance(settings, list):
+                    if isinstance(settings[0], list):
+                        GeneralFunctions().csv_writer(option[1], settings)
+                    else:
+                        with open(option[1], "w") as f:
+                            for item in settings:
+                                f.write(str(item) + "\n")
+                else:
+                    if os.path.isfile(settings):
+                        filename, file_ext = os.path.splitext(option[1])
+                        refname, ref_ext = os.path.splitext(settings)
+                        if ref_ext == file_ext:
+                            os.remove(option[1])
+                            shutil.copy(settings, option[1])
+                        else:
+                            msg = [
+                                "A", file_ext, "file is required as",
+                                option[0], "settings file"]
+                            print(" ".join(msg))
+                            GeneralFunctions().logger(" ".join(msg))
+                            return 1
+                    else:
+                        msg = (
+                            "A settings list or a complete settings file "
+                            "is required")
+                        print(msg)
+                        GeneralFunctions().logger(msg)
+                        return 1
+        return 0
+
+
+
+    @staticmethod
     def subspecies_handler(target, mode="underscore"):
         GeneralFunctions().logger(
             "Run: subspecies_handler(" + target + " , " + mode + ")")
