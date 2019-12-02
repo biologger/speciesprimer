@@ -36,8 +36,8 @@ errors = []
 # general info
 systemdirs = [
     "genomic_fna", "config", "ffn_files", "gff_files", "Pangenome",
-    "rRNA_control", "recA_control", "tuf_control",
-    "dnaK_control", "pheS_control"]
+    "rRNA_QC", "recA_QC", "tuf_QC",
+    "dnaK_QC", "pheS_QC"]
 
 Entrez.tool = "SpeciesPrimer pipeline"
 
@@ -1248,22 +1248,20 @@ class PangenomeAnalysis:
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
 
     def run_roary(self):
+        num_cpus = str(multiprocessing.cpu_count())
         G.logger("Run: run_roary(" + self.target + ")")
         os.chdir(self.target_dir)
+        roary_cmd = [
+            "roary", "-f", "./Pangenome", "-s", "-p", num_cpus,
+            "-cd", "100", "-e", "-n", "./gff_files/*.gff"]
         if self.config.skip_tree:
-            roary_cmd = (
-                "roary -f ./Pangenome -s -p "
-                + str(multiprocessing.cpu_count())
-                + " -cd 100 ./gff_files/*.gff")
-        else:
-            roary_cmd = (
-                "roary -f ./Pangenome -e -n -s -p "
-                + str(multiprocessing.cpu_count())
-                + " -cd 100 ./gff_files/*.gff")
-
+            if "-e" in roary_cmd:
+                roary_cmd.remove("-e")
+            if "-n" in roary_cmd:
+                roary_cmd.remove("-n")
         try:
             G.run_shell(
-                roary_cmd, printcmd=True, logcmd=True, log=True)
+                " ".join(roary_cmd), printcmd=True, logcmd=True, log=True)
         except (KeyboardInterrupt, SystemExit):
             G.keyexit_rollback("pan-genome analysis", dp=self.pangenome_dir)
             raise
@@ -1274,10 +1272,11 @@ class PangenomeAnalysis:
         coregenealn = "core_gene_alignment.aln"
         if os.path.isfile(coregenealn):
             tree = H.abbrev(self.target) + "_tree.nwk"
-            treecmd = "fasttree -nt -gtr -nopr " + coregenealn + " > " + tree
+            fasttree_cmd = [
+                "fasttree", "-nt", "-gtr", "-nopr", coregenealn, ">", tree]
             try:
                 G.run_shell(
-                    treecmd, printcmd=True, logcmd=True,
+                    " ".join(fasttree_cmd), printcmd=True, logcmd=True,
                     log=True)
             except (KeyboardInterrupt, SystemExit):
                 G.keyexit_rollback(
@@ -1860,14 +1859,12 @@ class Blast:
 
         if self.config.blastdbv5:
             if self.mode == "quality_control":
-                blast_cmd.append("-taxidlist")
-                blast_cmd.append(taxidlist)
-            elif os.path.isfile(locallist):
-                blast_cmd.append("-taxidlist")
-                blast_cmd.append(locallist)
-            else:
-                blast_cmd.append("-taxidlist")
-                blast_cmd.append(taxidlist)
+                if os.path.isfile(locallist):
+                    blast_cmd.append("-taxidlist")
+                    blast_cmd.append(locallist)
+                else:
+                    blast_cmd.append("-taxidlist")
+                    blast_cmd.append(taxidlist)
 
             blast_cmd.append("-db")
             if self.config.customdb:
@@ -3462,12 +3459,11 @@ class PrimerQualityControl:
                     input_file = os.path.join(self.dimercheck_dir, files)
                     output_file = os.path.join(
                         self.dimercheck_dir, files + "_dimer_out")
-                    dimer_cmd = (
-                        "MPprimer_dimer_check.pl -f " + input_file + " -d 3 > "
-                        + output_file)
-
+                    dimer_cmd = [
+                        "MPprimer_dimer_check.pl", "-f", input_file, "-d", "3",
+                        ">", output_file]
                     G.run_shell(
-                        dimer_cmd, printcmd=False, logcmd=False,
+                        " ".join(dimer_cmd), printcmd=False, logcmd=False,
                         log=False)
 
             dimer_summary = []
