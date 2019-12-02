@@ -1266,6 +1266,8 @@ class PangenomeAnalysis:
             G.keyexit_rollback("pan-genome analysis", dp=self.pangenome_dir)
             raise
 
+        return roary_cmd
+
     def run_fasttree(self):
         G.logger("Run: run_fasttree(" + self.target + ")")
         os.chdir(self.pangenome_dir)

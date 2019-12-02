@@ -7,6 +7,7 @@ import pytest
 import json
 import time
 import csv
+import multiprocessing
 from Bio import SeqIO
 from Bio import Entrez
 from basicfunctions import HelperFunctions as H
@@ -856,6 +857,23 @@ def test_skip_pangenome_analysis(config):
     shutil.copy(fromfile, tofile)
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
+
+    num_cpus = str(multiprocessing.cpu_count())
+    config.skip_tree = True
+    PA = PangenomeAnalysis(config)
+    cmd = PA.run_roary()
+    assert cmd == [
+            "roary", "-f", "./Pangenome", "-s", "-p", num_cpus,
+            "-cd", "100", "./gff_files/*.gff"]
+    config.skip_tree = False
+    PA = PangenomeAnalysis(config)
+    cmd = PA.run_roary()
+
+    assert cmd == [
+            "roary", "-f", "./Pangenome", "-s", "-p", num_cpus,
+            "-cd", "100", "-e", "-n", "./gff_files/*.gff"]
+
+
 
 
 def test_CoreGenes(config):
