@@ -58,7 +58,7 @@ assemblylevel = (
 customdb = (
     "Do you want to use a custom database for blastn?\n"
     "Specifiy the absolute filepath of the custom database "
-    "(e.g. '/home/blastdb/nontarget.fasta') or hit return"
+    "(e.g. '/blastdb/nontarget.fasta') or hit return"
     " to skip, default=None\n> ")
 blastseqs = (
     "Set the number of sequences per BLAST search. "
