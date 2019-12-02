@@ -118,7 +118,7 @@ The SpeciesPrimer pipeline is intended to help researchers finding specific prim
 |<tr><td colspan=3>__Core gene sequences__</td></tr>|
 |- identification|Roary|[Page et al. 2015](https://doi.org/10.1093/bioinformatics/btv421)|
 |- phylogeny|FastTree 2|[Price et al. 2010](https://doi.org/10.1371/journal.pone.0009490)|
-|- selection of conserved sequences|Prank, consambig (EMBOSS),GNU parallel, DBGenerator.py|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool); [microgenomcis](https://github.com/microgenomics/tutorials)|
+|- selection of conserved sequences|Prank, consambig (EMBOSS),GNU parallel|[Löytynoja 2014](https://doi.org/10.1007/978-1-62703-646-7_10); [Rice et al. 2000](https://doi.org/10.1016/S0168-9525%2800%2902024-2); [Tange 2011](https://www.usenix.org/publications/login/february-2011-volume-36-number-1/gnu-parallel-command-line-power-tool)|
 |- evaluation of specificity|BLAST+|[Altschul et al. 1990](https://doi.org/10.1016/s0022-2836%2805%2980360-2)|
 ||||
 |<tr><td colspan=3>__Primer__</td></tr>|
