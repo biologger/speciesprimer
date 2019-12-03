@@ -268,6 +268,23 @@ def test_repeat_primerQC(monkeypatch):
     main()
     assert_ref_files(nolist=True)
 
+def test_commandline_fail_correct_settings():
+    test =  os.path.join("/", "primerdesign", "test")
+    G.create_directory(test)
+    G.create_directory(tmpdir)
+    CONFFILE = os.path.join(testfiles_dir, "adconfig","advanced_config3.json")
+    reffile = os.path.join(dict_path, "p3parameters")
+    wrong_ext = os.path.join(tmpdir, "p3parameters.txt")
+    shutil.copy(reffile, wrong_ext)
+
+    output = G.read_shelloutput([
+            "speciesprimer.py", "-t", "Lactobacillus_curvatus",
+            "--configfile", CONFFILE])
+
+    assert output == [
+        '/primerdesign/tmp/genus_abbrev.csv',
+        'A list containing the settings or a complete settings file'
+        ' is required']
 
 def test_end():
     def remove_test_files():

@@ -45,8 +45,8 @@ def test_BLASTDB_check():
         H.BLASTDB_check(config)
 
 
-def test_configfile():
-    CONFFILE = os.path.join(testfiles_dir, "advanced_config.json")
+def test_advancedconfig_fromfile():
+    CONFFILE = os.path.join(testfiles_dir, "adconfig", "advanced_config.json")
     H.advanced_pipe_config(CONFFILE)
     filenames = [
         "no_blast.gi", "genus_abbrev.csv", "p3parameters", "species_list.txt"]
@@ -64,7 +64,7 @@ def test_configfile():
         ref = os.path.join(ref_data, "advanced_config", filename)
         tmp = os.path.join(tmpdir, filename)
         shutil.copy(ref, tmp)
-    CONFFILE = os.path.join(testfiles_dir, "advanced_config2.json")
+    CONFFILE = os.path.join(testfiles_dir, "adconfig", "advanced_config2.json")
     H.advanced_pipe_config(CONFFILE)
     for filename in filenames:
         ref = os.path.join(ref_data, "advanced_config", filename)
@@ -74,14 +74,14 @@ def test_configfile():
         os.remove(newfile)
         shutil.copy(deffile, newfile)
 
-    CONFFILE = os.path.join(testfiles_dir, "advanced_config3.json")
+    CONFFILE = os.path.join(testfiles_dir, "adconfig","advanced_config3.json")
     tmp = os.path.join(tmpdir, "p3parameters")
     wrong_ext = os.path.join(tmpdir, "p3parameters.txt")
     shutil.copy(tmp, wrong_ext)
     exitstat = H.advanced_pipe_config(CONFFILE)
     assert exitstat == 1
 
-    CONFFILE = os.path.join(testfiles_dir, "advanced_config4.json")
+    CONFFILE = os.path.join(testfiles_dir, "adconfig", "advanced_config4.json")
     exitstat = H.advanced_pipe_config(CONFFILE)
     assert exitstat == 1
     for filename in filenames:
@@ -90,6 +90,35 @@ def test_configfile():
         deffile =  os.path.join(dict_path, "default", filename)
         os.remove(newfile)
         shutil.copy(deffile, newfile)
+
+    CERTFILE = os.path.join(testfiles_dir, "adconfig", "mock_certificate.crt")
+    CERT_REF = os.path.join(tmpdir, "mock_certificate.crt")
+    CONFFILE = os.path.join(tmpdir, "adconfig.json")
+    CERT_EXT = os.path.join(tmpdir, "mock_certificate.txt")
+    shutil.copy(CERTFILE, CERT_REF)
+    shutil.copy(CERT_REF, CERT_EXT)
+    conf = {"certificate": CERT_REF}
+    with open(CONFFILE, "w") as f:
+        f.write(json.dumps(conf))
+
+    exitstat = H.advanced_pipe_config(CONFFILE)
+    assert exitstat == 0
+
+    os.remove(CONFFILE)
+
+    conf = {"certificate": CERT_EXT}
+    with open(CONFFILE, "w") as f:
+        f.write(json.dumps(conf))
+    exitstat = H.advanced_pipe_config(CONFFILE)
+    assert exitstat == 1
+
+    os.remove(CONFFILE)
+
+    conf = {"certificate": tmpdir}
+    with open(CONFFILE, "w") as f:
+        f.write(json.dumps(conf))
+    exitstat = H.advanced_pipe_config(CONFFILE)
+    assert exitstat == 1
 
     shutil.rmtree(tmpdir)
 
@@ -244,6 +273,19 @@ def test_check_input_fail(monkeypatch):
     monkeypatch.setattr(Entrez, "esearch", mock_taxid)
     taxid = H.check_input(target, email)
     assert taxid is None
+
+
+def test_check_input_OSError(monkeypatch):
+    import urllib.error
+    import urllib.request
+    def mock_error(db, term):
+        raise urllib.error.HTTPError(
+                    "Entrez", 400, "Bad request", None, None)
+    target = "Lactobacious_curvatus"
+    email = "biologger@protonmail.com"
+    monkeypatch.setattr(Entrez, "esearch", mock_error)
+    with pytest.raises(OSError):
+        H.check_input(target, email)
 
 
 def test_check_species_syn(monkeypatch):

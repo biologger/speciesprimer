@@ -203,9 +203,40 @@ class HelperFunctions:
             ["species_list", os.path.join(dict_path, "species_list.txt")],
             ["p3settings", os.path.join(dict_path, "p3parameters")],
             ["excludedgis", os.path.join(dict_path, "no_blast.gi")]]
+
         with open(path_to_configfile) as f:
             for line in f:
                 adv_sett = json.loads(line)
+
+        if "certificate" in adv_sett.keys():
+            certfile = adv_sett['certificate']
+            if os.path.isfile(certfile):
+                filename, file_ext = os.path.splitext(certfile)
+                if file_ext == ".crt" or file_ext == ".cer":
+                    certloc = os.path.join(
+                        "/", "usr", "local", "share", "ca-certificates",
+                        os.path.basename(certfile))
+                    shutil.copy(certfile, certloc)
+                    GeneralFunctions().run_subprocess(
+                            ["update-ca-certificates"])
+                    certcmd = [
+                        "echo", "export",
+                        "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt",
+                        ">>" ,"/root/.bashrc"]
+                    GeneralFunctions().run_shell(" ".join(certcmd))
+                    GeneralFunctions().run_shell(
+                            " ".join(["source", "/root/.bashrc"]))
+                else:
+                    msg = "Certificates in .crt or .cer format are required"
+                    print(msg)
+                    GeneralFunctions().logger(" ".join(msg))
+                    return 1
+            else:
+                msg = " ".join(["Certificate", certfile, "not found"])
+                print(msg)
+                GeneralFunctions().logger(" ".join(msg))
+                return 1
+
         for option in options:
             if option[0] in adv_sett.keys():
                 settings = adv_sett[option[0]]
@@ -233,13 +264,12 @@ class HelperFunctions:
                             return 1
                     else:
                         msg = (
-                            "A settings list or a complete settings file "
-                            "is required")
+                            "A list containing the settings or a complete "
+                            "settings file is required")
                         print(msg)
                         GeneralFunctions().logger(msg)
                         return 1
         return 0
-
 
 
     @staticmethod
@@ -587,10 +617,10 @@ class ParallelFunctions:
         GeneralFunctions().logger("> Start index non-target DB " + db_name)
         print("\nStart index " + db_name)
         start = time.time()
-        cmd = "IndexDb.sh " + inputfilepath + " 9"
+        cmd = ["IndexDb.sh", inputfilepath, "9"]
         try:
-            GeneralFunctions().run_shell(
-                    cmd, printcmd=True, logcmd=True, log=False)
+            GeneralFunctions().run_subprocess(
+                    cmd, True, True, False)
         except (KeyboardInterrupt, SystemExit):
             GeneralFunctions().keyexit_rollback(
                     "DB indexing", dp=primer_qc_dir, search=db_name)
