@@ -389,6 +389,14 @@ class DataCollection():
                                         print("\n")
                                         G.logger(info)
                                     except urllib.error.HTTPError:
+                                        error_msg = (
+                                            "SpeciesPrimer in unable to "
+                                            "connect to the NCBI FTP server. "
+                                            "Please check internet connection "
+                                            "and NCBI FTP server status")
+                                        print(error_msg)
+                                        G.logger("> " + error_msg)
+                                        errors.append([self.target, error_msg])
                                         raise
 
         for files in os.listdir(self.genomic_dir):

@@ -6,6 +6,7 @@ import logging
 import subprocess
 import os
 import csv
+import sys
 import json
 import shutil
 import concurrent.futures
@@ -334,31 +335,41 @@ class HelperFunctions:
     @staticmethod
     def check_species_syn(taxid, email, target):
         Entrez.email = email
-        searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
-        synresult = Entrez.read(searchsyn)
-        scienctificname = synresult[0]['ScientificName']
-        synonym = synresult[0]['OtherNames']['Synonym']
-        includes = synresult[0]['OtherNames']['Includes']
-        synonyms = synonym + includes
-        if synonyms != []:
-            synwarn = []
-            target_name = " ".join(target.split("_"))
-            if not target_name == scienctificname:
-                synwarn.append(scienctificname)
-            for item in synonyms:
-                if not item == target_name:
-                    synwarn.append(item)
-            if synwarn != []:
-                info = ("Warning synonyms for this species were found...")
-                info2 = ("Adding synonyms to exception in config.json.")
-                print("\n" + info)
-                print(synwarn)
-                print(info2 + "\n")
-                GeneralFunctions().logger("> " + info)
-                GeneralFunctions().logger(synwarn)
-                GeneralFunctions().logger("> " + info2)
-                return synwarn
-        return None
+        try:
+            searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
+            synresult = Entrez.read(searchsyn)
+            scienctificname = synresult[0]['ScientificName']
+            synonym = synresult[0]['OtherNames']['Synonym']
+            includes = synresult[0]['OtherNames']['Includes']
+            synonyms = synonym + includes
+            if synonyms != []:
+                synwarn = []
+                target_name = " ".join(target.split("_"))
+                if not target_name == scienctificname:
+                    synwarn.append(scienctificname)
+                for item in synonyms:
+                    if not item == target_name:
+                        synwarn.append(item)
+                if synwarn != []:
+                    info = ("Warning synonyms for this species were found...")
+                    info2 = ("Adding synonyms to exception in config.json.")
+                    print("\n" + info)
+                    print(synwarn)
+                    print(info2 + "\n")
+                    GeneralFunctions().logger("> " + info)
+                    GeneralFunctions().logger(synwarn)
+                    GeneralFunctions().logger("> " + info2)
+                    return synwarn
+            return None
+        except OSError:
+            info = (
+                "SpeciesPrimer is unable to connect to the Entrez server,"
+                " please check the internet connection and try again later")
+            print(info)
+            logging.error("> " + info, exc_info=True)
+            from speciesprimer import errors
+            errors.append([target, info])
+            raise
 
     @staticmethod
     def get_email_for_Entrez(email=None):

@@ -312,6 +312,7 @@ def test_DataCollection(config, monkeypatch):
         syn, taxid = DC.get_taxid(target)
         assert taxid is None
 
+
     def test_maxcontigs(config):
         DC = DataCollection(config)
         G.create_directory(DC.genomic_dir)
@@ -361,6 +362,28 @@ def test_DataCollection(config, monkeypatch):
         syn = ['Lactobacillus curvatus', 'Bacterium_curvatum']
         exceptions = DC.add_synonym_exceptions(syn)
         assert exceptions == ['Lactobacillus curvatus', 'Bacterium_curvatum']
+
+        import urllib.error
+        import urllib.request
+
+        def mocked_fail(db, id):
+            raise urllib.error.HTTPError(
+                    "Entrez", 400, "Bad request", None, None)
+
+        def mock_taxid(target, email):
+            return str(28038)
+
+        monkeypatch.setattr(H, "check_input", mock_taxid)
+        monkeypatch.setattr(Entrez, "efetch", mocked_fail)
+
+        with pytest.raises(urllib.error.HTTPError):
+            DC.get_taxid('Lactobacillus_curvatus')
+        info = (
+                "SpeciesPrimer is unable to connect to the Entrez server,"
+                " please check the internet connection and try again later")
+        from speciesprimer import errors
+        assert errors[-1] == ["Lactobacillus_curvatus", info]
+
 
     def test_create_GI_list():
         filepath = os.path.join(DC.config_dir, "no_blast.gi")
