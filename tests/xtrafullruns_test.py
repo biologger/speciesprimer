@@ -192,6 +192,32 @@ def assert_ref_files(nolist=False):
     ref_files.sort()
     assert files == ref_files
 
+def test_commandline_fail_correct_settings():
+    test =  os.path.join("/", "primerdesign", "test")
+    if os.path.isdir(test):
+        shutil.rmtree(test)
+    G.create_directory(test)
+    G.create_directory(tmpdir)
+    os.chdir(test)
+    CONFFILE = os.path.join(testfiles_dir, "adconfig","advanced_config3.json")
+    reffile = os.path.join(dict_path, "p3parameters")
+    wrong_ext = os.path.join(tmpdir, "p3parameters.txt")
+    shutil.copy(reffile, wrong_ext)
+
+    cmd = [
+            "speciesprimer.py", "-t", "Lactobacillus_curvatus",
+            "--configfile", CONFFILE, "-p", test]
+
+    outputlist = G.read_shelloutput(cmd)
+
+    assert outputlist == [
+        '/primerdesign/tmp/genus_abbrev.csv',
+        'A list containing the settings or a complete settings file'
+        ' is required']
+
+    os.chdir(pipe_dir)
+    shutil.rmtree(test)
+
 def test_run(monkeypatch):
     noblast = os.path.join(dict_path, "no_blast.gi")
     noblastorig = os.path.join(dict_path, "default", "no_blast.gi")
@@ -267,24 +293,6 @@ def test_repeat_primerQC(monkeypatch):
     from speciesprimer import main
     main()
     assert_ref_files(nolist=True)
-
-def test_commandline_fail_correct_settings():
-    test =  os.path.join("/", "primerdesign", "test")
-    G.create_directory(test)
-    G.create_directory(tmpdir)
-    CONFFILE = os.path.join(testfiles_dir, "adconfig","advanced_config3.json")
-    reffile = os.path.join(dict_path, "p3parameters")
-    wrong_ext = os.path.join(tmpdir, "p3parameters.txt")
-    shutil.copy(reffile, wrong_ext)
-
-    output = G.read_shelloutput([
-            "speciesprimer.py", "-t", "Lactobacillus_curvatus",
-            "--configfile", CONFFILE])
-
-    assert output == [
-        '/primerdesign/tmp/genus_abbrev.csv',
-        'A list containing the settings or a complete settings file'
-        ' is required']
 
 def test_end():
     def remove_test_files():

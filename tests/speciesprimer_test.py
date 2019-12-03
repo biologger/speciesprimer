@@ -897,8 +897,6 @@ def test_skip_pangenome_analysis(config):
             "-cd", "100", "-e", "-n", "./gff_files/*.gff"]
 
 
-
-
 def test_CoreGenes(config):
     from speciesprimer import CoreGenes
     CG = CoreGenes(config)
@@ -1237,7 +1235,6 @@ def test_blastprep(config):
 
 
 def test_BLASTsettings(config):
-    import multiprocessing
     from speciesprimer import Blast
     bl = Blast(config, tmpdir, "test")
     blastfiles = bl.search_blastfiles(tmpdir)
@@ -1259,7 +1256,7 @@ def test_BLASTsettings(config):
         config.customdb = settings[1]
         for mode in modes:
             bl = Blast(config, tmpdir, mode)
-            cores = cores = multiprocessing.cpu_count()
+            cores = multiprocessing.cpu_count()
             cmd = bl.get_blast_cmd(
                     blastfile, blastfile + "_results.xml", cores)
             if mode == "quality_control":

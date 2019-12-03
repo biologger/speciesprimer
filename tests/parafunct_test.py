@@ -169,11 +169,35 @@ def test_make_DBs(pqc, config):
             H.abbrev(pqc.target) + ".genomic")
         templatefilepath = os.path.join(
                 pqc.primer_qc_dir, "template.sequences")
-        dblist = [assemblyfilepath, templatefilepath]
         for dbpath in dblist:
             P.index_database(dbpath)
         assert os.path.isfile(genDB) is False
         assert os.path.isfile(tempDB) is False
+
+def test_KeyboardInterrupt(config, pqc, monkeypatch):
+
+    def mock_keyinterrupt(self, cmd, printcmd, logcmd, printoption):
+        raise KeyboardInterrupt
+    genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
+    tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
+    prepare_QC_testfiles(pqc, config)
+    if pqc.collect_primer() == 0:
+        primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
+        pqc.create_template_db_file(primer_qc_list)
+        pqc.create_assembly_db_file()
+        assemblyfilepath = os.path.join(
+            pqc.primer_qc_dir,
+            H.abbrev(pqc.target) + ".genomic")
+        templatefilepath = os.path.join(
+                pqc.primer_qc_dir, "template.sequences")
+        dblist = [assemblyfilepath, templatefilepath]
+
+    monkeypatch.setattr(G, "run_subprocess", mock_keyinterrupt)
+    for dbpath in dblist:
+        with pytest.raises(KeyboardInterrupt):
+            P.index_database(dbpath)
+    assert os.path.isfile(genDB) is False
+    assert os.path.isfile(tempDB) is False
 
 
 def test_qc_nottrue():
