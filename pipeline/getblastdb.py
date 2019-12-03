@@ -105,7 +105,7 @@ def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
             try:
                 wget_download(BASEURL, inputfile, delete, extractedendings)
             except Exception:
-                pass
+                logging.error("", exc_info=True)
             extract_archives(archivename, delete, extractedendings)
 
 

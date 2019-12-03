@@ -3881,8 +3881,8 @@ def commandline():
         " use spaces to separate different species")
     # path
     parser.add_argument(
-       "-p", "--path", type=str, help="Absolute path of working directory, "
-       "Default = current working directory", default=os.getcwd())
+        "-p", "--path", type=str, help="Absolute path of working directory, "
+        "Default = current working directory", default=os.getcwd())
     # Download
     parser.add_argument(
         "--skip_download", action="store_true",
@@ -3969,7 +3969,7 @@ def commandline():
         '["species_list","species_list.txt"], '
         '["p3settings", "p3parameters"], '
         '["excludedgis", "no_blast.gi"]'
-        )
+        "The current settings files will be overwritten")
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.1.1")
@@ -4082,7 +4082,9 @@ def get_configuration_from_args(target, args):
         args.blastseqs, args.probe, args.blastdbv5)
 
     if args.configfile:
-        H.advanced_pipe_config(args.configfile)
+        exitstat = H.advanced_pipe_config(args.configfile)
+        if exitstat:
+            sys.exit()
 
     return config
 
