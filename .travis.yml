@@ -10,7 +10,7 @@ before_install:
  - ci_env=`bash <(curl -s https://codecov.io/env)`
 
 script:
-  - docker exec $ci_env testenv /bin/bash -c "cd / && pytest -vv --cov=pipeline /tests/"
+  - docker exec $ci_env testenv /bin/bash -c "cd / && pytest -vv --cov=/pipeline /tests/"
   - docker exec $ci_env testenv /bin/bash -c "bash <(curl -s https://codecov.io/bash)"
 
 sudo: false
