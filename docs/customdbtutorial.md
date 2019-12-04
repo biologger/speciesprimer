@@ -1,6 +1,6 @@
-## custom DB tutorial
+## Custom DB tutorial
 
-First we will download some sequences we want to use for our custom BLAST database with a handy tool from [kblin](https://github.com/kblin/ncbi-genome-download)
+First we will download some sequences we want to use for our custom BLAST database with a handy tool called ncbi-genome-download from [kblin](https://github.com/kblin/ncbi-genome-download).
 
 * Start a interactive terminal in your Docker container
 
@@ -15,7 +15,7 @@ First we will download some sequences we want to use for our custom BLAST databa
 		$ cd /blastdb
 		$ ncbi-genome-download --genus Lactobacillus bacteria --assembly-level complete,chromosome --format fasta
 
-After some time 414 Genomes were downloaded by ncbi-genome-download 
+After some time 414 Genomes were downloaded by ncbi-genome-download
 
 * The genomes can be found in a new refseq/bacteria directory
 
@@ -46,5 +46,13 @@ After some time 414 Genomes were downloaded by ncbi-genome-download
 * Maybe you want a more extensive database with more than just one genus you could add more sequences to your fasta file or combine different BLAST DB's with the blastdb_aliastool
 
 		$ blastdb_aliastool -dblist "ref_prok_rep_genomes lb_genomic" -dbtype nucl -out repandlb -title "RefSeq Prok Rep and complete Lb genomes"
- 
-Now use in the command line -customdb /blastdb/repandlb.nal or with the GUI path to customBLASTDB: /blastdb/repandlb.nal and both databases are searched.
+
+* Command line example
+
+		$ speciesprimer.py --customdb /blastdb/repandlb
+
+* GUI or command line assistant) example
+
+	Path for the custom BLAST DB
+
+ 		/blastdb/repandlb

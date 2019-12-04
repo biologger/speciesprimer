@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
     <title>Pipeline setup</title>
-	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
   </head>
   <body>
@@ -15,14 +15,14 @@
 <p>In your internetbrowser [<a href="http://localhost:5000]">http://localhost:5000]</a> Navigate to the BLAST DB link.</p>
 <p>To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
 <h4 id="troubleshooting:"><a class="header-link" href="#troubleshooting:"></a>Troubleshooting:</h4>
-<p>The script changes to the &quot;/home/blastdb&quot; directory in the container and runs the command below</p>
+<p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below</p>
 <pre class="hljs"><code><span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre><p>To get possible hints or error messages you can run this command from a docker terminal.</p>
 <p><strong>Example</strong></p>
 <ul class="list">
 <li><p><strong>HOST</strong></p>
 <pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> {containername} <span class="hljs-keyword">bash</span></code></pre></li>
 <li><p><strong>Container</strong></p>
-<pre class="hljs"><code>  <span class="hljs-comment">$</span> <span class="hljs-comment">cd</span> <span class="hljs-comment">/home/blastdb</span>
+<pre class="hljs"><code>  <span class="hljs-comment">$</span> <span class="hljs-comment">cd</span> <span class="hljs-comment">/blastdb</span>
   <span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre></li>
 </ul>
 <p>As an alternative the python script <strong>getblastdb.py</strong> can be used.</p>
@@ -34,7 +34,7 @@ the download starts after you clicked on &quot;Start BLAST DB download&quot; but
 <p><strong>Example:</strong></p>
 <ul class="list">
 <li><p><strong>Container</strong></p>
-<pre class="hljs"><code>  $ getblastdb.py -dbpath /<span class="hljs-built_in">home</span>/blastdb --<span class="hljs-keyword">delete</span>    </code></pre></li>
+<pre class="hljs"><code>  $ getblastdb<span class="hljs-selector-class">.py</span> -dbpath /blastdb --delete    </code></pre></li>
 </ul>
 <hr>
 <h3 id="create-a-species_list.txt-file"><a class="header-link" href="#create-a-species_list.txt-file"></a>Create a species_list.txt file</h3>
@@ -75,7 +75,7 @@ Keep a copy of your adapted files on your host computer in case you want to use 
 <p>The taxid list contains all NCBI taxonomic ids for bacteria (NCBI:txid2). From time to time NCBI may add new taxids if new species are added.</p>
 <p>As an alternative if the <strong>Entrez EDirect Utility</strong> and <strong>the BLAST+ command line application</strong> are installed on the host computer, the <strong>get_species_taxids.sh</strong> script from the BLAST+ program can be used to create this list.</p>
 <p><strong>Example</strong></p>
-<pre class="hljs"><code>    <span class="hljs-variable">$ </span>get_species_taxids.sh -t <span class="hljs-number">2</span> &gt; <span class="hljs-regexp">/home/pipeline</span><span class="hljs-regexp">/dictionaries/</span><span class="hljs-number">2</span>.txids</code></pre><hr>
+<pre class="hljs"><code>    <span class="hljs-variable">$ </span>get_species_taxids.sh -t <span class="hljs-number">2</span> &gt; <span class="hljs-regexp">/pipeline/dictionaries</span><span class="hljs-regexp">/2.txids</span></code></pre><hr>
 <h3 id="abbreviations-of-genus-names"><a class="header-link" href="#abbreviations-of-genus-names"></a>Abbreviations of genus names</h3>
 <p>If you wish to use abbreviations of genus names for the pipeline output files,
 add the genus name and the desired abbreviation to the &quot;<strong>genus_abbrev.csv</strong>&quot; file.</p>

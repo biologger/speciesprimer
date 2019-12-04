@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
     <title>Troubleshooting Docker</title>
-	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
   </head>
   <body>
@@ -85,8 +85,8 @@
 <ul class="list">
 <li><p><strong>HOST:</strong></p>
 <pre class="hljs"><code>  $ sudo docker run \
-  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
-</span>  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">blastdb:</span>/blastdb \
+</span>  -<span class="ruby">v /home/{linux_username}/<span class="hljs-symbol">primerdesign:</span>/primerdesign \
 </span>  -<span class="ruby">p {hostport1}<span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p {hostport2}<span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
 </span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
 </ul>
@@ -94,8 +94,8 @@
 <ul class="list">
 <li><p><strong>HOST:</strong></p>
 <pre class="hljs"><code>  $ sudo docker run \
-  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
-</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/blastdb \
+</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/primerdesign \
 </span>  -<span class="ruby">p <span class="hljs-number">5000</span><span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p <span class="hljs-number">9001</span><span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
 </span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
 </ul>
@@ -108,7 +108,7 @@ see the docs for installation instructions <a href="https://docs.docker.com/">ht
 <li><p>Open a terminal:</p>
 <ul class="list">
 <li><p><strong>HOST:</strong></p>
-<pre class="hljs"><code>  <span class="hljs-variable">$ </span>sudo docker pull biologger/speciesprimergui</code></pre></li>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>sudo docker pull biologger/speciesprimer</code></pre></li>
 </ul>
 </li>
 <li><p>Now you have the image, you can display the image with</p>
@@ -117,7 +117,7 @@ see the docs for installation instructions <a href="https://docs.docker.com/">ht
 <pre class="hljs"><code>  <span class="hljs-variable">$ </span>sudo docker images</code></pre></li>
 </ul>
 </li>
-<li><p>If there is more than one image from the repository <strong>biologger/speciesprimergui</strong>, you can remove the image with the &lt;none> Tag</p>
+<li><p>If there is more than one image from the repository <strong>biologger/speciesprimer</strong>, you can remove the image with the &lt;none> Tag</p>
 <ul class="list">
 <li><p><strong>HOST:</strong></p>
 <pre class="hljs"><code> $ sudo docker <span class="hljs-class">rmi </span>{image_id}</code></pre></li>
@@ -128,7 +128,7 @@ see the docs for installation instructions <a href="https://docs.docker.com/">ht
 <ol class="list">
 <li><p>Decide which directories (on the host) should be used by the container</p>
 </li>
-<li><p>If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path_to_host_blastdb_dir:/home/blastdb) </p>
+<li><p>If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path_to_host_blastdb_dir:/blastdb) </p>
 </li>
 <li><p>Create a directory for primerdesign and one for the BLAST database</p>
 </li>
@@ -147,7 +147,7 @@ $ <span class="hljs-built_in">mkdir</span> /<span class="hljs-built_in">home</sp
 </li>
 </ol>
 <h3 id="run-a-container-instance"><a class="header-link" href="#run-a-container-instance"></a>Run a container instance</h3>
-<p>Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /home/blastdb and /home/primerdesign. The name of the container can be changed (--name).
+<p>Create the container instance using the host directories as volumes for the docker container. In the container these directories are then located in /blastdb and /primerdesign. The name of the container can be changed (--name).
 The -p option defines the ports which are open for the container so you can access the container app <a href="http://127.0.0.1:{hostport1/2}">http://127.0.0.1:{hostport1/2}</a> / <a href="http://localhost:{hostport1/2}}">http://localhost:{hostport1/2}}</a>.
 On the left side the host port is given and on the right side the container port. The container port is fixed and cannot be changed, if the host port is already used another port can be selected.
 The link on the page where you can control the runs is however fixed to port 9001, but you can open the log file stream by opening <a href="http://localhost:{hostport2}">http://localhost:{hostport2}</a> in your browser.</p>
@@ -155,19 +155,19 @@ The link on the page where you can control the runs is however fixed to port 900
 <ol class="list">
 <li><p><strong>HOST:</strong></p>
 <pre class="hljs"><code> $ sudo docker run \
- -<span class="ruby">v <span class="hljs-symbol">path_to_host_blastdb_dir:</span>/home/blastdb \
-</span> -<span class="ruby">v <span class="hljs-symbol">path_to_host_primerdesign_dir:</span>/home/primerdesign \
+ -<span class="ruby">v <span class="hljs-symbol">path_to_host_blastdb_dir:</span>/blastdb \
+</span> -<span class="ruby">v <span class="hljs-symbol">path_to_host_primerdesign_dir:</span>/primerdesign \
 </span> -<span class="ruby">p {hostport1}<span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p {hostport2}<span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
-</span> -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimergui</span></code></pre></li>
+</span> -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
 </ol>
 <p><strong>Example:</strong></p>
 <ul class="list">
 <li><p><strong>HOST:</strong></p>
 <pre class="hljs"><code>  $ sudo docker run \
-  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/home/blastdb \
-</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/home/primerdesign \
+  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">blastdb:</span>/blastdb \
+</span>  -<span class="ruby">v /home/biologger/<span class="hljs-symbol">primerdesign:</span>/primerdesign \
 </span>  -<span class="ruby">p <span class="hljs-number">5000</span><span class="hljs-symbol">:</span><span class="hljs-number">5000</span> -p <span class="hljs-number">9001</span><span class="hljs-symbol">:</span><span class="hljs-number">9001</span> \
-</span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimergui</span></code></pre></li>
+</span>  -<span class="ruby">-name speciesprimer_pipeline -it biologger/speciesprimer</span></code></pre></li>
 </ul>
 <p>In the terminal you see that the server in the container was started.
 Afterwards you can open the address [<a href="http://localhost:5000]">http://localhost:5000]</a> or what port you have choosen for {hostport1} in your webbrowser.</p>
@@ -202,7 +202,7 @@ Instead you simply start the container with the command </p>
 <pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> speciesprimer_pipeline bash</code></pre></li>
 </ul>
 <h4 id="leave-the-container-terminal"><a class="header-link" href="#leave-the-container-terminal"></a>Leave the container terminal</h4>
-<p>You can leave the docker container by typing exit        </p>
+<p>You can leave the docker container by typing exit</p>
 <p><strong>Example:</strong></p>
 <ul class="list">
 <li><p><strong>CONTAINER:</strong></p>
@@ -212,7 +212,7 @@ Instead you simply start the container with the command </p>
 <p>If not already started </p>
 <p>$ sudo docker start {containername/id} </p>
 <p>$ sudo docker exec -it {containername/id} bash</p>
-<p>If you see <strong>root@{containerID}:/home/primerdesign#</strong> in the terminal, you have now access to the terminal of the container.</p>
+<p>If you see <strong>root@{containerID}:/primerdesign#</strong> in the terminal, you have now access to the terminal of the container.</p>
 <p>Test if you have mounted the volumes correctly </p>
 <ul class="list">
 <li><p><strong>CONTAINER:</strong></p>
@@ -253,7 +253,20 @@ Instead you simply start the container with the command </p>
 </ul>
 </li>
 </ol>
-    </article>
+<h3 id="time-settings"><a class="header-link" href="#time-settings"></a>Time settings</h3>
+<p>Run a container with your local time settings</p>
+<pre class="hljs"><code>    $ sudo docker run -e TZ=Europe/Zurich \
+    -v <span class="hljs-variable">$HOME</span>/blastdb:/blastdb -v <span class="hljs-variable">$HOME</span>/primerdesign:/primerdesign \
+    --name speciesprimertime -<span class="hljs-selector-tag">p</span> <span class="hljs-number">5000</span>:<span class="hljs-number">5000</span> -<span class="hljs-selector-tag">p</span> <span class="hljs-number">9001</span>:<span class="hljs-number">9001</span> -it biologger/speciesprimer</code></pre><p>Or in an existing container </p>
+<pre class="hljs"><code> * <span class="hljs-variable">__HOST</span>:<span class="hljs-variable">__</span>
+
+        $ sudo docker start {containername/id} 
+
+        $ sudo docker <span class="hljs-built_in">exec</span> -it {containername/id} bash
+
+* <span class="hljs-variable">__CONTAINER</span>:<span class="hljs-variable">__</span>
+
+        $ dpkg-reconfigure tzdata</code></pre>    </article>
   </body>
 </html>
 {% endblock %}

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
     <title>Configuration of Docker with DNS and proxy server</title>
-	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
   </head>
   <body>
@@ -56,7 +56,7 @@
 <li><p>Open or create the <strong>https-proxy.conf</strong> file to add the https proxy configuration</p>
 <ul class="list">
 <li><p><strong>Example:</strong></p>
-<pre class="hljs"><code>  $ sudo gedit /etc/systemd/docker<span class="hljs-selector-class">.service</span><span class="hljs-selector-class">.d</span>/https-proxy.conf</code></pre></li>
+<pre class="hljs"><code>  $ sudo gedit <span class="hljs-regexp">/etc/</span>systemd<span class="hljs-regexp">/system/</span>docker.service.d<span class="hljs-regexp">/http-proxy.conf/</span>https-proxy.conf</code></pre></li>
 </ul>
 </li>
 <li><p>Copy the text below with your {proxy_address:port} for the https proxy in the https-proxy.conf file</p>
@@ -124,7 +124,7 @@
 
   *<span class="hljs-symbol">__CONTAINER:</span>_<span class="hljs-number">_</span>
 
-     $ cp /home/primerdesign/certificates/Proxy_CA.cer /usr/local/share/ca-certificates/Proxy_CA.crt
+     $ cp /primerdesign/certificates/Proxy_CA.cer /usr/local/share/ca-certificates/Proxy_CA.crt
      $ update-ca-certificates 
      $ export REQUESTS_CA_BUNDLE=<span class="hljs-regexp">/etc/ssl</span><span class="hljs-regexp">/certs/ca</span>-certificates.crt
      $ echo export REQUESTS_CA_BUNDLE=<span class="hljs-regexp">/etc/ssl</span><span class="hljs-regexp">/certs/ca</span>-certificates.crt <span class="hljs-meta">&gt;&gt; </span>/root/.bashrc</code></pre></li>

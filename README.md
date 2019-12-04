@@ -9,7 +9,7 @@
 
 
 New in SpeciesPrimer v2.1
-* configfile option for pipeline setup (v2.1.1)
+* Configfile option for pipeline setup (v2.1.1)
 * Custom Blast DB support
 * Email option for command line
 * Increased speed
@@ -47,7 +47,7 @@ New in SpeciesPrimer v2.1
 ## quick start (Ubuntu 16.04)
 
 * [Download](https://www.docker.com/get-docker) and [install](https://docs.docker.com/install/) docker
-		
+
 		$ sudo docker pull biologger/speciesprimer
 		$ mkdir $HOME/primerdesign
 		$ mkdir $HOME/blastdb
@@ -87,7 +87,7 @@ New in SpeciesPrimer v2.1
 
 		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
 		# or
-		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes	
+		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes
 
 		$ cd /primerdesign
 
@@ -105,7 +105,7 @@ New in SpeciesPrimer v2.1
 
 For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
 
-#### If you want to use the ref_prok_rep_genomes DB use the customdb option 
+#### If you want to use the ref_prok_rep_genomes DB use the customdb option
 
 		customdb: /blastdb/ref_prok_rep_genomes
 
@@ -159,7 +159,7 @@ Python modules and software used for the GUI:
 |	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
 |	|intermediate|Select this option to keep intermediate files.|False|
 |	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
-|	|configfile|Provide a configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files|None|
+|	|configfile [str]|Path to configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
@@ -168,4 +168,3 @@ Python modules and software used for the GUI:
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
-

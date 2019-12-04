@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
     <title>Troubleshooting</title>
-	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
 	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
   </head>
   <body>
@@ -18,6 +18,50 @@
     # or
 
     <span class="hljs-variable">$blastn</span> -<span class="hljs-keyword">db</span> nt -<span class="hljs-keyword">query</span> ...         # old database</code></pre><p>However, if you do want to have the &quot;old&quot; behaviour you can copy the <strong>nt_v5.nal</strong> file in the blastdb directory and rename it to <strong>nt.nal</strong>. Then the BLAST searches will use the BLAST nt v5 without using the taxonomy awareness features.</p>
+<hr>
+<h4 id="gui-trouble"><a class="header-link" href="#gui-trouble"></a>GUI trouble</h4>
+<ul class="list">
+<li><p>If pages are not loaded and an Error message appears.</p>
+</li>
+<li><p>Check if the container is running</p>
+<p> <strong>HOST:</strong></p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo docker ps</code></pre></li>
+</ul>
+<p>Something like this should show up
+CONTAINER ID    IMAGE            COMMAND        CREATED        STATUS        PORTS                        NAMES
+ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago     Up 5 hours      0.0.0.0:5000-&gt;5000/tcp, 0.0.0.0:9001-&gt;9001/tcp  specprime2.1</p>
+<ol start="2">
+<li><p>Try to navigate to the login page and enter (again) your e-mail address.</p>
+</li>
+<li><p>If this does not help...There could be a problem with the code. Please write to <a href="mailto:biologger@protonmail.com">biologger@protonmail.com</a> or on GitHub <a href="https://github.com/biologger/speciesprimer">https://github.com/biologger/speciesprimer</a></p>
+</li>
+</ol>
+<p>If you want to help...</p>
+<ul class="list">
+<li><p>Open a new terminal and type:</p>
+<p>  <strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker attach {containerid/<span class="hljs-built_in">name</span>}</code></pre><p>  <strong>example</strong>:</p>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-section">attach</span> specprime2<span class="hljs-number">.1</span></code></pre></li>
+<li><p>Repeat the action you did before the error page was shown and provide the error message in the attached terminal.</p>
+<p>  <strong>example</strong>:</p>
+<pre class="hljs"><code>  [2019-11-21 14:55:53,018] <span class="hljs-keyword">ERROR</span> <span class="hljs-keyword">in</span> <span class="hljs-keyword">app</span>: Exception <span class="hljs-keyword">on</span> /change_settings [<span class="hljs-keyword">POST</span>]
+  Traceback (most recent call last):
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 2446, <span class="hljs-keyword">in</span> wsgi_app
+      response = self.full_dispatch_request()
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1951, <span class="hljs-keyword">in</span> full_dispatch_request
+      rv = self.handle_user_exception(<span class="hljs-keyword">e</span>)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1820, <span class="hljs-keyword">in</span> handle_user_exception
+      reraise(exc_type, exc_value, tb)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/_compat.py"</span>, <span class="hljs-keyword">line</span> 39, <span class="hljs-keyword">in</span> reraise
+      raise value
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1949, <span class="hljs-keyword">in</span> full_dispatch_request
+      rv = self.dispatch_request()
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1935, <span class="hljs-keyword">in</span> dispatch_request
+      <span class="hljs-keyword">return</span> self.view_functions[rule.endpoint](**req.view_args)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/pipeline/gui/app/routes.py"</span>, <span class="hljs-keyword">line</span> 168, <span class="hljs-keyword">in</span> change_settings
+      path = old_settings['path']
+  UnboundLocalError: <span class="hljs-keyword">local</span> variable 'old_settings' referenced before assignment</code></pre></li>
+</ul>
 <hr>
 <h4 id="delete-files-created-by-the-docker-container-from-the-host."><a class="header-link" href="#delete-files-created-by-the-docker-container-from-the-host."></a>Delete files created by the docker container from the host.</h4>
 <ul class="list">
@@ -76,9 +120,9 @@
 <p>The pipeline searches in the config directory for config.json files and continues the run </p>
 <p> <strong>Example:</strong></p>
 <ul class="list">
-<li>Path to search for configuration files: <strong>/home/primerdesign</strong></li>
+<li>Path to search for configuration files: <strong>/primerdesign</strong></li>
 <li>Search only configuration files for the selected species: <strong>Lactobacillus curvatus</strong></li>
-<li>--&gt; SpeciesPrimer will search for config files in: <strong>/home/primerdesign/Lactobacillus_curvatus/config</strong></li>
+<li>--&gt; SpeciesPrimer will search for config files in: <strong>/primerdesign/Lactobacillus_curvatus/config</strong></li>
 </ul>
 <p><strong>Example:</strong> </p>
 <p>Restart the pipeline with the same configuration (commandline)</p>
@@ -164,7 +208,7 @@
 <ul class="list">
 <li><p><strong>CONTAINER:</strong></p>
 <pre class="hljs"><code>  <span class="hljs-comment"># remove the entries of the assemblies you want to keep.</span>
-  $ nano <span class="hljs-regexp">/home/</span>primerdesign<span class="hljs-regexp">/excludedassemblies/</span>Lactobacillus_curvatus<span class="hljs-regexp">/excluded_list.txt</span></code></pre></li>
+  $ nano <span class="hljs-regexp">/primerdesign/</span>excludedassemblies<span class="hljs-regexp">/Lactobacillus_curvatus/</span>excluded_list.txt</code></pre></li>
 <li><p><strong>Host</strong>:            </p>
 <pre class="hljs"><code>  $ gedit <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/primerdesign/</span>excludedassemblies<span class="hljs-regexp">/Lactobacillus_curvatus/</span>excluded_list.txt</code></pre></li>
 </ul>
