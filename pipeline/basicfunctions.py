@@ -211,11 +211,12 @@ class HelperFunctions:
         if "certificate" in adv_sett.keys():
             certfile = adv_sett['certificate']
             if os.path.isfile(certfile):
-                filename, file_ext = os.path.splitext(certfile)
+                filename_ext = os.path.basename(certfile)
+                filename, file_ext = os.path.splitext(filename_ext)
                 if file_ext == ".crt" or file_ext == ".cer":
                     certloc = os.path.join(
                         "/", "usr", "local", "share", "ca-certificates",
-                        os.path.basename(certfile))
+                        filename + ".crt")
                     shutil.copy(certfile, certloc)
                     GeneralFunctions().run_subprocess(
                             ["update-ca-certificates"])
