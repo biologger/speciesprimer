@@ -7,13 +7,16 @@
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 
-new in SpeciesPrimer v2.1
+
+New in SpeciesPrimer v2.1
+* configfile option for pipeline setup (v2.1.1)
 * Custom Blast DB support
 * Email option for command line
 * Increased speed
 * Species synonyms are added to exceptions
 * Bugfixes and KeyboardInterrupt rollback
 * Simpler directory structure
+
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
@@ -24,6 +27,7 @@ new in SpeciesPrimer v2.1
 
 ## Docs
 * [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/tutorial.md)
+* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
 * [Pipeline setup](https://github.com/biologger/speciesprimer/tree/master/docs/pipelinesetup.md)
 * [Primerdesign](https://github.com/biologger/speciesprimer/tree/master/docs/primerdesign.md)
 * [Troubleshooting](https://github.com/biologger/speciesprimer/tree/master/docs/troubleshooting.md)
@@ -42,7 +46,7 @@ new in SpeciesPrimer v2.1
 
 ## quick start (Ubuntu 16.04)
 
-* [Download](https://www.docker.com/get-docker) and install docker
+* [Download](https://www.docker.com/get-docker) and [install](https://docs.docker.com/install/) docker
 		
 		$ sudo docker pull biologger/speciesprimer
 		$ mkdir $HOME/primerdesign
@@ -99,6 +103,8 @@ new in SpeciesPrimer v2.1
 
 * Starting the script will start an assistant for the configuration of a new run
 
+For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
+
 #### If you want to use the ref_prok_rep_genomes DB use the customdb option 
 
 		customdb: /blastdb/ref_prok_rep_genomes
@@ -142,7 +148,7 @@ Python modules and software used for the GUI:
 |Section|Command line option [Input]|Description|Default|
 |--|--|--|--|
 |General| target [str]|Name of the target species|None (required)|
-|	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|[]|
+|	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|None|
 |	|path [str]|Absolute path of the working directory|Current working directory|
 |	|offline|Work offline with local genome assemblies|False|
 |	|skip\_download|Skips download of genome assemblies from NCBI RefSeq FTP server|False|
@@ -153,6 +159,7 @@ Python modules and software used for the GUI:
 |	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
 |	|intermediate|Select this option to keep intermediate files.|False|
 |	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
+|	|configfile|Provide a configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|

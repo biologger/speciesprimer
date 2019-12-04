@@ -4,7 +4,7 @@
 
 ### Download and install docker
 Download from <https://www.docker.com/get-docker> and
-see the docs for installation instructions <https://docs.docker.com/>
+see the docs for installation instructions <https://docs.docker.com/install/>
 
 ### Download images from docker hub
 
