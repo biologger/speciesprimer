@@ -4117,6 +4117,10 @@ def main(mode=None):
         if not os.path.isabs(args.path):
             args.path = os.path.join(os.getcwd(), args.path)
 
+        if args.configfile:
+            if not os.path.isabs(args.configfile):
+                args.configfile = os.path.join(os.getcwd(), args.configfile)
+
         if args.email:
             H.get_email_for_Entrez(args.email)
 

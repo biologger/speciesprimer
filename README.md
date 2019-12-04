@@ -105,9 +105,9 @@ New in SpeciesPrimer v2.1
 
 For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
 
-#### If you want to use the ref_prok_rep_genomes DB use the customdb option
+#### If you want to use the ref_prok_rep_genomes DB use the customdb option with the path
 
-		customdb: /blastdb/ref_prok_rep_genomes
+		blastdb/ref_prok_rep_genomes
 
 # Introduction
 The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.
