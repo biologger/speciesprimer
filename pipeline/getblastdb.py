@@ -11,7 +11,7 @@ import time
 import filecmp
 import json
 import shutil
-
+import signal
 from basicfunctions import GeneralFunctions as G
 
 BASEURLnt = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
@@ -169,7 +169,7 @@ def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
 
         except (KeyboardInterrupt, SystemExit):
             logging.error(
-                "KeyboardInterrupt while working on "
+                "BLAST DB download was stopped while working on "
                 + filename, exc_info=True)
             for tmpfiles in os.listdir(blastdb_dir):
                 if tmpfiles.endswith(".tmp"):
@@ -245,11 +245,15 @@ def logger(string_to_log):
         time.strftime(" %a, %d %b %Y %H:%M:%S: ", time.localtime())
         + string_to_log)
 
+def exitatsigterm(signalNumber, frame):
+    raise SystemExit('GUI stop')
+    return
 
 def get_DB(mode=False):
     test = False
     today = time.strftime("%Y_%m_%d", time.localtime())
     if mode == "auto":
+        signal.signal(signal.SIGTERM, exitatsigterm)
         with open(tmp_db_path, 'r') as f:
             for line in f:
                 tmp_db = json.loads(line)

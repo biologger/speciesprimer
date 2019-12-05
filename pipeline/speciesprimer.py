@@ -8,6 +8,7 @@ import time
 import logging
 import csv
 import fnmatch
+import signal
 import re
 import shutil
 import multiprocessing
@@ -4088,12 +4089,16 @@ def get_configuration_from_args(target, args):
 
     return config
 
+def exitatsigterm(signalNumber, frame):
+    raise SystemExit('GUI stop')
+    return
 
 def main(mode=None):
     today = time.strftime("%Y_%m_%d", time.localtime())
     use_configfile = False
 
     if mode == "auto":
+        signal.signal(signal.SIGTERM, exitatsigterm)
         os.chdir(os.path.join("/", "primerdesign"))
         logfile = os.path.join(os.getcwd(), "speciesprimer_" + today + ".log")
         logging.basicConfig(
@@ -4154,7 +4159,8 @@ def main(mode=None):
 
         except (KeyboardInterrupt, SystemExit):
             logging.error(
-                "KeyboardInterrupt while working on " + target, exc_info=True)
+                "SpeciesPrimer was stopped while working on " + target,
+                exc_info=True)
             raise
 
     if len(errors) > 0:
