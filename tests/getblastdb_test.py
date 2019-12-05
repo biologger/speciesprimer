@@ -44,6 +44,9 @@ extractedendings = [
 def create_mock_archives():
     G.create_directory(tmpdir)
     G.create_directory(downdir)
+    refhtml = os.path.join(testfiles_dir, "download.html")
+    htmlfile = os.path.join(tmpdir, "mockfiles","download.html")
+    shutil.copy(refhtml, htmlfile)
     with open(os.path.join(tmpdir, "ref_prok_rep_genomes.html.tmp"), "w") as f:
         f.write("mock")
     for i in range(0, 6):
@@ -90,7 +93,9 @@ def create_mock_archives():
         if files.endswith("tar.gz.md5"):
             fromfile = os.path.join(tmpdir, files)
             tofilepath = os.path.join(md5_dir, files)
+            downfiles = os.path.join(downdir, files)
             shutil.copy(fromfile, tofilepath)
+            shutil.copy(fromfile, downfiles)
 
     chmdfile = os.path.join(md5_dir, "ref_prok_rep_genomes.05.tar.gz.md5")
     with open(chmdfile, "r") as f:
@@ -195,6 +200,52 @@ def test_commandline():
         args = parser.parse_args([
                 "database", "ref_prok_rep_genomes", "dbpath", "/blastdb"])
 
+
+def test_run():
+    try:
+        remfile = os.path.join(
+                tmpdir, "ref_prok_rep_genomes.05.tar.gz.md5")
+        create_mock_archives()
+        cmd = [
+                "getblastdb.py", "--database", "ref_prok_rep_genomes",
+                "--dbpath", "/blastdb/tmp", "--test", "--delete"]
+        os.chdir(tmpdir)
+        os.remove(remfile)
+
+        for files in os.listdir(tmpdir):
+            if (
+                files.startswith("ref_prok_rep_genomes.05")
+                and not files.endswith(".md5")
+            ):
+                os.remove(files)
+
+        G.run_subprocess(cmd)
+
+        file1 = os.path.join(
+                tmpdir, "md5_files", "ref_prok_rep_genomes.00.tar.gz.md5")
+        file2 = os.path.join(
+                tmpdir, "md5_files", "ref_prok_rep_genomes.05.tar.gz.md5")
+        assert os.path.isfile(file1) is True
+        assert os.path.isfile(file2) is True
+        check_all_files()
+    finally:
+        os.chdir("..")
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+
+def test_getmd5files():
+    create_mock_archives()
+    db = "ref_prok_rep_genomes"
+    BASEURL = "file:/blastdb/tmp/mockfiles/download/"
+    HTTPURL = "file:/blastdb/tmp/mockfiles/download.html"
+    getblastdb.get_md5files(tmpdir, db, BASEURL, HTTPURL)
+    file1 = os.path.join(tmpdir, "ref_prok_rep_genomes.00.tar.gz.md5")
+    file2 = os.path.join(tmpdir, "ref_prok_rep_genomes.05.tar.gz.md5")
+    assert os.path.isfile(file1) is True
+    assert os.path.isfile(file2) is True
+    os.chdir("..")
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)
 
 def test_skipdownload():
     create_mock_archives()

@@ -12,10 +12,9 @@ import filecmp
 import json
 import shutil
 import signal
+import urllib.request
+from html.parser import HTMLParser
 from basicfunctions import GeneralFunctions as G
-
-BASEURLnt = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
-BASEURLref = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/'
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
@@ -37,6 +36,9 @@ def commandline():
         "-db", "--database", type=str,
         help="Select nt_v5 or ref_prok_rep_genomes", default="nt_v5",
         choices=["nt_v5", "ref_prok_rep_genomes"])
+
+    parser.add_argument('--test', action="store_true", help=argparse.SUPPRESS)
+
     return parser
 
 
@@ -49,6 +51,7 @@ def md5Checksum(filePath):
                 break
             m.update(data)
     return m.hexdigest()
+
 
 def wget_download(BASEURL, filename, delete, extractedendings):
     archivename = filename.split(".md5")[0]
@@ -65,6 +68,7 @@ def wget_download(BASEURL, filename, delete, extractedendings):
             os.remove(filename)
         raise
     extract_archives(dbfile, delete, extractedendings)
+
 
 def check_md5(inputfile):
     archivename = inputfile.split(".md5")[0]
@@ -213,16 +217,28 @@ def extract_archives(dbfile, delete, extractedendings):
                 os.remove(dbfile)
 
 
-def get_md5files(blastdb_dir, db, BASEURL):
+class htmllinkparser(HTMLParser):
+    StartTags = list()
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            for name, value in attrs:
+                if name == "href":
+                    self.StartTags.append(value)
+
+
+def get_md5files(blastdb_dir, db, BASEURL, HTTPURL):
     os.chdir(blastdb_dir)
-    # -nc, --no-clobber skip downloads that would download to
-    # existing files (overwriting them) can lead to problems
-    # if single md5 files are manually deleted
-    command = [
-        "wget", "-nv", "-nc", "-r", "--no-parent", "--no-directories",
-        "--tries", "4", "-A", db + ".*.tar.gz.md5",
-        "-X", BASEURL+"FASTA," + BASEURL+"cloud," + BASEURL+"v5", BASEURL]
-    G.run_subprocess(command)
+    r = urllib.request.urlopen(HTTPURL)
+    parser = htmllinkparser()
+    content = str(r.read())
+    parser.feed(content)
+    filelist = parser.StartTags
+    for filename in filelist:
+        if filename.startswith(db + ".") and filename.endswith(".tar.gz.md5"):
+            url = BASEURL + filename
+            if not os.path.isfile(filename):
+                logger("> Downloading..." + filename)
+                wget.download(url, filename)
 
 
 def get_filelist(blastdb_dir, db):
@@ -245,9 +261,11 @@ def logger(string_to_log):
         time.strftime(" %a, %d %b %Y %H:%M:%S: ", time.localtime())
         + string_to_log)
 
+
 def exitatsigterm(signalNumber, frame):
     raise SystemExit('GUI stop')
     return
+
 
 def get_DB(mode=False):
     test = False
@@ -280,6 +298,7 @@ def get_DB(mode=False):
         parser = commandline()
         args = parser.parse_args()
         delete = args.delete
+        test = args.test
         if args.dbpath:
             if args.dbpath.endswith("/"):
                 blastdb_dir = args.dbpath
@@ -297,25 +316,28 @@ def get_DB(mode=False):
 
     G.create_directory(os.path.join(blastdb_dir, "md5_files"))
 
+
     if db == "nt_v5":
-        BASEURL = BASEURLnt
+        BASEURL = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
+        HTTPURL = 'http://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
         extractedendings = [
             ".nhd", ".nhi", ".nhr", ".nin",
             ".nnd", ".nni", ".nog", ".nsq"]
     elif test:
-        BASEURL = "file:/blastdb/tmp/mockfiles/download"
+        BASEURL = "file:/blastdb/tmp/mockfiles/download/"
+        HTTPURL = "file:/blastdb/tmp/mockfiles/download.html"
         extractedendings = [
             ".nhr", ".nin", ".nnd", ".nni",
             ".nog", ".nsd", ".nsi", ".nsq"]
     else:
-        BASEURL = BASEURLref
+        BASEURL = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/'
+        HTTPURL = 'http://ftp.ncbi.nlm.nih.gov/blast/db/'
         extractedendings = [
             ".nhr", ".nin", ".nnd", ".nni",
             ".nog", ".nsd", ".nsi", ".nsq"]
 
     logger("Start Download of NCBI " + db + " BLAST database")
-    if not test:
-        get_md5files(blastdb_dir, db, BASEURL)
+    get_md5files(blastdb_dir, db, BASEURL, HTTPURL)
     filelist = get_filelist(blastdb_dir, db)
     download_from_ftp(filelist, blastdb_dir, delete, BASEURL, extractedendings)
 
