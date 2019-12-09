@@ -3849,6 +3849,12 @@ class Summary:
             PipelineStatsCollector(
                 self.target_dir).write_stat("End: " + str(time.ctime()))
             self.copy_pipelinestats()
+            msg = [
+                "SpeciesPrimer run finished for", self.target,
+                "\n", "End:", time.ctime(), "\n", "See results in",
+                self.summ_dir]
+            print(" ".join(msg))
+            G.logger(" ".join(msg))
 
 
 class PipelineStatsCollector():
@@ -4144,16 +4150,18 @@ def main(mode=None):
         try:
             run_pipeline_for_target(target, config)
         except Exception as exc:
-            msg = "fatal error while working on " + target + " check logfile"
+            msg = [
+                "fatal error while working on", target,
+                "check logfile", logfile]
             target_dir = os.path.join(config.path, config.target)
             PipelineStatsCollector(target_dir).write_stat(
                 "Error: " + str(time.ctime()))
-            print(msg)
+            print(" ".join(msg))
             print(exc)
             import traceback
             traceback.print_exc()
             G.logger(msg)
-            errors.append([target, msg])
+            errors.append([target, " ".join(msg)])
             logging.error(
                 "fatal error while working on " + target, exc_info=True)
 
