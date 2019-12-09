@@ -1,9 +1,9 @@
 
 # SpeciesPrimer
 
-![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://img.shields.io/badge/License-GPLv3-blue.svg)
 [![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
-![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
+[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 
@@ -58,12 +58,11 @@ New in SpeciesPrimer v2.1
 		--name speciesprimer biologger/speciesprimer
 
 
-* Open the address [http://localhost:5000] or [http://127.0.0.1:5000] in your favorite webbrowser
+* Open the address [http://localhost:5000](http://localhost:5000) or [http://127.0.0.1:5000](http://127.0.0.1:5000) in your favorite webbrowser
 * Enter your E-mail address (required for the biopython NCBI Entrez module)
-* Navigate to SpeciesPrimer settings [http://localhost:5000/pipelineconfig]
-* Download the nt BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~6.5 GB)
-* Customize the species list and other parameters if required
-* Navigate to Primer design [http://localhost:5000/primerdesign] and start primer design for new targets
+* Download the nt_v5 BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~6.5 GB). [BLAST DB](http://localhost:5000/blastdb)
+* Customize the species list and other parameters if required. [SpeciesPrimer settings](http://localhost:5000/pipelineconfig)
+* Navigate to Primer design and start primer design for new targets. [Primer design](http://localhost:5000/primerdesign)
 * If you want to use the ref_prok_rep_genomes DB provide the path (/blastdb/ref_prok_rep_genomes) in the customdb settings field
 
 #### Use the pipeline with the command line
@@ -107,7 +106,7 @@ For more information and advanced settings see [Advanced command line usage](htt
 
 #### If you want to use the ref_prok_rep_genomes DB use the customdb option with the path
 
-		blastdb/ref_prok_rep_genomes
+		/blastdb/ref_prok_rep_genomes
 
 # Introduction
 The SpeciesPrimer pipeline is intended to help researchers finding specific primer pairs for the detection and quantification of bacterial species in complex ecosystems. The pipeline uses genome assemblies of the target species to identify core genes (genes which are present in all assemblies) and checks the specificity for the target species using BLAST. Primer design is performed by primer3, followed by a stringent primer quality control. To make the evaluation of primer specificity faster and simpler, not all sequences of all bacterial species in the BLAST database are considered, the user has to provide a list of organisms which are expected to be present in the investigated ecosystem and should not be detected by the primer pair. The output of the pipeline is a comma separated file with possible primer pairs for the target species, which can be further tested and evaluated by the user.

@@ -4,7 +4,7 @@
 
 If you do not yet have a local copy of the nucleotide collection (nt) BLAST database:
 
-In your internetbrowser [http://localhost:5000] Navigate to the BLAST DB link.
+In your internetbrowser [http://localhost:5000](http://localhost:5000) Navigate to the BLAST DB link.
 
 To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.
 
@@ -12,17 +12,17 @@ To download the database with the update_blastdb perl script just click on the S
 The script changes to the "/blastdb" directory in the container and runs the command below
 
 	$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
-	
+
 To get possible hints or error messages you can run this command from a docker terminal.
 
 __Example__
 
 * __HOST__
-	
+
 		$ sudo docker exec -it {containername} bash
 
 * __Container__
-	
+
 		$ cd /blastdb
 		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
 
@@ -30,9 +30,9 @@ As an alternative the python script __getblastdb.py__ can be used.
 
 The database has currently a size of about 65 GB, the archives are also quite large, therefore select the delete option if harddisk space is limited on your computer. If selected the script will automatically delete the archive files after extraction.
 
-In your internetbrowser [http://localhost:5000] Navigate to the BLAST DB link.
+In your internetbrowser [http://localhost:5000](http://localhost:5000]) Navigate to the BLAST DB link.
 
-Decide if you want to delete the archives after extraction and click on the second Start download button, 
+Decide if you want to delete the archives after extraction and click on the second Start download button,
 the download starts after you clicked on "Start BLAST DB download" button on the next page. You can follow the progress by clicking stream log in new tab.
 
 The click on the button is equivalent to the following command in the container.
@@ -41,14 +41,14 @@ __Example:__
 
 * __Container__
 
-		$ getblastdb.py -dbpath /blastdb --delete	
+		$ getblastdb.py -dbpath /blastdb --delete
 
 --------------------------------------------------
 ### Create a species_list.txt file
-The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs. 
+The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs.
 It should contain the typical bacterial species you expect to be in the ecosystem you want to investigate with your PCR assay. (Including your target species of course).
 
-In the browser [http://localhost:5000] Navigate to Pipeline settings.
+In the browser [http://localhost:5000](http://localhost:5000]) Navigate to Pipeline settings.
 
 Create a species_list.txt file or download the default species_list.txt file and adapt it according your needs.
 
@@ -66,20 +66,20 @@ __Example:__
 
 		$ cd /home/biologger/primerdesign
 		$ gedit species_list.txt
-		
+
   * File example: (one species name per line)
-   
-	  Microbacterium oxydans 
-	  Micrococcus luteus 
-	  Moraxella osloensis 
-	  Morganella morganii 
-	  Morganella psychrotolerans 
-	  Mycobacterium vaccae 
-	  Ornithinibacillus bavariensis 
-	  Paenibacillus lactis 
-	  Paludibacter propionicigenes 
-	  Pantoea agglomerans 
-	  Pediococcus acidilactici 
+
+	  Microbacterium oxydans
+	  Micrococcus luteus
+	  Moraxella osloensis
+	  Morganella morganii
+	  Morganella psychrotolerans
+	  Mycobacterium vaccae
+	  Ornithinibacillus bavariensis
+	  Paenibacillus lactis
+	  Paludibacter propionicigenes
+	  Pantoea agglomerans
+	  Pediococcus acidilactici
 	  ...
 
 ------------------------
@@ -107,12 +107,11 @@ Keep a copy of your adapted files on your host computer in case you want to use 
 
 -----------------------------------
 ### Primer3 settings
-Parameters in this file can be changed with the same method as for the genus_abbrev.csv file. 
+Parameters in this file can be changed with the same method as for the genus_abbrev.csv file.
 All settings except the amplicon minimal and maximal size are saved in the container and affect the primer design for all targets.
 
 * Primer3 settings are changed in the "p3parameters" file
-* see primer3 documentation for an explanation of the different parameters
-<http://primer3.sourceforge.net/primer3_manual.htm>
+* see the [primer3 documentation](http://primer3.sourceforge.net/primer3_manual.htm) for an explanation of the different parameters.
 * minimal and maximal amplicon size can be changed in the command line using the
 --minsize [int] --maxsize [int] commands or on the settings page.
 
