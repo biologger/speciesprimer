@@ -465,7 +465,7 @@ def dbdownload():
             time.sleep(1)
         elif form.stop.data:
             stop_db_download()
-            flash("Stoping DB download")
+            flash("Stopping DB download")
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
 
@@ -507,7 +507,7 @@ def updatedb_ref():
         elif form.stop.data:
             command = [daemon_path, "stop", "200", "Update_prokDB"]
             stop_updatedb(command)
-            flash("Stoping DB download")
+            flash("Stopping DB download")
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
 
@@ -522,7 +522,7 @@ def controlrun():
             time.sleep(1)
         elif form.stop.data:
             stop_pipeline()
-            flash("Stoping primer design")
+            flash("Stopping primer design")
     return render_template('controlrun.html', title='Control runs', form=form)
 
 
