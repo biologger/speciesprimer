@@ -264,7 +264,6 @@ def logger(string_to_log):
 
 def exitatsigterm(signalNumber, frame):
     raise SystemExit('GUI stop')
-    return
 
 
 def get_DB(mode=False):

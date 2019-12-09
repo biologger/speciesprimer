@@ -4091,7 +4091,7 @@ def get_configuration_from_args(target, args):
 
 def exitatsigterm(signalNumber, frame):
     raise SystemExit('GUI stop')
-    return
+
 
 def main(mode=None):
     today = time.strftime("%Y_%m_%d", time.localtime())
