@@ -22,6 +22,17 @@ tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 daemon_path = os.path.join(pipe_dir, "gui", "daemon", "daemonize.py")
 
 
+@app.errorhandler(OSError)
+def exception_handler(error):
+    flash("Please provide your email address")
+    return redirect(url_for('login'))
+
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    return render_template("500.html", error=error), 500
+
+
 def update_tmp_db(update_dict):
     with open(tmp_db_path, 'r') as f:
         for line in f:
@@ -147,10 +158,17 @@ def search_continue():
             target_list = []
             target_species = form.selected_species.data[0].split(',')
             for target in target_species:
-                target = target.capitalize()
+                target = target.strip().capitalize()
                 target_list.append(target)
         update_tmp_db({'new_run': {
                 "targets": target_list, "path": path, 'modus': 'continue'}})
+        if target_list:
+            flash(
+                "Press Start Primerdesign to search for config files for "
+                + " & ".join(target_list))
+        else:
+            flash(
+                "Press Start Primerdesign to search for config files")
         return redirect(url_for('controlrun'))
     return render_template(
                     'continue.html', title='Continue Primerdesign', form=form)
@@ -168,7 +186,7 @@ def change_settings():
         else:
             flash('File has to be a config.json file')
             return render_template(
-                    'change_settings.html', title='Change settings', form=form)           
+                    'change_settings.html', title='Change settings', form=form)
         path = old_settings['path']
         update_dict = {"new_run": {
             'path': path, 'same_settings': False,
@@ -322,6 +340,7 @@ def get_settings(form):
 def settings():
     target_choice_list, tmp_db = check_targets()
     if len(target_choice_list) == 0:
+        flash("Press Start Primerdesign to start primer design")
         return redirect(url_for('controlrun'))
 
     if tmp_db['new_run']['same_settings']:
@@ -369,6 +388,9 @@ def settings():
 
         if tmp_db['new_run']['same_settings']:
             flash('Saved settings for {}'.format(target_choice_list))
+            flash(
+                "Press Start Primerdesign to start primer design for "
+                + " & ".join(target_choice_list))
             return redirect(url_for('controlrun'))
         if tmp_db['new_run']['change_settings']:
             conf_path = tmp_db['new_run']['targets'][target]['path']
@@ -379,6 +401,9 @@ def settings():
                 flash('Changed settings for {}'.format(
                                                 ' '.join(target.split('_'))))
                 flash(json.dumps(new_config))
+                flash(
+                    "Press Start Primerdesign to start primer design for "
+                    + " & ".join(target_choice_list))
                 return redirect(url_for('controlrun'))
             except FileNotFoundError:
                 flash("The selected directory does not exist")
@@ -412,6 +437,7 @@ def primerdesign():
 
 def start_pipeline():
     start_frontail()
+    time.sleep(2)
     subprocess.Popen([daemon_path, "start", "100", "SpeciesPrimer"])
 
 
@@ -421,6 +447,7 @@ def stop_pipeline():
 
 def start_db_download():
     start_frontail()
+    time.sleep(2)
     subprocess.Popen([daemon_path, "start", "200", 'GetBlastDB'])
 
 
@@ -434,17 +461,19 @@ def dbdownload():
     if form.validate_on_submit():
         if form.submit.data:
             start_db_download()
+            flash("Starting DB download")
             time.sleep(1)
         elif form.stop.data:
             stop_db_download()
+            flash("Stoping DB download")
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
 
 
 def start_updatedb(command):
     start_frontail()
+    time.sleep(2)
     subprocess.Popen(command)
-
 
 
 def stop_updatedb(command):
@@ -473,10 +502,12 @@ def updatedb_ref():
         if form.submit.data:
             command = [daemon_path, "start", "200", "Update_prokDB"]
             start_updatedb(command)
+            flash("Starting DB download")
             time.sleep(1)
         elif form.stop.data:
             command = [daemon_path, "stop", "200", "Update_prokDB"]
             stop_updatedb(command)
+            flash("Stoping DB download")
     return render_template(
             'dbdownload.html', title='Control BLAST db download', form=form)
 
@@ -487,9 +518,11 @@ def controlrun():
     if form.validate_on_submit():
         if form.submit.data:
             start_pipeline()
+            flash("Starting primer design")
             time.sleep(1)
         elif form.stop.data:
             stop_pipeline()
+            flash("Stoping primer design")
     return render_template('controlrun.html', title='Control runs', form=form)
 
 
