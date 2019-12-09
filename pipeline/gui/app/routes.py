@@ -23,7 +23,7 @@ daemon_path = os.path.join(pipe_dir, "gui", "daemon", "daemonize.py")
 
 
 @app.errorhandler(OSError)
-def exception_handler(error):
+def handle_OSError(error):
     flash("Please provide your email address")
     return redirect(url_for('login'))
 
