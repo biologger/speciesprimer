@@ -11,47 +11,46 @@
 <form action="" method="post" enctype="multipart/form-data" novalidate>
   {{ form.hidden_tag() }}
 
-<h2>Download the nt BLAST database Version 5</h2>
-<p>This may take some hours...
-<br>
- <br>
-Download the database with the NCBI update_blastdb perl script
-  <br>
-(update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5)
-  <br>
+  <h2> BLAST DB download (getblastdb.py)</h2>
+  <p>
+    Download the nt_v5 BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~7 GB)
+      <br>
+      <br>
+    {{ form.whichdb() }}   {{ form.whichdb.label }}
+    <br>
+    <br>
+    {{ form.delete() }} {{ form.delete.label }}
+    <br>
+    <br>
+    {{ form.get_blastdb() }}
+  </p>
+  <p>
+  Update the taxid list for the BLAST search with the nt BLAST database Version 5
    <br>
+   <br>
+  {{ form.update_txids() }}
+  </p>
+  </form>
+
+
+<h3>Download the database with the NCBI update_blastdb perl script</h3>
+<p>
+  This may take some hours...
+  <br>
+  <br>
+  (update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5)
+  <br>
+  <br>
   {{ form.update_blastdb() }}
 </p>
-
-<h2>Download the ref_prok_rep_genomes BLAST database</h2>
-<p>The ref_prok_rep_genomes DB is about 10 times smaller and less extensive (~ 7 GB)
+<p>
+  The ref_prok_rep_genomes DB is about 10 times smaller and less extensive (~7 GB)
   <br>
-   <br>
-Download the database with the NCBI update_blastdb perl script
   <br>
-(update_blastdb.pl --passive --decompress ref_prok_rep_genomes)
- <br>
- <br>
+  (update_blastdb.pl --passive --decompress ref_prok_rep_genomes)
+  <br>
+  <br>
   {{ form.update_refprok() }}
 </p>
 
-<h3> Alternative download using the getblastdb.py script </h3>
-<p>
-    <br>
-    <br>
-  {{ form.whichdb() }}   {{ form.whichdb.label }}
-  <br>
-  <br>
-  {{ form.delete() }} {{ form.delete.label }}
-  <br>
-  <br>
-  {{ form.get_blastdb() }}
-</p>
-<p>
-Update the taxid list for the BLAST search with the nt BLAST database Version 5
- <br>
- <br>
-{{ form.update_txids() }}
-</p>
-</form>
 {% endblock %}
