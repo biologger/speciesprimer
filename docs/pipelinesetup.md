@@ -111,7 +111,7 @@ Parameters in this file can be changed with the same method as for the genus_abb
 All settings except the amplicon minimal and maximal size are saved in the container and affect the primer design for all targets.
 
 * Primer3 settings are changed in the "p3parameters" file
-* see the [primer3 documentation](http://primer3.sourceforge.net/primer3_manual.htm) for an explanation of the different parameters.
+* see the [primer3 documentation](https://primer3.org/manual.html) for an explanation of the different parameters.
 * minimal and maximal amplicon size can be changed in the command line using the
 --minsize [int] --maxsize [int] commands or on the settings page.
 

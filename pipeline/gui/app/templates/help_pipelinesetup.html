@@ -12,7 +12,7 @@
     <article class="markdown-body"><h2 id="pipeline-setup"><a class="header-link" href="#pipeline-setup"></a>Pipeline setup</h2>
 <h3 id="download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"><a class="header-link" href="#download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"></a>Download the pre-formatted nucleotide collection (nt) BLAST database from NCBI</h3>
 <p>If you do not yet have a local copy of the nucleotide collection (nt) BLAST database:</p>
-<p>In your internetbrowser [<a href="http://localhost:5000]">http://localhost:5000]</a> Navigate to the BLAST DB link.</p>
+<p>In your internetbrowser <a href="http://localhost:5000">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
 <p>To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
 <h4 id="troubleshooting:"><a class="header-link" href="#troubleshooting:"></a>Troubleshooting:</h4>
 <p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below</p>
@@ -27,20 +27,20 @@
 </ul>
 <p>As an alternative the python script <strong>getblastdb.py</strong> can be used.</p>
 <p>The database has currently a size of about 65 GB, the archives are also quite large, therefore select the delete option if harddisk space is limited on your computer. If selected the script will automatically delete the archive files after extraction.</p>
-<p>In your internetbrowser [<a href="http://localhost:5000]">http://localhost:5000]</a> Navigate to the BLAST DB link.</p>
-<p>Decide if you want to delete the archives after extraction and click on the second Start download button, 
+<p>In your internetbrowser <a href="http://localhost:5000]">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
+<p>Decide if you want to delete the archives after extraction and click on the second Start download button,
 the download starts after you clicked on &quot;Start BLAST DB download&quot; button on the next page. You can follow the progress by clicking stream log in new tab.</p>
 <p>The click on the button is equivalent to the following command in the container.</p>
 <p><strong>Example:</strong></p>
 <ul class="list">
 <li><p><strong>Container</strong></p>
-<pre class="hljs"><code>  $ getblastdb<span class="hljs-selector-class">.py</span> -dbpath /blastdb --delete    </code></pre></li>
+<pre class="hljs"><code>  $ getblastdb<span class="hljs-selector-class">.py</span> -dbpath /blastdb --delete</code></pre></li>
 </ul>
 <hr>
 <h3 id="create-a-species_list.txt-file"><a class="header-link" href="#create-a-species_list.txt-file"></a>Create a species_list.txt file</h3>
-<p>The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs. 
+<p>The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs.
 It should contain the typical bacterial species you expect to be in the ecosystem you want to investigate with your PCR assay. (Including your target species of course).</p>
-<p>In the browser [<a href="http://localhost:5000]">http://localhost:5000]</a> Navigate to Pipeline settings.</p>
+<p>In the browser <a href="http://localhost:5000]">http://localhost:5000</a> Navigate to Pipeline settings.</p>
 <p>Create a species_list.txt file or download the default species_list.txt file and adapt it according your needs.</p>
 <p>Then upload it with the corresponding form.</p>
 <p>If something was going wrong you can always reset the list to the default values with the Reset to default button.
@@ -53,17 +53,17 @@ Keep a copy of your adapted files on your host computer in case you want to use 
 <pre class="hljs"><code>  <span class="hljs-variable">$ </span>cd /home/biologger/primerdesign
   <span class="hljs-variable">$ </span>gedit species_list.txt</code></pre><ul class="list">
 <li><p>File example: (one species name per line)</p>
-<p>  Microbacterium oxydans 
-<br>  Micrococcus luteus 
-<br>  Moraxella osloensis 
-<br>  Morganella morganii 
-<br>  Morganella psychrotolerans 
-<br>  Mycobacterium vaccae 
-<br>  Ornithinibacillus bavariensis 
-<br>  Paenibacillus lactis 
-<br>  Paludibacter propionicigenes 
-<br>  Pantoea agglomerans 
-<br>  Pediococcus acidilactici 
+<p>  Microbacterium oxydans
+<br>  Micrococcus luteus
+<br>  Moraxella osloensis
+<br>  Morganella morganii
+<br>  Morganella psychrotolerans
+<br>  Mycobacterium vaccae
+<br>  Ornithinibacillus bavariensis
+<br>  Paenibacillus lactis
+<br>  Paludibacter propionicigenes
+<br>  Pantoea agglomerans
+<br>  Pediococcus acidilactici
 <br>  ...</p>
 </li>
 </ul>
@@ -84,12 +84,11 @@ add the genus name and the desired abbreviation to the &quot;<strong>genus_abbre
 Keep a copy of your adapted files on your host computer in case you want to use it in a different container later on.</strong></p>
 <hr>
 <h3 id="primer3-settings"><a class="header-link" href="#primer3-settings"></a>Primer3 settings</h3>
-<p>Parameters in this file can be changed with the same method as for the genus_abbrev.csv file. 
+<p>Parameters in this file can be changed with the same method as for the genus_abbrev.csv file.
 All settings except the amplicon minimal and maximal size are saved in the container and affect the primer design for all targets.</p>
 <ul class="list">
 <li>Primer3 settings are changed in the &quot;p3parameters&quot; file</li>
-<li>see primer3 documentation for an explanation of the different parameters
-<a href="http://primer3.sourceforge.net/primer3_manual.htm">http://primer3.sourceforge.net/primer3_manual.htm</a></li>
+<li>see the <a href="https://primer3.org/manual.html">primer3 documentation</a> for an explanation of the different parameters.</li>
 <li>minimal and maximal amplicon size can be changed in the command line using the
 --minsize [int] --maxsize [int] commands or on the settings page.</li>
 </ul>
