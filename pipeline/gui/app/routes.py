@@ -387,7 +387,8 @@ def settings():
                     f.write(json.dumps(tmp_db))
 
         if tmp_db['new_run']['same_settings']:
-            flash('Saved settings for {}'.format(target_choice_list))
+            flash(
+                'Saved settings for {}'.format(" & ".join(target_choice_list)))
             flash(
                 "Press Start Primerdesign to start primer design for "
                 + " & ".join(target_choice_list))

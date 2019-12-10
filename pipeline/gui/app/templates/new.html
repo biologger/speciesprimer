@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block content %} 
+{% block content %}
     <h1>Start primer design for new targets</h1>
         <form action="" method="post">
         {{ form.hidden_tag() }}
@@ -13,11 +13,11 @@
         <p>Target species (comma separated)</p>
         {{ form.selected_species() }}
         {% for error in form.selected_species.errors %}
-        <span style="color: red;">Please provide at least one species name e.g. Lactobacillus helveticus</span>
+        <span style="color: red;">Please provide at least one species name e.g. Lactobacillus curvatus</span>
         {% endfor %}
-        <p></p>             
+        <p></p>
         {{ form.same_setting() }} Use the same settings for all targetspecies
-        </p>    
+        </p>
         <p>{{ form.submit() }}</p>
         </form>
 {% endblock %}
