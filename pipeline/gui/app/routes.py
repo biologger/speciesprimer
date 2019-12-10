@@ -10,6 +10,7 @@ import os
 import time
 import json
 import subprocess
+import traceback
 import shutil
 import signal
 from werkzeug.utils import secure_filename
@@ -30,7 +31,9 @@ def handle_OSError(error):
 
 @app.errorhandler(Exception)
 def handle_exception(error):
-    return render_template("500.html", error=error), 500
+    tb = traceback.format_exc()
+    print(tb)
+    return render_template("500.html", error=error, tb=tb), 500
 
 
 def update_tmp_db(update_dict):
@@ -404,7 +407,7 @@ def settings():
                 flash(json.dumps(new_config))
                 flash(
                     "Press Start Primerdesign to start primer design for "
-                    + " & ".join(target_choice_list))
+                    + ' '.join(target.split('_')))
                 return redirect(url_for('controlrun'))
             except FileNotFoundError:
                 flash("The selected directory does not exist")
