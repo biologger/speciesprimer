@@ -64,6 +64,7 @@ New in SpeciesPrimer v2.1
 * Customize the species list and other parameters if required. [SpeciesPrimer settings](http://localhost:5000/pipelineconfig)
 * Navigate to Primer design and start primer design for new targets. [Primer design](http://localhost:5000/primerdesign)
 * If you want to use the ref_prok_rep_genomes DB provide the path (/blastdb/ref_prok_rep_genomes) in the customdb settings field
+* The results can be found in the Summary directory e.g. /primerdesign/Summary (container) or $HOME/primerdesign/Summary (host)
 
 #### Use the pipeline with the command line
 
