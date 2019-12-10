@@ -54,7 +54,7 @@ class Input:
 
     def helpmessage(self, targets):
         print(
-            "Accepted input formats are e.g. Lactobacillus_helveticus, "
+            "Accepted input formats are e.g. Lactobacillus_curvatus, "
             "Lactobacillus delbrueckii, Lactococcus lactis subsp lactis, "
             "Lactococcus_lactis_subsp_cremoris")
         targets = input(
@@ -184,8 +184,9 @@ class Input:
             customdb = input(
                 "Do you want to use a custom database for blastn?\n"
                 "Specifiy the absolute filepath of the custom database "
-                "(e.g. '/blastdb/nontarget.fasta') or hit return"
-                " to skip, default=None\n> ")
+                "(e.g. '/blastdb/nontarget.fasta' "
+                "or '/blastdb/ref_prok_rep_genomes') "
+                "or hit return to skip, default=None\n> ")
             if isinstance(customdb, str) and len(customdb) > 0:
                 if (
                     os.path.isfile(customdb + ".nsq") is True or
