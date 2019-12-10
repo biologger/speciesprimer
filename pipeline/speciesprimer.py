@@ -3622,40 +3622,44 @@ class Summary:
                 "Run: collect_qc_infos(" + self.target + " " + qc_gene + ")")
             qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
             qc_report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
-            with open(qc_report, "r") as r:
-                reader = csv.reader(r)
-                next(reader, None)
-                for row in reader:
-                    accession = "_".join(row[0].split("_")[0:-1])
-                    if ("GCF" or "GCA") in row[0]:
-                        accession = ".".join(accession.split("v"))
+            try:
+                with open(qc_report, "r") as r:
+                    reader = csv.reader(r)
+                    next(reader, None)
+                    for row in reader:
+                        accession = "_".join(row[0].split("_")[0:-1])
+                        if ("GCF" or "GCA") in row[0]:
+                            accession = ".".join(accession.split("v"))
 
-                    if accession not in self.g_info_dict.keys():
-                        add_accession = {
-                            accession: {
-                                "name": "", "assemblystatus": "", "strain": "",
-                                "rRNA": {
-                                    "status": "", "hit": "",
-                                    "GI": "", "DB_id": ""},
-                                "tuf": {
-                                    "status": "", "hit": "",
-                                    "GI": "", "DB_id": ""},
-                                "recA": {
-                                    "status": "", "hit": "",
-                                    "GI": "", "DB_id": ""},
-                                "dnaK": {
-                                    "status": "", "hit": "",
-                                    "GI": "", "DB_id": ""},
-                                "pheS": {
-                                    "status": "", "hit": "",
-                                    "GI": "", "DB_id": ""}}}
+                        if accession not in self.g_info_dict.keys():
+                            add_accession = {
+                                accession: {
+                                    "name": "", "assemblystatus": "",
+                                    "strain": "",
+                                    "rRNA": {
+                                        "status": "", "hit": "",
+                                        "GI": "", "DB_id": ""},
+                                    "tuf": {
+                                        "status": "", "hit": "",
+                                        "GI": "", "DB_id": ""},
+                                    "recA": {
+                                        "status": "", "hit": "",
+                                        "GI": "", "DB_id": ""},
+                                    "dnaK": {
+                                        "status": "", "hit": "",
+                                        "GI": "", "DB_id": ""},
+                                    "pheS": {
+                                        "status": "", "hit": "",
+                                        "GI": "", "DB_id": ""}}}
 
-                        self.g_info_dict.update(add_accession)
+                            self.g_info_dict.update(add_accession)
 
-                    self.g_info_dict[accession][qc_gene]["GI"] = row[1]
-                    self.g_info_dict[accession][qc_gene]["DB_id"] = row[2]
-                    self.g_info_dict[accession][qc_gene]["hit"] = row[3]
-                    self.g_info_dict[accession][qc_gene]["status"] = row[5]
+                        self.g_info_dict[accession][qc_gene]["GI"] = row[1]
+                        self.g_info_dict[accession][qc_gene]["DB_id"] = row[2]
+                        self.g_info_dict[accession][qc_gene]["hit"] = row[3]
+                        self.g_info_dict[accession][qc_gene]["status"] = row[5]
+            except FileNotFoundError:
+                pass
 
     def get_genome_infos(self):
         G.logger("Run: get_genome_infos(" + self.target + ")")
