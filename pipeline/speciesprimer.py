@@ -904,7 +904,8 @@ class QualityControl:
             print(info)
 
         else:
-            error_msg = "Error: No .gff files found"
+            error_msg = (
+                    "Error: No .gff files found for QualityControl " + qc_gene)
             print(error_msg)
             G.logger("> " + error_msg)
             errors.append([self.target, error_msg])
@@ -1910,7 +1911,10 @@ class Blast:
                 part = str(blastfile).split("-")[1]
                 filename = name + "_" + part + "_results.xml"
                 results_path = os.path.join(self.directory, filename)
-                if not os.path.isfile(results_path):
+                if self.mode == "quality_control":
+                    blast_cmd = self.get_blast_cmd(
+                        blastfile, filename, use_cores)
+                elif not os.path.isfile(results_path):
                     blast_cmd = self.get_blast_cmd(
                         blastfile, filename, use_cores)
                 else:
