@@ -921,6 +921,7 @@ def test_CoreGenes(config):
         compare_ref_files(fasta_dir, ref_dir)
 
     prepare_tests()
+    test_get_singlecopy_genes
     test_coregene_extract(config)
 
 def test_CoreGeneSequences(config):
