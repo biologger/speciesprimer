@@ -10,6 +10,7 @@ import json
 import urllib.error
 import urllib.request
 import getblastdb
+from getblastdb import config
 from basicfunctions import GeneralFunctions as G
 
 
@@ -35,11 +36,21 @@ testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 reference_dict = os.path.join(ref_data, "reference_config.json")
 
-BASEURL = "file:/blastdb/tmp/mockfiles/download"
-extractedendings = [
-    ".nhr", ".nin", ".nnd", ".nni",
-    ".nog", ".nsd", ".nsi", ".nsq"]
+@pytest.fixture
+def delete_config():
+    db = "ref_prok_rep_genomes"
+    delete = True
+    test = True
+    down_c = config(db, tmpdir, delete, test)
+    return down_c
 
+@pytest.fixture
+def keep_config():
+    db = "ref_prok_rep_genomes"
+    delete = False
+    test = True
+    down_c = config(db, tmpdir, delete, test)
+    return down_c
 
 def create_mock_archives():
     G.create_directory(tmpdir)
@@ -233,12 +244,9 @@ def test_run():
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
 
-def test_getmd5files():
+def test_getmd5files(delete_config):
     create_mock_archives()
-    db = "ref_prok_rep_genomes"
-    BASEURL = "file:/blastdb/tmp/mockfiles/download/"
-    HTTPURL = "file:/blastdb/tmp/mockfiles/download.html"
-    getblastdb.get_md5files(tmpdir, db, BASEURL, HTTPURL)
+    getblastdb.get_md5files(delete_config)
     file1 = os.path.join(tmpdir, "ref_prok_rep_genomes.00.tar.gz.md5")
     file2 = os.path.join(tmpdir, "ref_prok_rep_genomes.05.tar.gz.md5")
     assert os.path.isfile(file1) is True
@@ -247,7 +255,7 @@ def test_getmd5files():
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
 
-def test_skipdownload():
+def test_skipdownload(delete_config):
     create_mock_archives()
     os.chdir(tmpdir)
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
@@ -258,8 +266,7 @@ def test_skipdownload():
                 line.strip().split("  ")[1])
     with open(chmdfile, "w") as f:
         f.write(info)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -267,15 +274,14 @@ def test_skipdownload():
         shutil.rmtree(tmpdir)
 
 
-def test_skipdownload_nomd5():
+def test_skipdownload_nomd5(delete_config):
     create_mock_archives()
     os.chdir(tmpdir)
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     refmd5 = os.path.join("md5_files", chmdfile)
     if os.path.isfile(refmd5):
         os.remove(refmd5)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -283,7 +289,7 @@ def test_skipdownload_nomd5():
         shutil.rmtree(tmpdir)
 
 
-def test_archiveextract():
+def test_archiveextract(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     create_mock_archives()
     os.chdir(tmpdir)
@@ -293,8 +299,7 @@ def test_archiveextract():
             and not files.endswith(".md5")
         ):
             os.remove(files)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     assert os.path.isfile("ref_prok_rep_genomes.05.tar.gz") is False
     remove_tmp_db()
@@ -303,7 +308,8 @@ def test_archiveextract():
         shutil.rmtree(tmpdir)
 
 
-def test_onlymd5():
+def test_onlymd5(keep_config):
+
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     refmd5 = os.path.join("md5_files", chmdfile)
     create_mock_archives()
@@ -315,8 +321,7 @@ def test_onlymd5():
         ):
             os.remove(files)
     shutil.copy(chmdfile, refmd5)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", False, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], keep_config)
     check_part_five(outcome=True)
     assert os.path.isfile("ref_prok_rep_genomes.05.tar.gz") is True
     remove_tmp_db()
@@ -325,7 +330,7 @@ def test_onlymd5():
         shutil.rmtree(tmpdir)
 
 
-def test_no_old_md5():
+def test_no_old_md5(keep_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     create_mock_archives()
     os.chdir(tmpdir)
@@ -337,8 +342,7 @@ def test_no_old_md5():
             os.remove(files)
     shutil.rmtree("md5_files")
     G.create_directory("md5_files")
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", False, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], keep_config)
     check_part_five(outcome=True)
     assert os.path.isfile("ref_prok_rep_genomes.05.tar.gz") is True
     remove_tmp_db()
@@ -347,7 +351,7 @@ def test_no_old_md5():
         shutil.rmtree(tmpdir)
 
 
-def test_checksum_incorrect():
+def test_checksum_incorrect(delete_config):
     create_mock_archives()
     os.chdir(tmpdir)
     for files in os.listdir(tmpdir):
@@ -365,8 +369,7 @@ def test_checksum_incorrect():
     with open(chmdfile, "w") as f:
         f.write(info)
     with pytest.raises(Exception):
-        getblastdb.download_from_ftp(
-                [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+        getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=False)
     remove_tmp_db()
     os.chdir("..")
@@ -374,7 +377,7 @@ def test_checksum_incorrect():
         shutil.rmtree(tmpdir)
 
 
-def test_compare_md5_archive():
+def test_compare_md5_archive(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     create_mock_archives()
     os.chdir(tmpdir)
@@ -386,8 +389,7 @@ def test_compare_md5_archive():
             os.remove(files)
     shutil.rmtree("md5_files")
     G.create_directory("md5_files")
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -395,7 +397,7 @@ def test_compare_md5_archive():
         shutil.rmtree(tmpdir)
 
 
-def test_compare_md5_files_witharchive():
+def test_compare_md5_files_witharchive(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     create_mock_archives()
     os.chdir(tmpdir)
@@ -407,8 +409,7 @@ def test_compare_md5_files_witharchive():
             os.remove(files)
     archive = os.path.join(downdir, "ref_prok_rep_genomes.05.tar.gz")
     shutil.copy(archive, "ref_prok_rep_genomes.05.tar.gz")
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -416,7 +417,7 @@ def test_compare_md5_files_witharchive():
         shutil.rmtree(tmpdir)
 
 
-def test_compare_md5_archive_changed():
+def test_compare_md5_archive_changed(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     archive = chmdfile.split(".md5")[0]
     create_mock_archives()
@@ -433,8 +434,7 @@ def test_compare_md5_archive_changed():
             and "tar.gz" not in files
         ):
             os.remove(files)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -442,7 +442,7 @@ def test_compare_md5_archive_changed():
         shutil.rmtree(tmpdir)
 
 
-def test_compare_corrupted_md5():
+def test_compare_corrupted_md5(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     create_mock_archives()
     shutil.rmtree("md5_files")
@@ -462,8 +462,7 @@ def test_compare_corrupted_md5():
     with open(chmdfile, "w") as f:
         f.write(info)
 
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")
@@ -471,7 +470,7 @@ def test_compare_corrupted_md5():
         shutil.rmtree(tmpdir)
 
 
-def test_compare_md5_files():
+def test_compare_md5_files(delete_config):
     chmdfile = "ref_prok_rep_genomes.05.tar.gz.md5"
     refmd5 = os.path.join("md5_files", chmdfile)
     create_mock_archives()
@@ -483,8 +482,7 @@ def test_compare_md5_files():
                 line.strip().split("  ")[1])
     with open(refmd5, "w") as f:
         f.write(info)
-    getblastdb.download_from_ftp(
-            [chmdfile], "/blastdb/tmp", True, BASEURL, extractedendings)
+    getblastdb.download_from_ftp([chmdfile], delete_config)
     check_part_five(outcome=True)
     remove_tmp_db()
     os.chdir("..")

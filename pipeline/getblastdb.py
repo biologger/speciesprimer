@@ -20,6 +20,45 @@ pipe_dir = os.path.dirname(os.path.abspath(__file__))
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 
 
+class htmllinkparser(HTMLParser):
+    StartTags = list()
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            for name, value in attrs:
+                if name == "href":
+                    self.StartTags.append(value)
+
+
+class config:
+    baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq"]
+    urldict = {
+        "nt_v5": {
+            "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/",
+            "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/v5/",
+            "extend": [".nhd", ".nhi", ".nog"]},
+        "ref_prok_rep_genomes": {
+            "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
+            "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
+            "extend": [".nog", ".nsd", ".nsi"]},
+        "test": {
+            "base": "file:/blastdb/tmp/mockfiles/download/",
+            "http": "file:/blastdb/tmp/mockfiles/download.html",
+            "extend": [".nog", ".nsd", ".nsi"]}}
+
+    def __init__(self, db, db_dir, delete, test):
+        self.db = db
+        self.db_dir = db_dir
+        self.delete = delete
+        if test:
+            self.baseurl = self.urldict['test']['base']
+            self.httpurl = self.urldict['test']['http']
+            self.extract_end = self.baseend + self.urldict['test']['extend']
+        else:
+            self.baseurl = self.urldict[db]['base']
+            self.httpurl = self.urldict[db]['http']
+            self.extract_end = self.baseend + self.urldict[db]['extend']
+
+
 def commandline():
     parser = argparse.ArgumentParser(
         prog="NCBI database download",
@@ -53,9 +92,9 @@ def md5Checksum(filePath):
     return m.hexdigest()
 
 
-def wget_download(BASEURL, filename, delete, extractedendings):
+def wget_download(filename, conf):
     archivename = filename.split(".md5")[0]
-    url = BASEURL + "/" + archivename
+    url = conf.baseurl + "/" + archivename
     logger("> Downloading..." + archivename)
     wget.download(url, archivename)
     try:
@@ -67,7 +106,7 @@ def wget_download(BASEURL, filename, delete, extractedendings):
         if os.path.isfile(filename):
             os.remove(filename)
         raise
-    extract_archives(dbfile, delete, extractedendings)
+    extract_archives(dbfile, conf)
 
 
 def check_md5(inputfile):
@@ -90,7 +129,7 @@ def check_md5(inputfile):
         raise Exception
 
 
-def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
+def compare_md5_archive(inputfile, conf):
     archivename = inputfile.split(".md5")[0]
     with open(inputfile, "r") as f:
         for line in f:
@@ -102,95 +141,101 @@ def compare_md5_archive(inputfile, delete, BASEURL, extractedendings):
         if filesum == md5sumcheck:
             logger("Skip download of " + archivename)
             dbfile = check_md5(inputfile)
-            extract_archives(dbfile, delete, extractedendings)
+            extract_archives(dbfile, conf)
         else:
             logger("Problem with " + archivename + " try to download it again")
             os.remove(archivename)
             try:
-                wget_download(BASEURL, inputfile, delete, extractedendings)
+                wget_download(inputfile, conf)
             except Exception:
                 logging.error("", exc_info=True)
-            extract_archives(archivename, delete, extractedendings)
+            extract_archives(archivename, conf)
 
 
-def compare_md5_files(filename, delete, BASEURL, extractedendings):
+def compare_md5_files(filename, conf):
     old_file = os.path.join("md5_files", filename)
     if filecmp.cmp(filename, old_file) is True:
         logger("No change in " + filename + " skip download")
         os.remove(filename)
     else:
         os.remove(old_file)
-        shutil.copy(filename, os.path.join("md5_files", filename))
-        wget_download(BASEURL, filename, delete, extractedendings)
+        shutil.copy(filename, old_file)
+        wget_download(filename, conf)
+
+def get_extracted_endings(filename, conf):
+    check_extract = []
+    for end in conf.extract_end:
+        if filename.split(".tar.gz.md5")[0] + end in os.listdir("."):
+            check_extract.append(end)
+    check_extract.sort()
+    return check_extract
 
 
-def download_from_ftp(files, blastdb_dir, delete, BASEURL, extractedendings):
-    os.chdir(blastdb_dir)
+def handle_extracted_files(filename, file_path, conf):
+    logger("Found extracted files, checking md5 file")
+    if os.path.isfile(file_path):
+        compare_md5_files(filename, conf)
+    else:
+        logger(" ".join([
+                ">", "Skip download of", filename, "found extracted files"]))
+        time.sleep(1)
+
+
+def handle_old_md5file(filename, conf):
+    archivename = filename.split(".md5")[0]
+    if os.path.isfile(filename) and os.path.isfile(archivename):
+        compare_md5_files(filename, conf)
+        extract_archives(archivename, conf)
+    else:
+        wget_download(filename, conf)
+
+
+def handle_md5_archive(filename, conf):
+    archivename = filename.split(".md5")[0]
+    if os.path.isfile(archivename):
+        compare_md5_archive(filename, conf)
+    else:
+        wget_download(filename, conf)
+
+
+def download_from_ftp(files, conf):
+    os.chdir(conf.db_dir)
     for filename in files:
-        archivename = filename.split(".md5")[0]
-        check_extract = []
+        file_path = os.path.join("md5_files", filename)
         try:
-            for end in extractedendings:
-                if filename.split(".tar.gz.md5")[0] + end in os.listdir("."):
-                    check_extract.append(end)
-            check_extract.sort()
-            extractedendings.sort()
-            if check_extract == extractedendings:
-                logger("Found extracted files, checking md5 file")
-                if os.path.isfile(os.path.join("md5_files", filename)):
-                    compare_md5_files(
-                            filename, delete, BASEURL, extractedendings)
-                else:
-                    logger(
-                        "> Skip download of " + filename
-                        + " found extracted files ")
-                    time.sleep(1)
+            check_extract = get_extracted_endings(filename, conf)
+            conf.extract_end.sort()
+            if check_extract == conf.extract_end:
+                handle_extracted_files(
+                    filename, file_path, conf)
             else:
-                file_path = os.path.join("md5_files", filename)
                 if os.path.isfile(file_path):
-                    if (
-                        os.path.isfile(filename) and
-                        os.path.isfile(archivename)
-                    ):
-                        compare_md5_files(
-                                filename, delete, BASEURL, extractedendings)
-                        extract_archives(archivename, delete, extractedendings)
-                    else:
-                        wget_download(
-                                BASEURL, filename, delete, extractedendings)
+                    handle_old_md5file(
+                            filename, conf)
                 else:
-                    if os.path.isfile(archivename):
-                        compare_md5_archive(
-                                filename, delete, BASEURL, extractedendings)
-                    else:
-                        wget_download(
-                                BASEURL, filename, delete, extractedendings)
-                        os.rename(
-                                filename, os.path.join("md5_files", filename))
+                    handle_md5_archive(
+                            filename, conf)
 
             if os.path.isfile(filename):
-                os.rename(filename, os.path.join("md5_files", filename))
+                os.rename(filename, file_path)
 
         except (KeyboardInterrupt, SystemExit):
             logging.error(
                 "BLAST DB download was stopped while working on "
                 + filename, exc_info=True)
-            for tmpfiles in os.listdir(blastdb_dir):
-                if tmpfiles.endswith(".tmp"):
-                    filepath = os.path.join(blastdb_dir, tmpfiles)
-                    os.remove(filepath)
             raise
-        for tmpfiles in os.listdir(blastdb_dir):
-            if tmpfiles.endswith(".tmp"):
-                filepath = os.path.join(blastdb_dir, tmpfiles)
-                os.remove(filepath)
+        finally:
+            for tmpfiles in os.listdir(conf.db_dir):
+                if tmpfiles.endswith(".tmp"):
+                    filepath = os.path.join(conf.db_dir, tmpfiles)
+                    os.remove(filepath)
 
 
-def extract_archives(dbfile, delete, extractedendings):
+def extract_archives(dbfile, conf):
     check_extract = []
     extract_archive = []
     if dbfile is not None:
-        for end in extractedendings:
+        for end in conf.extract_end:
             if not dbfile.split(".tar.gz")[0] + end in os.listdir("."):
                 if dbfile not in extract_archive:
                     extract_archive.append(dbfile)
@@ -203,51 +248,42 @@ def extract_archives(dbfile, delete, extractedendings):
                 tar.extractall()
                 tar.close()
                 check_extract = []
-                for end in extractedendings:
+                for end in conf.extract_end:
                     if dbfile.split(".tar.gz")[0] + end in os.listdir("."):
                         check_extract.append(end)
 
     check_extract.sort()
-    extractedendings.sort()
-    if check_extract == extractedendings:
+    conf.extract_end.sort()
+    if check_extract == conf.extract_end:
         logger("Extracted " + dbfile)
-        if delete is True:
+        if conf.delete is True:
             if os.path.isfile(dbfile):
                 logger("Remove archive " + dbfile)
                 os.remove(dbfile)
 
 
-class htmllinkparser(HTMLParser):
-    StartTags = list()
-    def handle_starttag(self, tag, attrs):
-        if tag == "a":
-            for name, value in attrs:
-                if name == "href":
-                    self.StartTags.append(value)
-
-
-def get_md5files(blastdb_dir, db, BASEURL, HTTPURL):
-    os.chdir(blastdb_dir)
-    r = urllib.request.urlopen(HTTPURL)
+def get_md5files(conf):
+    os.chdir(conf.db_dir)
+    r = urllib.request.urlopen(conf.httpurl)
     parser = htmllinkparser()
     content = str(r.read())
     parser.feed(content)
     filelist = parser.StartTags
     for filename in filelist:
-        if filename.startswith(db + ".") and filename.endswith(".tar.gz.md5"):
-            url = BASEURL + filename
+        if filename.startswith(conf.db + ".") and filename.endswith(".tar.gz.md5"):
+            url = conf.baseurl + filename
             if not os.path.isfile(filename):
                 logger("> Downloading..." + filename)
                 wget.download(url, filename)
 
 
-def get_filelist(blastdb_dir, db):
-    os.chdir(blastdb_dir)
+def get_filelist(conf):
+    os.chdir(conf.db_dir)
     filelist = []
-    for filename in os.listdir(blastdb_dir):
+    for filename in os.listdir(conf.db_dir):
         if os.path.isfile(filename):
             if (
-                filename.startswith(db + ".")
+                filename.startswith(conf.db + ".")
                 and filename.endswith(".tar.gz.md5")
             ):
                 filelist.append(filename)
@@ -267,7 +303,6 @@ def exitatsigterm(signalNumber, frame):
 
 
 def get_DB(mode=False):
-    test = False
     today = time.strftime("%Y_%m_%d", time.localtime())
     if mode == "auto":
         signal.signal(signal.SIGTERM, exitatsigterm)
@@ -285,7 +320,7 @@ def get_DB(mode=False):
             if tmp_db['BLAST_DB']['test'] is True:
                 test = True
         except KeyError:
-            pass
+            test = False
 
         logging.basicConfig(
             filename=os.path.join(
@@ -315,30 +350,12 @@ def get_DB(mode=False):
 
     G.create_directory(os.path.join(blastdb_dir, "md5_files"))
 
-
-    if db == "nt_v5":
-        BASEURL = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
-        HTTPURL = 'http://ftp.ncbi.nlm.nih.gov/blast/db/v5/'
-        extractedendings = [
-            ".nhd", ".nhi", ".nhr", ".nin",
-            ".nnd", ".nni", ".nog", ".nsq"]
-    elif test:
-        BASEURL = "file:/blastdb/tmp/mockfiles/download/"
-        HTTPURL = "file:/blastdb/tmp/mockfiles/download.html"
-        extractedendings = [
-            ".nhr", ".nin", ".nnd", ".nni",
-            ".nog", ".nsd", ".nsi", ".nsq"]
-    else:
-        BASEURL = 'ftp://ftp.ncbi.nlm.nih.gov/blast/db/'
-        HTTPURL = 'http://ftp.ncbi.nlm.nih.gov/blast/db/'
-        extractedendings = [
-            ".nhr", ".nin", ".nnd", ".nni",
-            ".nog", ".nsd", ".nsi", ".nsq"]
+    conf = config(db, blastdb_dir, delete, test)
 
     logger("Start Download of NCBI " + db + " BLAST database")
-    get_md5files(blastdb_dir, db, BASEURL, HTTPURL)
-    filelist = get_filelist(blastdb_dir, db)
-    download_from_ftp(filelist, blastdb_dir, delete, BASEURL, extractedendings)
+    get_md5files(conf)
+    filelist = get_filelist(conf)
+    download_from_ftp(filelist, conf)
 
     nal_filepath = os.path.join(blastdb_dir, db + ".nal")
     if os.path.isfile(nal_filepath):
@@ -346,7 +363,6 @@ def get_DB(mode=False):
     else:
         logger(
             "Error nal file for NCBI " + db + " BLAST database is missing")
-
 
 if __name__ == "__main__":
     get_DB()
