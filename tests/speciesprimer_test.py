@@ -907,11 +907,11 @@ def test_CoreGenes(config):
         new_ffn_dir = os.path.join(testfiles_dir, "ffn_files")
         shutil.copytree(new_ffn_dir, CG.ffn_dir)
 
-    def test_get_singlecopy_genes(config):
-        coregenesummary = CG.get_singlecopy_genes
+    def test_get_singlecopy_genes():
+        coregenesummary = CG.get_singlecopy_genes(mode="normal")
         assert coregenesummary == [8, 14, 2, 8]
 
-    def test_coregene_extract(config):
+    def test_coregene_extract():
         G.create_directory(CG.results_dir)
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         G.create_directory(fasta_dir)
@@ -921,8 +921,8 @@ def test_CoreGenes(config):
         compare_ref_files(fasta_dir, ref_dir)
 
     prepare_tests()
-    test_get_singlecopy_genes
-    test_coregene_extract(config)
+    test_get_singlecopy_genes()
+    test_coregene_extract()
 
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences

@@ -129,3 +129,8 @@ def test_Singleton(config):
     test_get_singlecopy_genes()
     test_write_fasta()
     test_coregene_extract()
+
+
+def test_end():
+    if os.path.isdir(testdir):
+        shutil.rmtree(testdir)
