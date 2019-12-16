@@ -2785,7 +2785,7 @@ class PrimerDesign():
     def get_amplicon_seq(self):
         def PCR(left, rc_right, temp):
             pcr_product = (
-                temp[temp.index(left):template.index(rc_right)] + rc_right)
+                temp[temp.index(left):temp.index(rc_right)] + rc_right)
             return pcr_product
 
         for key in self.p3dict.keys():
