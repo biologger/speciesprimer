@@ -3753,7 +3753,7 @@ class Summary:
                 "Primer name", "PPC", "Primer penalty", "Gene",
                 "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
                 "Primer rev seq", "Primer rev TM", "Primer rev penalty",
-                "Probe seq)", "Probe TM", "Probe penalty",
+                "Probe seq", "Probe TM", "Probe penalty",
                 "Amplicon size", "Amplicon TM", "Amplicon sequence",
                 "Template sequence"]
             filepath = os.path.join(self.summ_dir, self.aka + "_primer.csv")
