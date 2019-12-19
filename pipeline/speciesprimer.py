@@ -2675,7 +2675,8 @@ class PrimerDesign():
         def parseSeqId(key, value):
             if key.startswith("SEQUENCE_ID"):
                 if "group" in value:
-                    value = "g" + value.split("group_")[1]
+                    spval = value.split("group_")
+                    value = spval[0] + "g" + spval[1]
                 seq_id = value
                 self.p3dict.update({seq_id: {"Primer_pairs": None}})
                 p3list.append(seq_id)
@@ -4070,11 +4071,12 @@ def run_pipeline_for_target(target, config):
             conserved = BlastParser(
                     config).run_blastparser(conserved_seq_dict)
             if conserved == 0:
-                primer_dict = PrimerDesign(config).run_primerdesign()
-                total_results = PrimerQualityControl(
-                    config, primer_dict).run_primer_qc()
-                Summary(config, total_results).run_summary(mode="last")
-
+#                primer_dict = PrimerDesign(config).run_primerdesign()
+#                total_results = PrimerQualityControl(
+#                    config, primer_dict).run_primer_qc()
+#                Summary(config, total_results).run_summary(mode="last")
+                import singleton
+                singleton.main(config)
             else:
                 Summary(config, total_results).run_summary(mode="last")
         else:

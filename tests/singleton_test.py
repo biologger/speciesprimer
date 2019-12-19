@@ -104,33 +104,47 @@ def test_Singleton(config):
         assert singleton_count == 2
 
     def test_write_fasta():
-        singletonresdir = os.path.join(
-                SI.single_dir, "GCF_003254785v1_20190923")
         locustags = SI.get_sequences_from_ffn()
         SI.get_fasta(locustags)
-        file1 = os.path.join(singletonresdir, "btuD_5.fasta")
-        file2 = os.path.join(singletonresdir, "group_3360.fasta")
-        assert os.path.isfile(file1)
-        assert os.path.isfile(file2)
+        filename = os.path.join(SI.blast_dir, "singleton_sequences.fas")
+        assert os.path.isfile(filename)
 
     def test_coregene_extract():
         singletonresdir = os.path.join(
                 SI.single_dir, "GCF_003254785v1_20190923")
         if os.path.isdir(singletonresdir):
             shutil.rmtree(singletonresdir)
+        SI.singleton_seqs = []
         SI.coregene_extract()
-        file1 = os.path.join(singletonresdir, "btuD_5.fasta")
-        file2 = os.path.join(singletonresdir, "group_3360.fasta")
-        assert os.path.isfile(file1)
-        assert os.path.isfile(file2)
+        filename = os.path.join(SI.blast_dir, "singleton_sequences.fas")
 
+        assert os.path.isfile(filename)
+
+    def test_run_singleseqs():
+        single_dict = SI.run_singleseqs()
+        ref = [
+            'GCF_003254785v1_20190923|GCF_003254785v1_02023|btuD_5',
+            'GCF_003254785v1_20190923|GCF_003254785v1_02024|group_3360']
+        res = list(single_dict.keys())
+        res.sort()
+        ref.sort()
+        assert res == ref
+        return single_dict
+        
+    def test_BlastParser(config):
+        from singleton import SingletonBlastParser
+        str_unique = SingletonBlastParser(
+            config).run_blastparser(single_dict)
+        print("str_unique", str_unique)
 
     prepare_tests()
     test_get_singlecopy_genes()
     test_write_fasta()
     test_coregene_extract()
+    single_dict = test_run_singleseqs()
+    test_BlastParser(config)
 
 
-def test_end():
-    if os.path.isdir(testdir):
-        shutil.rmtree(testdir)
+#def test_end():
+#    if os.path.isdir(testdir):
+#        shutil.rmtree(testdir)

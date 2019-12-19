@@ -597,6 +597,40 @@ class ParallelFunctions:
 
         return [[None], result]
 
+
+    @staticmethod
+    def MFEprimer_singleton(primerinfo, args):
+        [primer_qc_dir, db, mfethreshold] = args
+        result = []
+        target_product = []
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", db,
+            "-k", "9", "--tab", "--ppc", "10"]
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        for index, item in enumerate(result):
+            if index > 0:
+                val = item.split("\t")
+                result_ppc = float(val[4])
+                product_len = int(val[5])
+                targetID = val[3]
+                if result_ppc == ppc_val + mfethreshold:
+                    target_product.append(targetID)
+                elif result_ppc > ppc_val:
+                    return [[None], result]
+        if len(target_product) == 1:
+                return [primerinfo, result]
+        return [[None], result]
+
+
     @staticmethod
     def index_database(inputfilepath):
         primer_qc_dir = os.path.dirname(inputfilepath)
