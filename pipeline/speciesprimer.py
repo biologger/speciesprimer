@@ -3754,7 +3754,7 @@ class Summary:
                 "Primer name", "PPC", "Primer penalty", "Gene",
                 "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
                 "Primer rev seq", "Primer rev TM", "Primer rev penalty",
-                "Probe seq)", "Probe TM", "Probe penalty",
+                "Probe seq", "Probe TM", "Probe penalty",
                 "Amplicon size", "Amplicon TM", "Amplicon sequence",
                 "Template sequence"]
             filepath = os.path.join(self.summ_dir, self.aka + "_primer.csv")
@@ -3986,6 +3986,10 @@ def commandline():
         '["p3settings", "p3parameters"], '
         '["excludedgis", "no_blast.gi"]'
         "The current settings files will be overwritten")
+    parser.add_argument(
+        "--runmode", "-m", type=str, default=["species"],
+        choices=["species", "singleton"])
+
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.1.1")
@@ -4037,7 +4041,7 @@ def get_configuration_from_file(target, conf_from_file):
     return config
 
 
-def run_pipeline_for_target(target, config):
+def run_pipeline_for_target(target, config, runmode):
     print("\nStart searching primer for " + target)
     G.logger("> Start searching primer for " + target)
     target_dir = os.path.join(config.path, target)
@@ -4064,23 +4068,25 @@ def run_pipeline_for_target(target, config):
             pass
         # end
         PangenomeAnalysis(config).run_pangenome_analysis()
-        CoreGenes(config).run_CoreGenes()
-        conserved_seq_dict = CoreGeneSequences(
-                config).run_coregeneanalysis()
-        if not conserved_seq_dict == 1:
-            conserved = BlastParser(
-                    config).run_blastparser(conserved_seq_dict)
-            if conserved == 0:
-#                primer_dict = PrimerDesign(config).run_primerdesign()
-#                total_results = PrimerQualityControl(
-#                    config, primer_dict).run_primer_qc()
-#                Summary(config, total_results).run_summary(mode="last")
-                import singleton
-                singleton.main(config)
+        if "singleton" in runmode:
+            import singleton
+            singleton.main(config)
+        if "species" in runmode:
+            CoreGenes(config).run_CoreGenes()
+            conserved_seq_dict = CoreGeneSequences(
+                    config).run_coregeneanalysis()
+            if not conserved_seq_dict == 1:
+                conserved = BlastParser(
+                        config).run_blastparser(conserved_seq_dict)
+                if conserved == 0:
+                    primer_dict = PrimerDesign(config).run_primerdesign()
+                    total_results = PrimerQualityControl(
+                        config, primer_dict).run_primer_qc()
+                    Summary(config, total_results).run_summary(mode="last")
+                else:
+                    Summary(config, total_results).run_summary(mode="last")
             else:
                 Summary(config, total_results).run_summary(mode="last")
-        else:
-            Summary(config, total_results).run_summary(mode="last")
 
 
 def get_configuration_from_args(target, args):
@@ -4145,6 +4151,8 @@ def main(mode=None):
         if args.email:
             H.get_email_for_Entrez(args.email)
 
+        runmode = args.runmode
+
     for target in targets:
         target = target.capitalize()
         if use_configfile:
@@ -4158,7 +4166,7 @@ def main(mode=None):
         G.logger(config.__dict__)
 
         try:
-            run_pipeline_for_target(target, config)
+            run_pipeline_for_target(target, config, runmode)
         except Exception as exc:
             msg = [
                 "fatal error while working on", target,

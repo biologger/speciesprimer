@@ -5,6 +5,7 @@ import os
 import csv
 import time
 import itertools
+import multiprocessing
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -18,6 +19,7 @@ from speciesprimer import BlastParser
 from speciesprimer import PrimerDesign
 from speciesprimer import PrimerQualityControl
 from speciesprimer import PipelineStatsCollector
+
 
 
 class Singletons(CoreGenes):
@@ -193,6 +195,30 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
         self.referencegenomes = 10
         self.dbinputfiles = []
 
+    def prepare_MFEprimer_Dbs(self, primerinfos):
+        from speciesprimer import errors
+        G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
+        G.create_directory(self.primer_qc_dir)
+        self.create_template_db_file(primerinfos)
+        self.create_assembly_db_file()
+        assemblyfilepath = os.path.join(
+            self.primer_qc_dir,
+            H.abbrev(self.target) + ".genomic")
+        templatefilepath = os.path.join(
+                self.primer_qc_dir, "template.sequences")
+        dblist = [assemblyfilepath, templatefilepath]
+        for db in self.dbinputfiles:
+            dblist.append(db)
+        # parallelization try
+        pool = multiprocessing.Pool()
+        results = [
+            pool.apply_async(P.index_database, args=(inputfilepath,))
+            for inputfilepath in dblist]
+        output = [p.get() for p in results]
+        for item in output:
+            if item:
+                errors.append([self.target, item])
+
     def MFEprimer_QC(self, primerinfos):
         # option: also allow user provided non-target database created with
         # MFEprimer for primer QC
@@ -285,6 +311,30 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
 
         return primername_list
 
+
+class SingletonSummary:
+    def __init__(self, configuration, total_results):
+        self.config = configuration
+        self.target = configuration.target
+        self.target_dir = os.path.join(self.config.path, self.target)
+        self.config_dir = os.path.join(self.target_dir, "config")
+        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        self.results_dir = os.path.join(
+                self.pangenome_dir, "results", "singleton")
+        self.blast_dir = os.path.join(self.results_dir, "blast")
+        self.primer_dir = os.path.join(self.results_dir, "primer")
+        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
+        self.mfold_dir = os.path.join(self.primer_dir, "mfold")
+        self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
+        self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
+        self.aka = H.abbrev(self.target)
+        self.g_info_dict = {}
+        if total_results is None:
+            self.total_results = []
+        else:
+            self.total_results = total_results
+
+
 def main(config):
     SI = Singletons(config)
     SI.coregene_extract()
@@ -293,7 +343,7 @@ def main(config):
             config).run_blastparser(single_dict)
     primer_dict = SingletonPrimerDesign(config).run_primerdesign()
     total_results = SingletonPrimerQualityControl(config, primer_dict).run_primer_qc()
-#    Summary(config, total_results).run_summary(mode="last")
+#    SingletonSummary(config, total_results).run_summary(mode="last")
 
 
 if __name__ == "__main__":
