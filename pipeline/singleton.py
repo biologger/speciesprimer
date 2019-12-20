@@ -98,9 +98,9 @@ class Singletons(CoreGenes):
 
                     for item in item_s:
 
-                        name = locustags[item]["name"]
+                        name = "_".join(locustags[item]["name"].split("_")[0:-1])
                         seq = locustags[item]["seq"]
-                        ident = '{}|{}|{}'.format(name, item, gene)
+                        ident = '{}_{}'.format(name, gene)
                         record = SeqRecord(
                             Seq(seq),
                             name=item,

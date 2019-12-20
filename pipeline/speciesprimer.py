@@ -2897,6 +2897,7 @@ class PrimerQualityControl:
         G.logger("Run: get_primerinfo(" + self.target + ")")
         val_list = []
         for item in selected_seqs:
+            print(item)
             try:
                 if len(item) == 2:
                     item = item[0]
@@ -2904,7 +2905,9 @@ class PrimerQualityControl:
                     primer_name = "_".join(item.split("_")[0:-1])
                 else:
                     primer_name = item
+                print(primer_name)
                 target_id = "_".join(primer_name.split("_")[-3:-1])
+                print(target_id)
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
                 template_seq = self.primer3_dict[target_id]["template_seq"]
                 x = self.primer3_dict[target_id][primerpair]
