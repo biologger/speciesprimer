@@ -14,9 +14,61 @@ If the blastdbv5 option is selected, the pipeline uses the __nt_v5.nal__ (alias)
 
 However, if you do want to have the "old" behaviour you can copy the __nt_v5.nal__ file in the blastdb directory and rename it to __nt.nal__. Then the BLAST searches will use the BLAST nt v5 without using the taxonomy awareness features.
 
+-------------------------------------------------------------------------------------------------------------
+#### GUI trouble
+
+* If pages are not loaded and an Error message appears.
+
+1. Check if the container is running
+
+	__HOST:__
+
+		$ sudo docker ps
+
+Something like this should show up
+CONTAINER ID	IMAGE			COMMAND		CREATED		STATUS		PORTS						NAMES
+ae681870458a	biologger/speciesprimer   "/boot.sh"    2 weeks ago     Up 5 hours      0.0.0.0:5000->5000/tcp, 0.0.0.0:9001->9001/tcp  specprime2.1
+
+2. Try to navigate to the login page and enter (again) your e-mail address.
+
+3. If this does not help...There could be a problem with the code. Please write to biologger@protonmail.com or on GitHub https://github.com/biologger/speciesprimer
+
+If you want to help...
+
+* Open a new terminal and type:
+
+	__HOST:__
+
+		$ sudo docker attach {containerid/name}
+
+	__example__:
+
+		$ sudo docker attach specprime2.1
+
+* Repeat the action you did before the error page was shown and provide the error message in the attached terminal.
+
+	__example__:
+
+		[2019-11-21 14:55:53,018] ERROR in app: Exception on /change_settings [POST]
+		Traceback (most recent call last):
+		  File "/usr/local/lib/python3.5/dist-packages/flask/app.py", line 2446, in wsgi_app
+		    response = self.full_dispatch_request()
+		  File "/usr/local/lib/python3.5/dist-packages/flask/app.py", line 1951, in full_dispatch_request
+		    rv = self.handle_user_exception(e)
+		  File "/usr/local/lib/python3.5/dist-packages/flask/app.py", line 1820, in handle_user_exception
+		    reraise(exc_type, exc_value, tb)
+		  File "/usr/local/lib/python3.5/dist-packages/flask/_compat.py", line 39, in reraise
+		    raise value
+		  File "/usr/local/lib/python3.5/dist-packages/flask/app.py", line 1949, in full_dispatch_request
+		    rv = self.dispatch_request()
+		  File "/usr/local/lib/python3.5/dist-packages/flask/app.py", line 1935, in dispatch_request
+		    return self.view_functions[rule.endpoint](**req.view_args)
+		  File "/pipeline/gui/app/routes.py", line 168, in change_settings
+		    path = old_settings['path']
+		UnboundLocalError: local variable 'old_settings' referenced before assignment
 
 
--------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
 #### Delete files created by the docker container from the host.
 
 * __HOST:__
@@ -72,7 +124,7 @@ The log file can be found in the primerdesign directory. It is named speciesprim
 Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  __{genus_species}/config/config.json__ file. The pipeline will check the files already downloaded and will not try to download them again. 
 
 ---------------------------------------------------------------------------
-#### Restart / continue stopped pipeline runs 
+#### Restart / continue stopped pipeline runs
 
 * With the graphic user interface navigate to the [primerdesign page](http://localhost:5000/primerdesign) and select the "Search" button. 
 
@@ -89,9 +141,9 @@ The pipeline searches in the config directory for config.json files and continue
  __Example:__
 
  
-* Path to search for configuration files: __/home/primerdesign__
+* Path to search for configuration files: __/primerdesign__
 * Search only configuration files for the selected species: __Lactobacillus curvatus__
-* --> SpeciesPrimer will search for config files in: __/home/primerdesign/Lactobacillus_curvatus/config__
+* --> SpeciesPrimer will search for config files in: __/primerdesign/Lactobacillus_curvatus/config__
 
 
 __Example:__ 
@@ -155,7 +207,7 @@ It could be that the nt database contains a sequence with a wrong species assign
 		* __CONTAINER:__
 
 				# remove the entries of the assemblies you want to keep.
-				$ nano /home/primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
+				$ nano /primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
             	
 		* __Host__:            
 

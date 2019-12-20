@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Control BLAST DB download</h1>
+<form action="" method="post" novalidate>
+{{ form.hidden_tag() }}
+ <p>{{ form.submit() }}
+ {{ form.stop() }}
+</p>
+</form>
+
+<div class="tooltip">
+<br>
+<a class ="button-link" href="http://localhost:9001" target="_blank">Stream log in new tab</a>
+<br>
+<br>
+<span class="tooltiptext">Press the Start Button and then start the stream. If it does not connect try to refresh the page after a while.</span>
+</div> 
+
+{% endblock %}

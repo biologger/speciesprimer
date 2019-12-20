@@ -1,0 +1,107 @@
+{% extends "help.html" %}{% block content %}<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Pipeline setup</title>
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
+  </head>
+  <body>
+    <article class="markdown-body"><h2 id="pipeline-setup"><a class="header-link" href="#pipeline-setup"></a>Pipeline setup</h2>
+<h3 id="download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"><a class="header-link" href="#download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"></a>Download the pre-formatted nucleotide collection (nt) BLAST database from NCBI</h3>
+<p>If you do not yet have a local copy of the nucleotide collection (nt) BLAST database:</p>
+<p>In your internetbrowser <a href="http://localhost:5000">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
+<p>To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
+<h4 id="troubleshooting:"><a class="header-link" href="#troubleshooting:"></a>Troubleshooting:</h4>
+<p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below</p>
+<pre class="hljs"><code><span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre><p>To get possible hints or error messages you can run this command from a docker terminal.</p>
+<p><strong>Example</strong></p>
+<ul class="list">
+<li><p><strong>HOST</strong></p>
+<pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> {containername} <span class="hljs-keyword">bash</span></code></pre></li>
+<li><p><strong>Container</strong></p>
+<pre class="hljs"><code>  <span class="hljs-comment">$</span> <span class="hljs-comment">cd</span> <span class="hljs-comment">/blastdb</span>
+  <span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre></li>
+</ul>
+<p>As an alternative the python script <strong>getblastdb.py</strong> can be used.</p>
+<p>The database has currently a size of about 65 GB, the archives are also quite large, therefore select the delete option if harddisk space is limited on your computer. If selected the script will automatically delete the archive files after extraction.</p>
+<p>In your internetbrowser <a href="http://localhost:5000]">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
+<p>Decide if you want to delete the archives after extraction and click on the second Start download button,
+the download starts after you clicked on &quot;Start BLAST DB download&quot; button on the next page. You can follow the progress by clicking stream log in new tab.</p>
+<p>The click on the button is equivalent to the following command in the container.</p>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>Container</strong></p>
+<pre class="hljs"><code>  $ getblastdb<span class="hljs-selector-class">.py</span> -dbpath /blastdb --delete</code></pre></li>
+</ul>
+<hr>
+<h3 id="create-a-species_list.txt-file"><a class="header-link" href="#create-a-species_list.txt-file"></a>Create a species_list.txt file</h3>
+<p>The species list is used to evaluate the specificity of the target sequences and to exclude unspecific primer pairs.
+It should contain the typical bacterial species you expect to be in the ecosystem you want to investigate with your PCR assay. (Including your target species of course).</p>
+<p>In the browser <a href="http://localhost:5000]">http://localhost:5000</a> Navigate to Pipeline settings.</p>
+<p>Create a species_list.txt file or download the default species_list.txt file and adapt it according your needs.</p>
+<p>Then upload it with the corresponding form.</p>
+<p>If something was going wrong you can always reset the list to the default values with the Reset to default button.
+Your adapted file in the container will be overwritten.</p>
+<p><strong>If you create a new container with the docker run command the default settings are applied.
+Keep a copy of your adapted files on your host computer in case you want to use it in a different container later on.</strong></p>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>cd /home/biologger/primerdesign
+  <span class="hljs-variable">$ </span>gedit species_list.txt</code></pre><ul class="list">
+<li><p>File example: (one species name per line)</p>
+<p>  Microbacterium oxydans
+<br>  Micrococcus luteus
+<br>  Moraxella osloensis
+<br>  Morganella morganii
+<br>  Morganella psychrotolerans
+<br>  Mycobacterium vaccae
+<br>  Ornithinibacillus bavariensis
+<br>  Paenibacillus lactis
+<br>  Paludibacter propionicigenes
+<br>  Pantoea agglomerans
+<br>  Pediococcus acidilactici
+<br>  ...</p>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="optional:"><a class="header-link" href="#optional:"></a>Optional:</h3>
+<h3 id="update-the-taxid-list-for-the-blast-search-with-the-nt-blast-database-version-5"><a class="header-link" href="#update-the-taxid-list-for-the-blast-search-with-the-nt-blast-database-version-5"></a>Update the taxid list for the BLAST search with the nt BLAST database Version 5</h3>
+<p>The taxid list contains all NCBI taxonomic ids for bacteria (NCBI:txid2). From time to time NCBI may add new taxids if new species are added.</p>
+<p>As an alternative if the <strong>Entrez EDirect Utility</strong> and <strong>the BLAST+ command line application</strong> are installed on the host computer, the <strong>get_species_taxids.sh</strong> script from the BLAST+ program can be used to create this list.</p>
+<p><strong>Example</strong></p>
+<pre class="hljs"><code>    <span class="hljs-variable">$ </span>get_species_taxids.sh -t <span class="hljs-number">2</span> &gt; <span class="hljs-regexp">/pipeline/dictionaries</span><span class="hljs-regexp">/2.txids</span></code></pre><hr>
+<h3 id="abbreviations-of-genus-names"><a class="header-link" href="#abbreviations-of-genus-names"></a>Abbreviations of genus names</h3>
+<p>If you wish to use abbreviations of genus names for the pipeline output files,
+add the genus name and the desired abbreviation to the &quot;<strong>genus_abbrev.csv</strong>&quot; file.</p>
+<p>You can download, change and then upload it on the Pipeline settings page.</p>
+<p><strong>If you create a new container with the docker run command the default settings are applied.
+Keep a copy of your adapted files on your host computer in case you want to use it in a different container later on.</strong></p>
+<hr>
+<h3 id="primer3-settings"><a class="header-link" href="#primer3-settings"></a>Primer3 settings</h3>
+<p>Parameters in this file can be changed with the same method as for the genus_abbrev.csv file.
+All settings except the amplicon minimal and maximal size are saved in the container and affect the primer design for all targets.</p>
+<ul class="list">
+<li>Primer3 settings are changed in the &quot;p3parameters&quot; file</li>
+<li>see the <a href="https://primer3.org/manual.html">primer3 documentation</a> for an explanation of the different parameters.</li>
+<li>minimal and maximal amplicon size can be changed in the command line using the
+--minsize [int] --maxsize [int] commands or on the settings page.</li>
+</ul>
+<p>You can download, change and then upload it on the Pipeline settings page.</p>
+<p><strong>If you create a new container with the docker run command the default settings are applied.
+Keep a copy of your adapted files on your host computer in case you want to use it in a different container later on.</strong></p>
+<hr>
+<h3 id="exclude-geneidentifier-from-blast"><a class="header-link" href="#exclude-geneidentifier-from-blast"></a>Exclude geneidentifier from BLAST</h3>
+<p>If certain gene identifier for sequences in the BLAST nt database should be ignored, because they have a wrong taxonomic classification for example. The gene identifier (GI) can be added to this list, one GI per line. For more information see the troubleshooting help.</p>
+<p>You can download, change and then upload it on the Pipeline settings page.</p>
+<p><strong>If you create a new container with the docker run command the default settings are applied.
+Keep a copy of your adapted files on your host computer in case you want to use it in a different container later on.</strong></p>
+    </article>
+  </body>
+</html>
+{% endblock %}

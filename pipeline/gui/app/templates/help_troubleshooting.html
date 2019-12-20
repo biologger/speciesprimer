@@ -1,0 +1,250 @@
+{% extends "help.html" %}{% block content %}<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Troubleshooting</title>
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
+  </head>
+  <body>
+    <article class="markdown-body"><h2 id="troubleshooting"><a class="header-link" href="#troubleshooting"></a>Troubleshooting</h2>
+<h4 id="nt-blast-db-/-nt-blast-db-version-5"><a class="header-link" href="#nt-blast-db-/-nt-blast-db-version-5"></a>nt BLAST DB  / nt BLAST DB version 5</h4>
+<p>Because a new version of BLAST databases was released recently <a href="https://ftp.ncbi.nlm.nih.gov/blast/db/v5/blastdbv5.pdf">(BLAST DB V5)</a>, there are two versions of the nt database available. Therefore, if you have the BLAST DB nt version 5 then you should activate this option in the pipeline settings.</p>
+<p>If the blastdbv5 option is selected, the pipeline uses the <strong>nt_v5.nal</strong> (alias) file to identify the different parts of the database. Otherwise, it looks for the <strong>nt.nal</strong> file. For the blastn commands this changes the database command as follows.</p>
+<pre class="hljs"><code>    <span class="hljs-variable">$blastn</span> -<span class="hljs-keyword">db</span> nt_v5 -<span class="hljs-keyword">query</span> ...     # new database
+
+    # or
+
+    <span class="hljs-variable">$blastn</span> -<span class="hljs-keyword">db</span> nt -<span class="hljs-keyword">query</span> ...         # old database</code></pre><p>However, if you do want to have the &quot;old&quot; behaviour you can copy the <strong>nt_v5.nal</strong> file in the blastdb directory and rename it to <strong>nt.nal</strong>. Then the BLAST searches will use the BLAST nt v5 without using the taxonomy awareness features.</p>
+<hr>
+<h4 id="gui-trouble"><a class="header-link" href="#gui-trouble"></a>GUI trouble</h4>
+<ul class="list">
+<li><p>If pages are not loaded and an Error message appears.</p>
+</li>
+<li><p>Check if the container is running</p>
+<p> <strong>HOST:</strong></p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo docker ps</code></pre></li>
+</ul>
+<p>Something like this should show up
+CONTAINER ID    IMAGE            COMMAND        CREATED        STATUS        PORTS                        NAMES
+ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago     Up 5 hours      0.0.0.0:5000-&gt;5000/tcp, 0.0.0.0:9001-&gt;9001/tcp  specprime2.1</p>
+<ol start="2">
+<li><p>Try to navigate to the login page and enter (again) your e-mail address.</p>
+</li>
+<li><p>If this does not help...There could be a problem with the code. Please write to <a href="mailto:biologger@protonmail.com">biologger@protonmail.com</a> or on GitHub <a href="https://github.com/biologger/speciesprimer">https://github.com/biologger/speciesprimer</a></p>
+</li>
+</ol>
+<p>If you want to help...</p>
+<ul class="list">
+<li><p>Open a new terminal and type:</p>
+<p>  <strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo docker attach {containerid/<span class="hljs-built_in">name</span>}</code></pre><p>  <strong>example</strong>:</p>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-section">attach</span> specprime2<span class="hljs-number">.1</span></code></pre></li>
+<li><p>Repeat the action you did before the error page was shown and provide the error message in the attached terminal.</p>
+<p>  <strong>example</strong>:</p>
+<pre class="hljs"><code>  [2019-11-21 14:55:53,018] <span class="hljs-keyword">ERROR</span> <span class="hljs-keyword">in</span> <span class="hljs-keyword">app</span>: Exception <span class="hljs-keyword">on</span> /change_settings [<span class="hljs-keyword">POST</span>]
+  Traceback (most recent call last):
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 2446, <span class="hljs-keyword">in</span> wsgi_app
+      response = self.full_dispatch_request()
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1951, <span class="hljs-keyword">in</span> full_dispatch_request
+      rv = self.handle_user_exception(<span class="hljs-keyword">e</span>)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1820, <span class="hljs-keyword">in</span> handle_user_exception
+      reraise(exc_type, exc_value, tb)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/_compat.py"</span>, <span class="hljs-keyword">line</span> 39, <span class="hljs-keyword">in</span> reraise
+      raise value
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1949, <span class="hljs-keyword">in</span> full_dispatch_request
+      rv = self.dispatch_request()
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/usr/local/lib/python3.5/dist-packages/flask/app.py"</span>, <span class="hljs-keyword">line</span> 1935, <span class="hljs-keyword">in</span> dispatch_request
+      <span class="hljs-keyword">return</span> self.view_functions[rule.endpoint](**req.view_args)
+    <span class="hljs-keyword">File</span> <span class="hljs-string">"/pipeline/gui/app/routes.py"</span>, <span class="hljs-keyword">line</span> 168, <span class="hljs-keyword">in</span> change_settings
+      path = old_settings['path']
+  UnboundLocalError: <span class="hljs-keyword">local</span> variable 'old_settings' referenced before assignment</code></pre></li>
+</ul>
+<hr>
+<h4 id="delete-files-created-by-the-docker-container-from-the-host."><a class="header-link" href="#delete-files-created-by-the-docker-container-from-the-host."></a>Delete files created by the docker container from the host.</h4>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code><span class="xml">  $ sudo chown -R </span><span class="hljs-template-variable">{username}</span><span class="xml"> </span><span class="hljs-template-variable">{path_to_primerdesign_dir}</span><span class="xml"></span></code></pre></li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>HOST:</strong></p>
+<pre class="hljs"><code>  $ sudo chown -R biologger /<span class="hljs-built_in">home</span>/biologger/primerdesign</code></pre></li>
+</ul>
+<p>Now you are the owner and can move and delete the files and directories.</p>
+<hr>
+<h4 id="setting-the-timezone-for-the-container"><a class="header-link" href="#setting-the-timezone-for-the-container"></a>Setting the timezone for the container</h4>
+<ul class="list">
+<li><p><strong>Host:</strong></p>
+<pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> {container <span class="hljs-built_in">name</span>} bash</code></pre></li>
+<li><p><strong>Container:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>dpkg-reconfigure tzdata</code></pre></li>
+</ul>
+<h3 id="troubleshooting-pipeline-runs"><a class="header-link" href="#troubleshooting-pipeline-runs"></a>Troubleshooting pipeline runs</h3>
+<hr>
+<h4 id="primer-quality-control"><a class="header-link" href="#primer-quality-control"></a>Primer quality control</h4>
+<p>If the primer quality control gives many index errors the creation of the databases did probablly not work. Then the files ending with sqlite3.db are all of the size 2.0 kb, which means empty. The MFEprimer IndexDb.sh script uses the python2 psutil module. Try to install the psutil module, delete the primer_QC directory and try again. </p>
+<hr>
+<h4 id=""fatal-error-while-working-on-{genus_species}-check-logfile-""><a class="header-link" href="#"fatal-error-while-working-on-{genus_species}-check-logfile-""></a>&quot;fatal error while working on {genus_species} check logfile &quot;</h4>
+<p>This error is shown if the speciesprimer.py script was started via the terminal.</p>
+<p>With the graphic user interface the logfile can be streamed during pipeline runs <a href="http://localhost:9001/">http://localhost:9001/</a> including errors and exceptions.</p>
+<p>The log file can be found in the primerdesign directory. It is named speciesprimer_yyyy_mm_dd.log.</p>
+<ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  speciesprimer_2018_06_08.<span class="hljs-built_in">log</span></code></pre></li>
+</ul>
+<hr>
+<h4 id="naming-of-user-provided-genome-assemblies"><a class="header-link" href="#naming-of-user-provided-genome-assemblies"></a>Naming of user provided genome assemblies</h4>
+<ul class="list">
+<li>Do not use dots in the name (use filename.fna instead of file.name.fna) </li>
+</ul>
+<hr>
+<h4 id="errors-during-download-of-genome-assemblies"><a class="header-link" href="#errors-during-download-of-genome-assemblies"></a>Errors during download of genome assemblies</h4>
+<pre class="hljs"><code>    &lt;urlopen <span class="hljs-literal">error</span> ftp <span class="hljs-literal">error</span>: TimeotError(<span class="hljs-number">110</span>, <span class="hljs-symbol">'Connection</span> timed <span class="hljs-keyword">out</span>')&gt; </code></pre><p>Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  <strong>{genus_species}/config/config.json</strong> file. The pipeline will check the files already downloaded and will not try to download them again. </p>
+<hr>
+<h4 id="restart-/-continue-stopped-pipeline-runs"><a class="header-link" href="#restart-/-continue-stopped-pipeline-runs"></a>Restart / continue stopped pipeline runs</h4>
+<ul class="list">
+<li><p>With the graphic user interface navigate to the <a href="http://localhost:5000/primerdesign">primerdesign page</a> and select the &quot;Search&quot; button. </p>
+</li>
+<li><p>Type the path to the primerdesign directory</p>
+</li>
+<li><p>Type the species name</p>
+</li>
+<li><p>Hit the &quot;Search configuration files&quot; button</p>
+</li>
+<li><p>Hit the &quot;Start Primerdesign&quot; button to start</p>
+</li>
+</ul>
+<p>The pipeline searches in the config directory for config.json files and continues the run </p>
+<p> <strong>Example:</strong></p>
+<ul class="list">
+<li>Path to search for configuration files: <strong>/primerdesign</strong></li>
+<li>Search only configuration files for the selected species: <strong>Lactobacillus curvatus</strong></li>
+<li>--&gt; SpeciesPrimer will search for config files in: <strong>/primerdesign/Lactobacillus_curvatus/config</strong></li>
+</ul>
+<p><strong>Example:</strong> </p>
+<p>Restart the pipeline with the same configuration (commandline)</p>
+<pre class="hljs"><code>    <span class="hljs-variable">$ </span>speciesprimer.py
+    <span class="hljs-comment"># select start</span>
+    <span class="hljs-variable">$ </span>s (Enter)
+    <span class="hljs-comment"># select specific</span>
+    <span class="hljs-variable">$ </span>s (Enter)
+    <span class="hljs-comment"># select the working directory (primerdesign = current working directory)</span>
+    <span class="hljs-variable">$ </span>(Enter)
+    <span class="hljs-comment"># Type the species name for which you would like to repeat the run</span>
+    <span class="hljs-variable">$ </span>Lactobacillus curvatus</code></pre><h4 id="error-during-quality-control-of-genome-assemblies"><a class="header-link" href="#error-during-quality-control-of-genome-assemblies"></a>Error during quality control of genome assemblies</h4>
+<pre class="hljs"><code>    <span class="hljs-attribute">Error</span>: No genomes survived QC
+
+<span class="cmake">    <span class="hljs-comment"># or</span>
+
+    Error: <span class="hljs-keyword">Less</span> than two genomes survived QC</span></code></pre><p>You can check the results of the quality control in the <strong>{genus_species}_qc_sequences.csv</strong> file in the <strong>&quot;primerdesign/Summary&quot;</strong> directory    </p>
+<p><strong>Example:</strong></p>
+<ul class="list">
+<li><p><strong>primerdesign/Summary/Lactobacillus_curvatus/Lb_curva_qc_sequences.csv</strong></p>
+</li>
+<li><p>There you will see why the quality control for the genomes failed.</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>qc gene</th>
+<th style="text-align:left">BLAST result</th>
+<th style="text-align:left">Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>passed QC</td>
+<td style="text-align:left">Lactobacillus curvatus</td>
+<td style="text-align:left">correct species matched best in BLAST search</td>
+</tr>
+<tr>
+<td>failed QC</td>
+<td style="text-align:left">Lactobacillus casei</td>
+<td style="text-align:left">wrong species matched best in BLAST search</td>
+</tr>
+<tr>
+<td>Duplicate</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">NCBI genomes only, a newer assembly was selected</td>
+</tr>
+<tr>
+<td>Max contigs</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">Too many small contigs &gt;500</td>
+</tr>
+<tr>
+<td>QC gene missing</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">The sequence of the QC gene was not identified in the assembly</td>
+</tr>
+</tbody>
+</table>
+<p>It could be that the nt database contains a sequence with a wrong species assigned to it.</p>
+<ol class="list">
+<li><p>select another QC gene and try again</p>
+</li>
+<li><p>Troubleshoot:</p>
+<ul class="list">
+<li>check the “{genus_species}_qc_sequences_details.csv” file</li>
+<li>check the Hit DB_id (NCBI accession of the sequence of the BLAST hit)</li>
+<li>Go to NCBI and check e.g. by BLAST if the sequence is assigned to the correct species</li>
+</ul>
+</li>
+</ol>
+<ol start="3">
+<li><p>Restart the run</p>
+<ul class="list">
+<li>Go to the excludedassemblies directory and copy the removed assemblies you want to include back to the target species directory    </li>
+<li>Delete &quot;excluded_list.txt&quot; or remove the entries of the assemblies you want to keep.</li>
+<li>Add the GI of sequences in the nt database with wrong taxonomic classification to the NO_BLAST.gi file (see below)</li>
+<li>Alternatively, change the ignore_qc option to true (change settings (GUI) or in the config.json file)</li>
+<li><p>Restart the pipeline run</p>
+</li>
+<li><p><strong>Example</strong></p>
+<ul class="list">
+<li><p><strong>CONTAINER:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-comment"># remove the entries of the assemblies you want to keep.</span>
+  $ nano <span class="hljs-regexp">/primerdesign/</span>excludedassemblies<span class="hljs-regexp">/Lactobacillus_curvatus/</span>excluded_list.txt</code></pre></li>
+<li><p><strong>Host</strong>:            </p>
+<pre class="hljs"><code>  $ gedit <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/primerdesign/</span>excludedassemblies<span class="hljs-regexp">/Lactobacillus_curvatus/</span>excluded_list.txt</code></pre></li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="only-a-few-core-genes-are-reported"><a class="header-link" href="#only-a-few-core-genes-are-reported"></a>Only a few core genes are reported</h4>
+<p>In the summary directory and in the primerdesign/{species} directory, there is  a file with statistics of the pipeline run (&quot;pipeline_stats_yyyy_mm_dd.txt&quot;). If there are only few core genes reported you may have some problems with the input genome assemblies. Roary which is used to create the pan-genome works only with quite similar genomes (species level). Check the quality of your input genomes and that there are no contaminations and genomes from differnt species.</p>
+<ul class="list">
+<li>Check the quality of the input genome assemblies</li>
+<li>Check the phylogeny tree made from the core_gene_alignment file using SeaView or another graphical tree viewer. If there are genome assemblies which build distinct clusters maybe try to repeat the analysis without them.</li>
+</ul>
+<hr>
+<h4 id="thousands-of-primer-are-reported-and-primer-qc-takes-forever"><a class="header-link" href="#thousands-of-primer-are-reported-and-primer-qc-takes-forever"></a>Thousands of primer are reported and primer QC takes forever</h4>
+<p>Probably you had only a few input genomes (2 are the minimum), however to identify relevant core genes it is better to use at least 10 input genomes. If the genome assemblies are very similar more conserved sequences are identified. </p>
+<ul class="list">
+<li>Try to increase the number of input genomes</li>
+<li>Select more stringent primer3 settings</li>
+<li>Check if you have a proper selection of non-target species in the species list (some species closely related to the target and many others). (If not, to many sequences are identified as species specific)</li>
+</ul>
+<hr>
+<h4 id="exclude-gene-identifier-(gi)-from-blast-results"><a class="header-link" href="#exclude-gene-identifier-(gi)-from-blast-results"></a>Exclude gene identifier (GI) from BLAST results</h4>
+<p><strong>Example</strong></p>
+<p>We assume that we are searching for primer for Lactobacillus curvatus and we receive only few species specific conserved sequences. If the input assemblies are of good quality and many core genes are identified, we can continue to troubleshoot by looking at the <strong>mostcommonhits.csv</strong> file in the &quot;Summary&quot; directory.
+If we see there a GI and a species name different from Lactobacillus curvatus with hits for (almost) every core gene (query), we can try to check if the taxonomy of the genome sequence is correct and if not (if it is actually a Lactobacillus curvatus genome) we can exclude the corresponding GI by adding it to the list.</p>
+<p>During parsing of BLAST results or the BLAST summary file the GIs of the nontarget hits are searched for the excluded GIs. If the sequence with the excluded GI is the only nontarget hit for the query the corresponing core gene is considered specific.</p>
+<ul class="list">
+<li>navigate to SpeciesPrimer settings <a href="http://localhost:5000/pipelineconfig">http://localhost:5000/pipelineconfig</a></li>
+<li>Download the current NO_BLAST.gi file</li>
+<li>Copy the Hit GI in the NO_BLAST.gi file and upload it</li>
+</ul>
+<h4 id="taxonomic-vagueness"><a class="header-link" href="#taxonomic-vagueness"></a>Taxonomic vagueness</h4>
+<p>If many sequences in the nt database are historically or because of some other reasons wrongly assigned you can add the species name as an exception. The pipeline handles this species like the actual target species. </p>
+    </article>
+  </body>
+</html>
+{% endblock %}

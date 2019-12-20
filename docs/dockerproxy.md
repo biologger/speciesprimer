@@ -123,7 +123,7 @@
          
          *__CONTAINER:__
          
-            $ cp /home/primerdesign/certificates/Proxy_CA.cer /usr/local/share/ca-certificates/Proxy_CA.crt
+            $ cp /primerdesign/certificates/Proxy_CA.cer /usr/local/share/ca-certificates/Proxy_CA.crt
             $ update-ca-certificates 
             $ export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
             $ echo export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt >> /root/.bashrc

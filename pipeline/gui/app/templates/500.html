@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    p {
+      border: 1px solid lightgray;
+      padding: 10px;
+      margin: 10px;
+    }
+</style>
+
+<h1>SpeciesPrimer error</h1>
+
+<h4>Sorry, there was an unexpected error during your request</h4>
+<p>
+Error message:
+<br>
+<br>
+{{ error }}
+</p>
+<p>
+{{ tb }}
+</p>
+<p>
+  If you have bug reports, issues or questions please open an issue on <a href="https://github.com/biologger/speciesprimer">GitHub</a> or write an email to <a href = "mailto: biologger@protonmail.com">biologger@protonmail.com</a>.
+</p>
+{% endblock %}

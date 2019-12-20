@@ -1,0 +1,168 @@
+<?xml version="1.0" ?>
+<!DOCTYPE TaxaSet PUBLIC "-//NLM//DTD Taxon, 14th January 2002//EN" "https://www.ncbi.nlm.nih.gov/entrez/query/DTD/taxon.dtd">
+<TaxaSet><Taxon>
+    <TaxId>28038</TaxId>
+    <ScientificName>Lactobacillus curvatus</ScientificName>
+    <OtherNames>
+        <Synonym>Lactobacillus curvatus</Synonym>
+        <Name>
+            <ClassCDE>authority</ClassCDE>
+            <DispName>&quot;Bacterium curvatum&quot; Troili-Petersson 1903</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>authority</ClassCDE>
+            <DispName>Lactobacillus curvatus (Troili-Petersson 1903) Abo-Elnaga and Kandler 1965 (Approved Lists 1980) emend. Klein et al. 1996</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>authority</ClassCDE>
+            <DispName>Lactobacillus curvatus subsp. curvatus (Troili-Petersson 1903) Abo-Elnaga and Kandler 1965</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>ATCC 25601</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>ATCC:25601</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>BCCM/LMG:13553</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>BCCM/LMG:9198</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>CCUG 30669</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>CCUG:30669</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>CIP 102992</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>CIP:102992</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>DSM 20019</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>DSM:20019</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>IFO 15884</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>IFO:15884</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>JCM 1096</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>JCM:1096</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>LMG 13553</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>LMG 9198</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>LMG:13553</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>LMG:9198</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>NBRC 15884</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>NBRC:15884</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>NRRL B-4562</DispName>
+        </Name>
+        <Name>
+            <ClassCDE>type material</ClassCDE>
+            <DispName>NRRL:B:4562</DispName>
+        </Name>
+    </OtherNames>
+    <ParentTaxId>1578</ParentTaxId>
+    <Rank>species</Rank>
+    <Division>Bacteria</Division>
+    <GeneticCode>
+        <GCId>11</GCId>
+        <GCName>Bacterial, Archaeal and Plant Plastid</GCName>
+    </GeneticCode>
+    <MitoGeneticCode>
+        <MGCId>0</MGCId>
+        <MGCName>Unspecified</MGCName>
+    </MitoGeneticCode>
+    <Lineage>cellular organisms; Bacteria; Terrabacteria group; Firmicutes; Bacilli; Lactobacillales; Lactobacillaceae; Lactobacillus</Lineage>
+    <LineageEx>
+        <Taxon>
+            <TaxId>131567</TaxId>
+            <ScientificName>cellular organisms</ScientificName>
+            <Rank>no rank</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>2</TaxId>
+            <ScientificName>Bacteria</ScientificName>
+            <Rank>superkingdom</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>1783272</TaxId>
+            <ScientificName>Terrabacteria group</ScientificName>
+            <Rank>no rank</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>1239</TaxId>
+            <ScientificName>Firmicutes</ScientificName>
+            <Rank>phylum</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>91061</TaxId>
+            <ScientificName>Bacilli</ScientificName>
+            <Rank>class</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>186826</TaxId>
+            <ScientificName>Lactobacillales</ScientificName>
+            <Rank>order</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>33958</TaxId>
+            <ScientificName>Lactobacillaceae</ScientificName>
+            <Rank>family</Rank>
+        </Taxon>
+        <Taxon>
+            <TaxId>1578</TaxId>
+            <ScientificName>Lactobacillus</ScientificName>
+            <Rank>genus</Rank>
+        </Taxon>
+    </LineageEx>
+    <CreateDate>1995/02/27 09:24:00</CreateDate>
+    <UpdateDate>2018/11/26 12:40:26</UpdateDate>
+    <PubDate>1994/06/08 01:00:00</PubDate>
+</Taxon>
+
+</TaxaSet>

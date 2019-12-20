@@ -1,5 +1,6 @@
 **/.pyc
 
 __pycache__
-user_email.txt
-tmp_config.json
+tmp*
+*cover
+.coverage

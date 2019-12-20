@@ -1,0 +1,116 @@
+{% extends "help.html" %}{% block content %}<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Primerdesign</title>
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
+  </head>
+  <body>
+    <article class="markdown-body"><h2 id="primerdesign"><a class="header-link" href="#primerdesign"></a>Primerdesign</h2>
+<h3 id="first-run"><a class="header-link" href="#first-run"></a>First run</h3>
+<p>A good starting point is to go to Primer design and click the &quot;new&quot; button.
+Choose a target (e.g. <strong>Lactobacillus curvatus</strong>) and use the default value for the path.<br>In the settings at least the quality control gene(s) and the assembly level have to be specified (for assembly level e.g. &quot;<strong>all</strong>&quot; and &quot;<strong>tuf</strong>&quot; for quality control genes), for the other settings the default values are good to start.  10 - 200 genome assemblies are good as a starting point.</p>
+<ul class="list">
+<li>Click submit to save the settings and then start the pipeline by clicking the &quot;Start pipeline&quot; button.</li>
+<li>The link below allows to track the pipeline log in the browser window (the log file is stored in your HOST primerdesign directory)</li>
+</ul>
+<p>The log file of the pipeline run is saved in the primerdesign directory. After the run has finished you will find a Summary directory in the primerdesign directory with one directory for each species. The selected configuration for the pipeline run is saved in a json file in the config directory and is also copied to the summary directory after the run has finished.</p>
+<p>If you want to start the pipeline in a terminal type:</p>
+<pre class="hljs"><code>    $ sudo docker exec -<span class="hljs-keyword">it</span> {containername} <span class="hljs-keyword">speciesprimer</span>.py</code></pre><p>Answer all the questions and start the run.</p>
+<ul class="list">
+<li><p><strong>Example:</strong>
+<strong>/home/biologger/primerdesign/Summary/Lactobacillus_curvatus</strong>
+In there you will find:</p>
+<ul class="list">
+<li><p>a list with designed primers     </p>
+<ul class="list">
+<li><strong>Lb_curva_primer.csv</strong></li>
+</ul>
+</li>
+<li><p>statistics and a summary of the initial quality control of the genome assemblies </p>
+<ul class="list">
+<li><strong>Lb_curva_pipeline_stats_2018_04_29.txt</strong></li>
+<li><strong>Lb_curva_qc_sequences.csv</strong></li>
+</ul>
+</li>
+<li><p>the phylogeny files (if skip_tree = False)</p>
+<ul class="list">
+<li><strong>core_gene_alignment.aln</strong></li>
+<li><strong>Lb_curva_tree.newick</strong></li>
+</ul>
+</li>
+<li><p>the configuration file</p>
+<ul class="list">
+<li><strong>config_2018_04_29.json</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The newick tree can be opened for example with seaview (<a href="http://doua.prabi.fr/software/seaview)">http://doua.prabi.fr/software/seaview)</a>.</p>
+<p>The configuration selected for the pipeline run is also saved in the<br><strong>/home/biologger/primerdesign/Lactobacillus_curvatus/config/config.json</strong> file.</p>
+<p>If no primer pairs were found or problems occur during the run, check your input genomes (their quality is crucial) and the troubleshooting section.</p>
+<h3 id="directory-tree"><a class="header-link" href="#directory-tree"></a>Directory tree</h3>
+<p class="img-container"><img src="{{ url_for("static", filename="directory_tree.png") }}" alt="directory_tree" title="Directory tree example"></p>
+<p>In the container the directory &quot;primerdesign&quot; is the starting directory, on the host it is the directory you specified in the initial docker run command. In there are directories for each target species, a Summary directory and an excludedassemblies directory. In the summary directory the results of the pipeline runs are saved for each target species separately. In the excludedassemblies directory the prokka annotation files of assemblies which did not pass the quality control are saved for each species separately. You can delete the directories with the annotation files if you want to save hard disk space. The information is still saved in the text file in the target species directory.</p>
+<h3 id="using-user-provided-genomes"><a class="header-link" href="#using-user-provided-genomes"></a>Using user provided genomes</h3>
+<ul class="list">
+<li>Names of input fasta files should not contain dots and not more than one underscore.</li>
+<li>Start the batchassist.py script and step through the configuration. </li>
+<li>In the primerdesign directory on the host you now see directories with the species names containing a config and a genomic_fna directory.</li>
+<li>Copy your genome fasta files into the genomic_fna directory</li>
+</ul>
+<p>Alternative 1:</p>
+<ul class="list">
+<li><p>Create the required directories and copy your genome files into it.</p>
+</li>
+<li><p><strong>Example:</strong></p>
+<ul class="list">
+<li><p>Container</p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>mkdir /primerdesign/Lactobacillus_curvatus
+  <span class="hljs-variable">$ </span>mkdir /primerdesign/Lactobacillus_curvatus/genomic_fna
+  <span class="hljs-variable">$ </span>cp /primerdesign/mygenomes/* <span class="hljs-regexp">/primerdesign/</span>Lactobacillus_curvatus/genomic_fna
+
+  <span class="hljs-comment"># Start a normal run</span>
+  <span class="hljs-variable">$ </span>speciesprimer.py
+  <span class="hljs-variable">$ </span>n <span class="hljs-comment"># start a new run (hit return)</span>
+  <span class="hljs-comment"># working directory</span>
+  <span class="hljs-variable">$ </span>/primerdesign/
+  <span class="hljs-comment"># target</span>
+  <span class="hljs-variable">$ </span>Lactobacillus curvatus
+  <span class="hljs-variable">$ </span>...</code></pre></li>
+</ul>
+</li>
+</ul>
+<p>Alternative 2:</p>
+<ul class="list">
+<li>Run the pipeline GUI with selected offline option until it breaks (because no genomes were found). Then add your genome fasta files to the genomic_fna directory.</li>
+<li>If you want to use also NCBI genomes change the settings back to online, otherwise just start the pipeline again.</li>
+</ul>
+<p>Using your own prokka annotated files is not recommended. Depending on the version of prokka some gene names could have changed, this can cause problems during the quality control and the pan-genome analysis. The name convention has to be exactly the same for all input genomes, errors there can lead to a variety of strange errors during the pipeline run.</p>
+<h3 id="batchassist.py"><a class="header-link" href="#batchassist.py"></a>batchassist.py</h3>
+<p>The batchassist.py script creates configuration files for future primer search. 
+It offers individual or global selection of the command line options for multiple target species.  </p>
+<p>To start the pipeline with this configuration files, use speciesprimer.py
+and choose &quot;start&quot; (s) and then (a)ll or (s)elect, to start primer search for all species or to select certain target species.</p>
+<p><strong>Example:</strong> search primer pairs for all species (without a primer.csv file) with a configuration file </p>
+<ul class="list">
+<li><p><strong>CONTAINER:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-variable">$ </span>speciesprimer.py
+  <span class="hljs-variable">$ </span>s <span class="hljs-comment"># (hit return)</span>
+  <span class="hljs-variable">$ </span>a <span class="hljs-comment"># (hit return)</span></code></pre></li>
+</ul>
+<h3 id="additional-info-blastseqs-option"><a class="header-link" href="#additional-info-blastseqs-option"></a>Additional info blastseqs option</h3>
+<p>from <a href="https://www.ncbi.nlm.nih.gov/books/NBK279668/">https://www.ncbi.nlm.nih.gov/books/NBK279668/</a> accessed 15.05.2019</p>
+<h4 id="concatenation-of-queries"><a class="header-link" href="#concatenation-of-queries"></a>Concatenation of queries</h4>
+<p>BLAST works more efficiently if it scans the database once for multiple queries. </p>
+<p>This feature is known as concatenation. It speeds up MegaBLAST searches the most as they spend little time on tasks that consume CPU and most of the time streaming through the database. BLASTN and discontiguous MegaBLAST searches also run faster with concatenation, though the effect is less pronounced. BLAST+ applies concatenation 
+on all types of searches (e.g., also BLASTP, etc.), and it can be very beneficial if the input is a large number of queries in FASTA format. BLAST+ concatenates queries by grouping them together until a specific number of letters (or “chunk size”) is reached. Unfortunately, a constant chunk size for each database scan causes certain problems. For some searches the chunk size is too large, too many letters are searched at once, and the process consumes too much memory. Tests have shown that the number of successful ungapped extensions performed in the preliminary stage is a good predictor of overall memory use during a search. The BLASTN application (starting with the 2.2.28 release) takes advantage of this insight to provide an “adaptive chunk size”. The application starts with a low initial chunk size of 10,000 bases and records how many successful ungapped extensions were performed during search. It adjusts the chunk size on the next database scan with a target of performing two million extensions during the search.</p>
+<p>Query concatenation also means that BLAST will produce no output until the first set of concatenated queries have been processed. Some users find this disconcerting, but it is not a problem.        </p>
+    </article>
+  </body>
+</html>
+{% endblock %}

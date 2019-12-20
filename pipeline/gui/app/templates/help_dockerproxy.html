@@ -1,0 +1,135 @@
+{% extends "help.html" %}{% block content %}<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Configuration of Docker with DNS and proxy server</title>
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/github-markdown.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/hljs-github.min.css") }}">
+	<link type="text/css" rel="stylesheet" href="{{ url_for("static", filename="css/pilcrow.css") }}">
+  </head>
+  <body>
+    <article class="markdown-body"><h3 id="configuration-of-docker-with-dns-and-proxy-server"><a class="header-link" href="#configuration-of-docker-with-dns-and-proxy-server"></a>Configuration of Docker with DNS and proxy server</h3>
+<h4 id="dns-server-(docker-daemon)"><a class="header-link" href="#dns-server-(docker-daemon)"></a>DNS server (Docker daemon)</h4>
+<ol class="list">
+<li><p>Open /etc/docker/daemon.json using a text editor</p>
+<ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  $ sudo gedit <span class="hljs-regexp">/etc/</span>docker<span class="hljs-regexp">/daemon.json</span></code></pre></li>
+</ul>
+</li>
+<li><p>Copy the text below with the brackets and your DNS server adress into the deamon.json file</p>
+<pre class="hljs"><code> {
+   <span class="hljs-attr">"dns"</span>: [<span class="hljs-string">"DNSadress1"</span>, <span class="hljs-string">"DNSadress2"</span>]
+ }</code></pre><ul class="list">
+<li><p><strong>Example:</strong> (Google Public DNS IP addresses)</p>
+<pre class="hljs"><code>  {
+      <span class="hljs-string">"dns"</span>: [<span class="hljs-string">"8.8.8.8, "</span><span class="hljs-number">8.8</span>.<span class="hljs-number">4.4</span><span class="hljs-string">"]</span>
+  }</code></pre></li>
+</ul>
+</li>
+<li><p>Restart docker</p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo service docker restart</code></pre></li>
+</ol>
+<h4 id="proxy-server-(docker-daemon)"><a class="header-link" href="#proxy-server-(docker-daemon)"></a>Proxy server (Docker daemon)</h4>
+<ol class="list">
+<li><p>Create the docker.service.d directory if it does not exist</p>
+<ul class="list">
+<li><p><strong>Example:</strong> </p>
+<pre class="hljs"><code>  $ sudo mkdir /etc/systemd/system/docker<span class="hljs-selector-class">.service</span><span class="hljs-selector-class">.d</span></code></pre></li>
+</ul>
+</li>
+<li><p>Open or create the <strong>http-proxy.conf</strong> file to add the http proxy configuration</p>
+<ul class="list">
+<li><p><strong>Example:</strong> </p>
+<pre class="hljs"><code>  $ sudo gedit /etc/systemd/system/docker<span class="hljs-selector-class">.service</span><span class="hljs-selector-class">.d</span>/http-proxy.conf</code></pre></li>
+</ul>
+</li>
+<li><p>Copy the text below with your {proxy_address:port} for the http proxy in the <strong>http-proxy.conf</strong> file</p>
+<pre class="hljs"><code> <span class="hljs-string">[Service]</span> 
+ Environment=<span class="hljs-string">"HTTP_PROXY=http://{proxyadress:port}/"</span> </code></pre><ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-string">[Service]</span> 
+  Environment=<span class="hljs-string">"HTTP_PROXY=http://myproxy.proxy.com:8080/"</span> </code></pre></li>
+</ul>
+</li>
+<li><p>Open or create the <strong>https-proxy.conf</strong> file to add the https proxy configuration</p>
+<ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  $ sudo gedit <span class="hljs-regexp">/etc/</span>systemd<span class="hljs-regexp">/system/</span>docker.service.d<span class="hljs-regexp">/http-proxy.conf/</span>https-proxy.conf</code></pre></li>
+</ul>
+</li>
+<li><p>Copy the text below with your {proxy_address:port} for the https proxy in the https-proxy.conf file</p>
+<pre class="hljs"><code> <span class="hljs-string">[Service]</span> 
+ Environment=<span class="hljs-string">"HTTPS_PROXY=http://{proxyadress:port}/"</span> </code></pre><ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  <span class="hljs-string">[Service]</span> 
+  Environment=<span class="hljs-string">"HTTPS_PROXY=http://myproxy.proxy.com:8080/"</span> </code></pre></li>
+</ul>
+</li>
+<li><p>Reload the docker daemon</p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo systemctl daemon-reload</code></pre></li>
+<li><p>Check if the environment variables are set</p>
+<pre class="hljs"><code> $ sudo systemctl show --<span class="hljs-keyword">property</span><span class="hljs-title"> </span>Environment docker</code></pre></li>
+<li><p>Restart docker</p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo systemctl restart docker</code></pre></li>
+</ol>
+<h4 id="dns-server-(docker-container)"><a class="header-link" href="#dns-server-(docker-container)"></a>DNS server (Docker container)</h4>
+<ol class="list">
+<li><p>Open /etc/default/docker</p>
+<ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  $ sudo gedit <span class="hljs-regexp">/etc/</span><span class="hljs-keyword">default</span><span class="hljs-regexp">/docker</span></code></pre></li>
+</ul>
+</li>
+<li><p>Remove the hash (#) from the line  with DOCKER_OPTS= and add the  DNS server adress</p>
+<pre class="hljs"><code> <span class="hljs-comment">DOCKER_OPTS="</span><span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">dns</span> <span class="hljs-comment">DNSadress1</span>  <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">dns</span> <span class="hljs-comment">DNSadress2"</span></code></pre><ul class="list">
+<li><p><strong>Example:</strong> (Google Public DNS IP addresses)</p>
+<pre class="hljs"><code>  <span class="hljs-comment">DOCKER_OPTS="</span><span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">dns</span> <span class="hljs-comment">8</span><span class="hljs-string">.</span><span class="hljs-comment">8</span><span class="hljs-string">.</span><span class="hljs-comment">8</span><span class="hljs-string">.</span><span class="hljs-comment">8</span>  <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">dns</span> <span class="hljs-comment">8</span><span class="hljs-string">.</span><span class="hljs-comment">8</span><span class="hljs-string">.</span><span class="hljs-comment">4</span><span class="hljs-string">.</span><span class="hljs-comment">4"</span></code></pre></li>
+</ul>
+</li>
+</ol>
+<h4 id="proxy-server-(docker-container)"><a class="header-link" href="#proxy-server-(docker-container)"></a>Proxy server (Docker container)</h4>
+<ol class="list">
+<li><p>Create a .docker directory in your $HOME directory</p>
+<pre class="hljs"><code> <span class="hljs-built_in">mkdir</span> .docker</code></pre></li>
+<li><p>Create a config.json file</p>
+<pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo gedit ~<span class="hljs-regexp">/.docker/config</span>.json</code></pre></li>
+<li><p>Add your proxy configuration as in the example below</p>
+<ul class="list">
+<li><p><strong>Example:</strong></p>
+<pre class="hljs"><code>  {
+      <span class="hljs-attr">"proxies"</span>: {
+          <span class="hljs-attr">"default"</span>: {    
+               <span class="hljs-attr">"httpProxy"</span>: <span class="hljs-string">"http://myproxy.proxy.com:8080/"</span>,
+               <span class="hljs-attr">"httpsProxy"</span>: <span class="hljs-string">"http://myproxy.proxy.com:8080/"</span>,
+               <span class="hljs-attr">"ftpProxy"</span>: <span class="hljs-string">"http://myproxy.proxy.com:8080/"</span>
+          }
+       }
+  }</code></pre></li>
+</ul>
+</li>
+</ol>
+<h4 id="tls-termination-(docker-container)"><a class="header-link" href="#tls-termination-(docker-container)"></a>TLS termination (Docker container)</h4>
+<ol class="list">
+<li>Copy the certificate file (cer / crt) to a directory which is mounted in the container </li>
+<li>Copy the certificate file to /usr/local/share/ca-certificates/</li>
+<li>Run update-ca-certificates</li>
+<li><p>Export requests variable (add it to .bashrc to make it permanent)</p>
+<p> *<strong>Example:</strong></p>
+<pre class="hljs"><code> * <span class="hljs-symbol">__HOST:</span>_<span class="hljs-number">_</span>
+
+     $ mkdir $HOME/primerdesign/certificates
+     $ cp $HOME/Proxy_CA.cer $HOME/primerdesign/certificates
+
+  *<span class="hljs-symbol">__CONTAINER:</span>_<span class="hljs-number">_</span>
+
+     $ cp /primerdesign/certificates/Proxy_CA.cer /usr/local/share/ca-certificates/Proxy_CA.crt
+     $ update-ca-certificates 
+     $ export REQUESTS_CA_BUNDLE=<span class="hljs-regexp">/etc/ssl</span><span class="hljs-regexp">/certs/ca</span>-certificates.crt
+     $ echo export REQUESTS_CA_BUNDLE=<span class="hljs-regexp">/etc/ssl</span><span class="hljs-regexp">/certs/ca</span>-certificates.crt <span class="hljs-meta">&gt;&gt; </span>/root/.bashrc</code></pre></li>
+</ol>
+    </article>
+  </body>
+</html>
+{% endblock %}
