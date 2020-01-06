@@ -23,7 +23,7 @@ msg = (
         sudo docker exec -it {Containername} bash
     - Start the tests in the container terminal
         cd /
-        pytest -vv --cov=pipeline /tests/
+        pytest -vv --cov=/pipeline /tests/
     """
     )
 

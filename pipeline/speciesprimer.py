@@ -2897,7 +2897,6 @@ class PrimerQualityControl:
         G.logger("Run: get_primerinfo(" + self.target + ")")
         val_list = []
         for item in selected_seqs:
-            print(item)
             try:
                 if len(item) == 2:
                     item = item[0]
@@ -2905,9 +2904,7 @@ class PrimerQualityControl:
                     primer_name = "_".join(item.split("_")[0:-1])
                 else:
                     primer_name = item
-                print(primer_name)
                 target_id = "_".join(primer_name.split("_")[-3:-1])
-                print(target_id)
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
                 template_seq = self.primer3_dict[target_id]["template_seq"]
                 x = self.primer3_dict[target_id][primerpair]
@@ -3991,11 +3988,12 @@ def commandline():
         "The current settings files will be overwritten")
     parser.add_argument(
         "--runmode", "-m", type=str, default=["species"],
-        choices=["species", "singleton"])
+        choices=["species", "singleton"], help="Singleton is a new feature "
+        "under development")
 
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.1")
+        "-V", "--version", action="version", version="%(prog)s 2.2")
     return parser
 
 
@@ -4044,7 +4042,7 @@ def get_configuration_from_file(target, conf_from_file):
     return config
 
 
-def run_pipeline_for_target(target, config, runmode):
+def run_pipeline_for_target(target, config, runmode="species"):
     print("\nStart searching primer for " + target)
     G.logger("> Start searching primer for " + target)
     target_dir = os.path.join(config.path, target)

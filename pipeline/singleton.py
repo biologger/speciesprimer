@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import sys
 import csv
 import time
+import shutil
 import itertools
+from itertools import islice
 import multiprocessing
+from datetime import timedelta
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio import SeqIO
@@ -19,6 +24,7 @@ from speciesprimer import BlastParser
 from speciesprimer import PrimerDesign
 from speciesprimer import PrimerQualityControl
 from speciesprimer import PipelineStatsCollector
+from speciesprimer import Summary
 
 
 
@@ -194,21 +200,105 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
         self.mfethreshold = self.config.mfethreshold
         self.referencegenomes = 10
         self.dbinputfiles = []
+        self.singledbfiles = []
+
+    def get_primerinfo(self, selected_seqs, mode):
+        G.logger("Run: get_primerinfo(" + self.target + ")")
+        val_list = []
+        for item in selected_seqs:
+            try:
+                if len(item) == 2:
+                    item = item[0]
+                if (item.endswith("_F") or item.endswith("_R")):
+                    primer_name = "_".join(item.split("_")[0:-1])
+                else:
+                    primer_name = item
+
+#                target_id = "_".join(primer_name.split("_")[-3:-1])
+                shortname = primer_name.split(H.abbrev(self.target) + "_")[1]
+                target_id = "_".join(shortname.split("_")[0:-1])
+                primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
+                template_seq = self.primer3_dict[target_id]["template_seq"]
+                x = self.primer3_dict[target_id][primerpair]
+                pp_penalty = round(x["primer_P_penalty"], 2)
+                pp_prodsize = x["product_size"]
+                pp_prodTM = round(x["product_TM"], 2)
+                amp_seq = x["amplicon_seq"]
+                lseq = x["primer_L_sequence"]
+                rseq = x["primer_R_sequence"]
+                lpen = round(x["primer_L_penalty"], 2)
+                rpen = round(x["primer_R_penalty"], 2)
+                lTM = round(x["primer_L_TM"], 2)
+                rTM = round(x["primer_R_TM"], 2)
+                if mode == "mfeprimer":
+                    info = [
+                        primer_name + "_F", lseq, primer_name + "_R", rseq,
+                        template_seq]
+                    if info not in val_list:
+                        val_list.append(info)
+                if mode == "mfold":
+                    info = [target_id, primerpair, amp_seq, primer_name]
+                    if info not in val_list:
+                        val_list.append(info)
+                if mode == "dimercheck":
+                    info = [
+                        primer_name, lseq, rseq]
+                    if info not in val_list:
+                        val_list.append(info)
+                if mode == "results":
+                    ppc = x['PPC']
+                    if self.config.probe:
+                        iseq = x["primer_I_sequence"]
+                        ipen = round(x["primer_I_penalty"], 2)
+                        iTM = round(x["primer_I_TM"], 2)
+                    else:
+                        iseq = "None"
+                        ipen = "None"
+                        iTM = "None"
+
+                    info = [
+                        primer_name, ppc, pp_penalty, target_id,
+                        lseq, lTM, lpen,
+                        rseq, rTM, rpen,
+                        iseq, iTM, ipen,
+                        pp_prodsize, pp_prodTM, amp_seq,
+                        template_seq]
+                    if info not in val_list:
+                        val_list.append(info)
+
+            except Exception:
+                G.logger(
+                    "error in get_primerinfo()"
+                    + str(sys.exc_info()))
+
+        return val_list
+
+
+    def create_assembly_db_files(self):
+        strain_dir = os.path.join(self.primer_qc_dir, "straindbs")
+        for files in os.listdir(self.fna_dir):
+            DIR = "_".join(files.split("_")[0:-1])
+            targetdir = os.path.join(strain_dir, DIR)
+            G.create_directory(targetdir)
+            tofile = os.path.join(targetdir, "nontarget_strain.fas")
+            fromfile = os.path.join(self.fna_dir, files)
+            if not os.path.isfile(tofile):
+                shutil.copy(fromfile, tofile)
+            self.singledbfiles.append(tofile)
+
 
     def prepare_MFEprimer_Dbs(self, primerinfos):
         from speciesprimer import errors
         G.logger("Run: prepare_MFEprimer_Dbs(" + self.target + ")")
         G.create_directory(self.primer_qc_dir)
         self.create_template_db_file(primerinfos)
-        self.create_assembly_db_file()
-        assemblyfilepath = os.path.join(
-            self.primer_qc_dir,
-            H.abbrev(self.target) + ".genomic")
+        self.create_assembly_db_files()
         templatefilepath = os.path.join(
                 self.primer_qc_dir, "template.sequences")
-        dblist = [assemblyfilepath, templatefilepath]
+        dblist = [templatefilepath] + self.singledbfiles
         for db in self.dbinputfiles:
             dblist.append(db)
+
         # parallelization try
         pool = multiprocessing.Pool()
         results = [
@@ -276,15 +366,27 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
             "primer pairs left after non-target QC: "
             + str(len(check_assembly)))
 
+        assembly_lists = []
         print("\nStart MFEprimer with assembly DB\n")
         G.logger("> Start MFEprimer with assembly DB")
 
-        dbfile = H.abbrev(self.target) + ".genomic"
-        assembly_list = G.run_parallel(
-                P.MFEprimer_singleton, check_assembly,
-                [self.primer_qc_dir, dbfile, self.mfethreshold])
 
-        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
+        for index, dbfile in enumerate(self.singledbfiles):
+            info_msg = (
+                "strain assemblies DB " + str(index+1) + "/"
+                + str(len(self.singledbfiles)))
+            print(info_msg)
+            G.logger(info_msg)
+            short = H.abbrev(self.target) + "_"
+
+            assembly_list = G.run_parallel(
+                    P.MFEprimer_singleton, check_assembly,
+                    [self.primer_qc_dir, dbfile, self.mfethreshold, short])
+
+            assembly_lists = list(
+                    itertools.chain(assembly_lists, assembly_list))
+
+        check_final = self.write_MFEprimer_results(assembly_lists, "assembly")
         msg = " primer pair(s) passed secondary PCR amplicon check\n"
         info3 = str(len(check_final)) + msg
         print("\n\n" + info3 + "\n")
@@ -301,6 +403,8 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                 pname = "_".join(nameF.split("_")[0:-1])
                 ppc = item[0][5] + float(self.mfethreshold)
                 target_id = "_".join(pname.split("_")[-3:-1])
+                shortname = pname.split(H.abbrev(self.target) + "_")[1]
+                target_id = "_".join(shortname.split("_")[0:-1])
                 primerpair = "Primer_pair_" + pname.split("_P")[-1]
                 self.primer3_dict[target_id][primerpair].update({"PPC": ppc})
 
@@ -311,8 +415,119 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
 
         return primername_list
 
+    def prep_mfold(self, mfoldinput, abbr):
+        target_id, primerpair, amplicon_seq, primer_name = mfoldinput
+        # This removes the Genus species string to shorten the
+        # name for mfold (especially for subspecies names). mfold has
+        # problems with too long filenames / paths
+        short_name = primer_name.split(abbr + "_")[1]
+        shortername = "_".join(short_name.split("_")[-2::])
+        dir_path = os.path.join(self.mfold_dir, target_id)
+        subdir_path = os.path.join(dir_path, primerpair)
+        pcr_name = shortername + "_PCR"
+        if len(amplicon_seq) >= self.config.minsize:
+            G.create_directory(dir_path)
+            G.create_directory(subdir_path)
+            self.run_mfold(subdir_path, pcr_name, amplicon_seq)
 
-class SingletonSummary:
+    def read_files(self, filename):
+        results = []
+        pnum_dir = os.path.split(os.path.dirname(filename))
+        pp = pnum_dir[1].split("_")[-1]
+        p_dir = os.path.split(pnum_dir[0])
+        name = p_dir[1] + "_P" + pp
+        primername = H.abbrev(self.target) + "_" + name
+        with open(filename, "r", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if re.search("Structure", line):
+                    name = "".join(islice(f, 1, 2)).strip()
+#                    primername = self.get_primername(name)
+                    mfoldvalues = self.parse_values(f, line)
+                    results.append(
+                        self.interpret_values(
+                            name, primername, mfoldvalues))
+        return results
+
+
+    def run_primer_qc(self):
+        G.logger("Run: run_primer_qc(" + self.target + ")")
+        total_results = []
+        if self.collect_primer() == 0:
+            G.create_directory(self.primerblast_dir)
+            blastsum = os.path.join(self.primerblast_dir, "nontargethits.json")
+            if not os.path.isfile(blastsum):
+                prep = BlastPrep(
+                    self.primerblast_dir, self.primerlist,
+                    "primer", self.config.blastseqs)
+                use_cores, inputseqs = prep.run_blastprep()
+
+                bla = Blast(self.config, self.primerblast_dir, "primer")
+                bla.run_blast("primer", use_cores)
+
+            self.call_blastparser.run_blastparser("primer")
+
+            primer_qc_list = self.get_primerinfo(self.primerlist, "mfeprimer")
+
+            for files in os.listdir(self.primer_qc_dir):
+                if (
+                    files.startswith("BLASTnontarget")
+                    and files.endswith(".sequences")
+                ):
+                    filepath = os.path.join(self.primer_qc_dir, files)
+                    self.dbinputfiles.append(filepath)
+
+            self.prepare_MFEprimer_Dbs(primer_qc_list)
+
+            survived_MFEp = self.MFEprimer_QC(primer_qc_list)
+
+            mfoldinput = self.get_primerinfo(survived_MFEp, "mfold")
+
+            self.mfold_analysis(mfoldinput)
+
+            selected_primer, excluded_primer = self.mfold_parser()
+
+            dimercheck = self.dimercheck_primer(
+                selected_primer, excluded_primer)
+
+            choice = self.check_primerdimer(dimercheck)
+
+            total_results = self.write_results(choice)
+
+            if total_results == []:
+                error_msg = "No compatible primers found"
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+                duration = time.time() - self.start
+                G.logger(
+                    "> PrimerQC time: "
+                    + str(timedelta(seconds=duration)).split(".")[0])
+            else:
+                info = (
+                    "Found " + str(len(total_results))
+                    + " primer pair(s) for " + self.target)
+                print("\n" + info + "\n")
+                G.logger("> " + info)
+                duration = time.time() - self.start
+                G.logger(
+                    "> PrimerQC time: "
+                    + str(timedelta(seconds=duration)).split(".")[0])
+
+        else:
+            from speciesprimer import errors
+            error_msg = "No compatible primers found"
+            duration = time.time() - self.start
+            G.logger(
+                "> PrimerQC time: "
+                + str(timedelta(seconds=duration)).split(".")[0])
+            print(error_msg)
+            G.logger("> " + error_msg)
+            errors.append([self.target, error_msg])
+
+        return total_results
+
+class SingletonSummary(Summary):
     def __init__(self, configuration, total_results):
         self.config = configuration
         self.target = configuration.target
@@ -325,7 +540,8 @@ class SingletonSummary:
         self.primer_dir = os.path.join(self.results_dir, "primer")
         self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
-        self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
+        self.summ_dir = os.path.join(
+                self.config.path, "Summary", self.target, "strain_specific")
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
@@ -343,7 +559,7 @@ def main(config):
             config).run_blastparser(single_dict)
     primer_dict = SingletonPrimerDesign(config).run_primerdesign()
     total_results = SingletonPrimerQualityControl(config, primer_dict).run_primer_qc()
-#    SingletonSummary(config, total_results).run_summary(mode="last")
+    SingletonSummary(config, total_results).run_summary(mode="last")
 
 
 if __name__ == "__main__":

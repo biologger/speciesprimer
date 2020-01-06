@@ -2,38 +2,30 @@
 # SpeciesPrimer
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://img.shields.io/badge/License-GPLv3-blue.svg)
-[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
+[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=singleton)](https://travis-ci.com/biologger/speciesprimer)
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
-[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
+[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/singleton/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 
 
-New in SpeciesPrimer v2.1
-* Configfile option for pipeline setup (v2.1.1)
-* Custom Blast DB support
-* Email option for command line
-* Increased speed
-* Species synonyms are added to exceptions
-* Bugfixes and KeyboardInterrupt rollback
-* Simpler directory structure
-
+## Development branch
 
 ## Contents
-* [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
-* [quick start (Ubuntu 16.04)](https://github.com/biologger/speciesprimer/tree/master#quick-start-ubuntu-1604)
-* [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
-	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
-	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
+* [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/singleton#hardware-recommendations)
+* [quick start (Ubuntu 16.04)](https://github.com/biologger/speciesprimer/tree/singleton#quick-start-ubuntu-1604)
+* [Introduction](https://github.com/biologger/speciesprimer/tree/singleton#introduction)
+	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/singleton#pipeline-workflow-and-tools)
+	* [Command line options](https://github.com/biologger/speciesprimer/tree/singleton#run-settings)
 
 ## Docs
-* [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/tutorial.md)
-* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
-* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/master/docs/pipelinesetup.md)
-* [Primerdesign](https://github.com/biologger/speciesprimer/tree/master/docs/primerdesign.md)
-* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/master/docs/troubleshooting.md)
-* [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/customdbtutorial.md)
-* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/master/docs/dockertroubleshooting.md)
-* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/master/docs/dockerproxy.md)
+* [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/singleton/docs/tutorial.md)
+* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/singleton/docs/cmdlineonly.md)
+* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/singleton/docs/pipelinesetup.md)
+* [Primerdesign](https://github.com/biologger/speciesprimer/tree/singleton/docs/primerdesign.md)
+* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/singleton/docs/troubleshooting.md)
+* [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/singleton/docs/customdbtutorial.md)
+* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/singleton/docs/dockertroubleshooting.md)
+* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/singleton/docs/dockerproxy.md)
 
 ## Minimum system requirements
 
@@ -103,7 +95,7 @@ New in SpeciesPrimer v2.1
 
 * Starting the script will start an assistant for the configuration of a new run
 
-For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
+For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/singleton/docs/cmdlineonly.md)
 
 #### If you want to use the ref_prok_rep_genomes DB use the customdb option with the path
 

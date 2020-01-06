@@ -123,8 +123,7 @@ def test_Singleton(config):
     def test_run_singleseqs():
         single_dict = SI.run_singleseqs()
         ref = [
-            'GCF_003254785v1_20190923|GCF_003254785v1_02023|btuD_5',
-            'GCF_003254785v1_20190923|GCF_003254785v1_02024|group_3360']
+            'GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360']
         res = list(single_dict.keys())
         res.sort()
         ref.sort()
@@ -142,9 +141,10 @@ def test_Singleton(config):
     test_write_fasta()
     test_coregene_extract()
     single_dict = test_run_singleseqs()
-    test_BlastParser(config)
+#    test_BlastParser(config)
 
 
-#def test_end():
-#    if os.path.isdir(testdir):
-#        shutil.rmtree(testdir)
+def test_end():
+    os.chdir(pipe_dir)
+    if os.path.isdir(testdir):
+        shutil.rmtree(testdir)

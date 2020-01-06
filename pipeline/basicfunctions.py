@@ -539,7 +539,8 @@ class ParallelFunctions:
         result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         [dbfilepath, primer_qc_dir] = args
-        dbfile = os.path.basename(dbfilepath)
+#        dbfile = os.path.basename(dbfilepath)
+
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=primer_qc_dir, prefix="primer",
             suffix=".fa", delete=False
@@ -547,7 +548,7 @@ class ParallelFunctions:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         cmd = [
-            "MFEprimer.py", "-i", primefile.name, "-d", dbfile,
+            "MFEprimer.py", "-i", primefile.name, "-d", dbfilepath,
             "-k 9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
@@ -600,35 +601,17 @@ class ParallelFunctions:
 
     @staticmethod
     def MFEprimer_singleton(primerinfo, args):
-        [primer_qc_dir, db, mfethreshold] = args
-        result = []
-        target_product = []
+        [primer_qc_dir, db, mfethreshold, short] = args
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        cmd = [
-            "MFEprimer.py", "-i", primefile.name, "-d", db,
-            "-k", "9", "--tab", "--ppc", "10"]
-        while result == []:
-            result = GeneralFunctions().read_shelloutput(cmd)
-        os.unlink(primefile.name)
-        for index, item in enumerate(result):
-            if index > 0:
-                val = item.split("\t")
-                result_ppc = float(val[4])
-                product_len = int(val[5])
-                targetID = val[3]
-                if result_ppc == ppc_val + mfethreshold:
-                    target_product.append(targetID)
-                elif result_ppc > ppc_val:
-                    return [[None], result]
-        if len(target_product) == 1:
-                return [primerinfo, result]
-        return [[None], result]
+        targetname = "_".join(nameF.split(short)[1].split("_")[0:-3])
+        dbname = os.path.basename(os.path.dirname(db))
+        if dbname == targetname:
+            result = ParallelFunctions().MFEprimer_assembly(
+                                                        primerinfo, args[0:3])
+        else:
+            result = ParallelFunctions().MFEprimer_nontarget(
+                    primerinfo, [db, primer_qc_dir])
+        return result
 
 
     @staticmethod
