@@ -29,7 +29,7 @@ from speciesprimer import Summary
 
 
 class Singletons(CoreGenes):
-    def __init__(self, configuration):
+    def __init__(self, configuration, single):
         self.config = configuration
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
@@ -44,6 +44,7 @@ class Singletons(CoreGenes):
         self.blast_dir = os.path.join(self.single_dir, "blast")
         self.singleton_seqs = []
         self.single_dict = {}
+        self.single = single
 
     def get_singleton_genes(self):
         G.create_directory(self.single_dir)
@@ -56,23 +57,34 @@ class Singletons(CoreGenes):
             header = next(reader)
             accessions = header[14:]
             genomes = len(accessions)
+            rows = None
+            if self.single:
+                rows = []
+                for s in self.single:
+                    for index, item in enumerate(header):
+                        if "_".join(item.split("_")[0:-1]) == s:
+                            rows.append(index)
             for row in reader:
                 data_row = []
                 gene_name = row[0]
                 number_isolates = int(row[3])
                 number_sequences = int(row[4])
-                loci = row[14:]
+                if self.single:
+                    loci = []
+                    for item in rows:
+                        loci.append(row[item])
+                else:
+                    loci = row[14:]
                 if number_isolates == 1:
                     singleton_count.append(gene_name)
                     data_row.append(gene_name)
                     for locus in loci:
                         if not locus == "":
-#                            print(locus)
                             data_row.append(locus)
-                    newtabledata.append(data_row)
-
-
-        G.csv_writer(self.singleton, newtabledata)
+                    if len(data_row) > 1:
+                        newtabledata.append(data_row)
+        if len(newtabledata) > 0:
+            G.csv_writer(self.singleton, newtabledata)
         return len(singleton_count)
 
     def get_fasta(self, locustags):
@@ -495,6 +507,7 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
             total_results = self.write_results(choice)
 
             if total_results == []:
+                from speciesprimer import errors
                 error_msg = "No compatible primers found"
                 print(error_msg)
                 G.logger("> " + error_msg)
@@ -551,8 +564,8 @@ class SingletonSummary(Summary):
             self.total_results = total_results
 
 
-def main(config):
-    SI = Singletons(config)
+def main(config, single):
+    SI = Singletons(config, single)
     SI.coregene_extract()
     single_dict = SI.run_singleseqs()
     str_unique = SingletonBlastParser(
