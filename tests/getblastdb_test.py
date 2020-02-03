@@ -193,7 +193,7 @@ def test_commandline():
     parser = getblastdb.commandline()
     args = parser.parse_args([])
     # default
-    assert args.database == 'nt_v5'
+    assert args.database == 'nt'
     assert args.dbpath is None
     assert args.delete is False
     args = parser.parse_args([

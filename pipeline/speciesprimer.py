@@ -1878,17 +1878,11 @@ class Blast:
                     blast_cmd.append("-taxidlist")
                     blast_cmd.append(taxidlist)
 
-            blast_cmd.append("-db")
-            if self.config.customdb:
-                blast_cmd.append(self.config.customdb)
-            else:
-                blast_cmd.append("nt_v5")
+        blast_cmd.append("-db")
+        if self.config.customdb:
+            blast_cmd.append(self.config.customdb)
         else:
-            blast_cmd.append("-db")
-            if self.config.customdb:
-                blast_cmd.append(self.config.customdb)
-            else:
-                blast_cmd.append("nt")
+            blast_cmd.append("nt")
 
         return blast_cmd
 
@@ -2346,10 +2340,10 @@ class BlastParser:
         if self.config.customdb is not None:
             db = self.config.customdb
         else:
-            if self.config.blastdbv5:
-                db = "nt_v5"
-            else:
-                db = "nt"
+            # the version 5 databases will no longer have
+            # "_v5" as part of the database names
+            # https://ncbiinsights.ncbi.nlm.nih.gov/2020/01/28/blast-db-ftp/
+            db = "nt"
         seqcount = len(nonreddata)
         info = "Found " + str(seqcount) + " sequences for the non-target DB"
         G.logger(info)

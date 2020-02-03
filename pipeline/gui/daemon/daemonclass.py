@@ -94,7 +94,7 @@ class Update_ntDB(Daemonize):
         os.chdir(blastdb_dir)
         command = [
             "update_blastdb.pl", "--passive", "--decompress",
-            "--blastdb_version", "5", "nt_v5"]
+            "--blastdb_version", "5", "nt"]
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
