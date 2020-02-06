@@ -3981,7 +3981,7 @@ def commandline():
         "The current settings files will be overwritten")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.1")
+        "-V", "--version", action="version", version="%(prog)s 2.1.2")
     return parser
 
 

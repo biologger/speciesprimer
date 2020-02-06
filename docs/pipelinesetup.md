@@ -10,8 +10,9 @@ To download the database with the update_blastdb perl script just click on the S
 
 #### Troubleshooting:
 The script changes to the "/blastdb" directory in the container and runs the command below
+(the default version of BLAST DBs for BLAST+ is 5)
 
-	$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+	$ update_blastdb.pl --passive --decompress nt
 
 To get possible hints or error messages you can run this command from a docker terminal.
 
@@ -24,7 +25,7 @@ __Example__
 * __Container__
 
 		$ cd /blastdb
-		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+		$ update_blastdb.pl --passive --decompress nt
 
 As an alternative the python script __getblastdb.py__ can be used.
 
