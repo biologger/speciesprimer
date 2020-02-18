@@ -3978,12 +3978,22 @@ def commandline():
         '["species_list","species_list.txt"], '
         '["p3settings", "p3parameters"], '
         '["excludedgis", "no_blast.gi"]'
-        "The current settings files will be overwritten")
+        " The current settings files will be overwritten")
     # Version
     parser.add_argument(
         "-V", "--version", action="version", version="%(prog)s 2.1.2")
     return parser
 
+def citation():
+    citation = """
+    Please cite SpeciesPrimer if you use any of the results it produces:
+    Dreier M, Berthoud H, Shani N, Wechsler D, Junier P. 2020.
+    SpeciesPrimer: a bioinformatics pipeline dedicated to the design
+    of qPCR primers for the quantification of bacterial species.
+    PeerJ 8:e8544 https://doi.org/10.7717/peerj.8544
+    """
+    print(citation)
+    return citation
 
 def auto_run():
     tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
@@ -4136,6 +4146,8 @@ def main(mode=None):
 
         if args.email:
             H.get_email_for_Entrez(args.email)
+
+    G.logger(citation())
 
     for target in targets:
         target = target.capitalize()

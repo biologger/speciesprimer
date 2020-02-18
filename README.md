@@ -24,6 +24,7 @@ New in SpeciesPrimer v2.1
 * [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
 	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
 	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
+* [Citation](https://github.com/biologger/speciesprimer/tree/master#citation)
 
 ## Docs
 * [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/tutorial.md)
@@ -168,3 +169,11 @@ Python modules and software used for the GUI:
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
+
+## Citation
+If you use this software please cite:
+
+	Dreier M, Berthoud H, Shani N, Wechsler D, Junier P. 2020.
+	SpeciesPrimer: a bioinformatics pipeline dedicated to the design
+	of qPCR primers for the quantification of bacterial species.
+	PeerJ 8:e8544 https://doi.org/10.7717/peerj.8544
