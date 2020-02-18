@@ -6,6 +6,7 @@
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
+[![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
 
 
 New in SpeciesPrimer v2.1
