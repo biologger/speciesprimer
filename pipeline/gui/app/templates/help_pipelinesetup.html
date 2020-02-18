@@ -15,15 +15,16 @@
 <p>In your internetbrowser <a href="http://localhost:5000">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
 <p>To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
 <h4 id="troubleshooting:"><a class="header-link" href="#troubleshooting:"></a>Troubleshooting:</h4>
-<p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below</p>
-<pre class="hljs"><code><span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre><p>To get possible hints or error messages you can run this command from a docker terminal.</p>
+<p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below
+(the default version of BLAST DBs for BLAST+ is 5)</p>
+<pre class="hljs"><code><span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-comment">nt</span></code></pre><p>To get possible hints or error messages you can run this command from a docker terminal.</p>
 <p><strong>Example</strong></p>
 <ul class="list">
 <li><p><strong>HOST</strong></p>
 <pre class="hljs"><code>  $ sudo docker exec -<span class="hljs-keyword">it</span> {containername} <span class="hljs-keyword">bash</span></code></pre></li>
 <li><p><strong>Container</strong></p>
 <pre class="hljs"><code>  <span class="hljs-comment">$</span> <span class="hljs-comment">cd</span> <span class="hljs-comment">/blastdb</span>
-  <span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">blastdb_version</span> <span class="hljs-comment">5</span> <span class="hljs-comment">nt_v5</span></code></pre></li>
+  <span class="hljs-comment">$</span> <span class="hljs-comment">update_blastdb</span><span class="hljs-string">.</span><span class="hljs-comment">pl</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">passive</span> <span class="hljs-literal">-</span><span class="hljs-literal">-</span><span class="hljs-comment">decompress</span> <span class="hljs-comment">nt</span></code></pre></li>
 </ul>
 <p>As an alternative the python script <strong>getblastdb.py</strong> can be used.</p>
 <p>The database has currently a size of about 65 GB, the archives are also quite large, therefore select the delete option if harddisk space is limited on your computer. If selected the script will automatically delete the archive files after extraction.</p>

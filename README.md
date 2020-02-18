@@ -6,6 +6,7 @@
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/p3konly/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
+[![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
 
 
 New in SpeciesPrimer v3
@@ -18,6 +19,7 @@ New in SpeciesPrimer v3
 * [Introduction](https://github.com/biologger/speciesprimer/tree/p3konly#introduction)
 	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/p3konly#pipeline-workflow-and-tools)
 	* [Command line options](https://github.com/biologger/speciesprimer/tree/p3konly#run-settings)
+* [Citation](https://github.com/biologger/speciesprimer/tree/p3konly#citation)
 
 ## Docs
 * [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/p3konly/docs/tutorial.md)
@@ -54,7 +56,7 @@ New in SpeciesPrimer v3
 
 * Open the address [http://localhost:5000](http://localhost:5000) or [http://127.0.0.1:5000](http://127.0.0.1:5000) in your favorite webbrowser
 * Enter your E-mail address (required for the biopython NCBI Entrez module)
-* Download the nt_v5 BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~6.5 GB). [BLAST DB](http://localhost:5000/blastdb)
+* Download the nt BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~6.5 GB). [BLAST DB](http://localhost:5000/blastdb)
 * Customize the species list and other parameters if required. [SpeciesPrimer settings](http://localhost:5000/pipelineconfig)
 * Navigate to Primer design and start primer design for new targets. [Primer design](http://localhost:5000/primerdesign)
 * If you want to use the ref_prok_rep_genomes DB provide the path (/blastdb/ref_prok_rep_genomes) in the customdb settings field
@@ -79,7 +81,7 @@ New in SpeciesPrimer v3
 
 		$ cd /blastdb
 
-		$ update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5
+		$ update_blastdb.pl --passive --decompress nt
 		# or
 		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes
 
@@ -149,7 +151,7 @@ Python modules and software used for the GUI:
 |	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server|['all']|
 |	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 |Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). May increase speed.|False|
+|	|blastdbv5 |Limits all BLAST searches to taxid:2 (bacteria). Works only with version 5 BLAST databases. May increase speed.|False|
 |	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
 |	|intermediate|Select this option to keep intermediate files.|False|
 |	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
@@ -162,3 +164,11 @@ Python modules and software used for the GUI:
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
+
+## Citation
+If you use this software please cite:
+
+	Dreier M, Berthoud H, Shani N, Wechsler D, Junier P. 2020.
+	SpeciesPrimer: a bioinformatics pipeline dedicated to the design
+	of qPCR primers for the quantification of bacterial species.
+	PeerJ 8:e8544 https://doi.org/10.7717/peerj.8544

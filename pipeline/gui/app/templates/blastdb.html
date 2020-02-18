@@ -13,7 +13,7 @@
 
   <h2> BLAST DB download (getblastdb.py)</h2>
   <p>
-    Download the nt_v5 BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~7 GB)
+    Download the nt BLAST DB (>60 GB) or the ref_prok_rep_genomes DB (~7 GB)
       <br>
       <br>
     {{ form.whichdb() }}   {{ form.whichdb.label }}
@@ -25,7 +25,7 @@
     {{ form.get_blastdb() }}
   </p>
   <p>
-  Update the taxid list for the BLAST search with the nt BLAST database Version 5
+  Update the taxid list for the BLAST search with the BLAST database Version 5 option
    <br>
    <br>
   {{ form.update_txids() }}
@@ -38,7 +38,7 @@
   This may take some hours...
   <br>
   <br>
-  (update_blastdb.pl --passive --decompress --blastdb_version 5 nt_v5)
+  (update_blastdb.pl --passive --decompress nt)
   <br>
   <br>
   {{ form.update_blastdb() }}

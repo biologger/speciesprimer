@@ -1249,7 +1249,7 @@ def test_BLASTsettings(config):
         [False, os.path.join(tmpdir, "customdb.fas")],
         [True, os.path.join(tmpdir, "customdb_v5.fas")]]
     db_outcome = [
-            "nt", "nt_v5",
+            "nt", "nt",
             os.path.join(tmpdir, "customdb.fas"),
             os.path.join(tmpdir, "customdb_v5.fas")]
     for i, settings in enumerate(db_settings):

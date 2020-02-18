@@ -32,9 +32,9 @@ class htmllinkparser(HTMLParser):
 class config:
     baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq"]
     urldict = {
-        "nt_v5": {
-            "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/v5/",
-            "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/v5/",
+        "nt": {
+            "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
+            "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
             "extend": [".nhd", ".nhi", ".nog"]},
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
@@ -73,8 +73,8 @@ def commandline():
         help="Delete the tar files after extraction to save Hard Disk space")
     parser.add_argument(
         "-db", "--database", type=str,
-        help="Select nt_v5 or ref_prok_rep_genomes", default="nt_v5",
-        choices=["nt_v5", "ref_prok_rep_genomes"])
+        help="Select nt or ref_prok_rep_genomes", default="nt",
+        choices=["nt", "ref_prok_rep_genomes"])
 
     parser.add_argument('--test', action="store_true", help=argparse.SUPPRESS)
 

@@ -1877,17 +1877,11 @@ class Blast:
                     blast_cmd.append("-taxidlist")
                     blast_cmd.append(taxidlist)
 
-            blast_cmd.append("-db")
-            if self.config.customdb:
-                blast_cmd.append(self.config.customdb)
-            else:
-                blast_cmd.append("nt_v5")
+        blast_cmd.append("-db")
+        if self.config.customdb:
+            blast_cmd.append(self.config.customdb)
         else:
-            blast_cmd.append("-db")
-            if self.config.customdb:
-                blast_cmd.append(self.config.customdb)
-            else:
-                blast_cmd.append("nt")
+            blast_cmd.append("nt")
 
         return blast_cmd
 
@@ -2345,10 +2339,10 @@ class BlastParser:
         if self.config.customdb is not None:
             db = self.config.customdb
         else:
-            if self.config.blastdbv5:
-                db = "nt_v5"
-            else:
-                db = "nt"
+            # the version 5 databases will no longer have
+            # "_v5" as part of the database names
+            # https://ncbiinsights.ncbi.nlm.nih.gov/2020/01/28/blast-db-ftp/
+            db = "nt"
         seqcount = len(nonreddata)
         info = "Found " + str(seqcount) + " sequences for the non-target DB"
         G.logger(info)
@@ -4111,12 +4105,22 @@ def commandline():
         '["species_list","species_list.txt"], '
         '["p3settings", "p3parameters"], '
         '["excludedgis", "no_blast.gi"]'
-        "The current settings files will be overwritten")
+        " The current settings files will be overwritten")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.1")
+        "-V", "--version", action="version", version="%(prog)s 2.1.2")
     return parser
 
+def citation():
+    citation = """
+    Please cite SpeciesPrimer if you use any of the results it produces:
+    Dreier M, Berthoud H, Shani N, Wechsler D, Junier P. 2020.
+    SpeciesPrimer: a bioinformatics pipeline dedicated to the design
+    of qPCR primers for the quantification of bacterial species.
+    PeerJ 8:e8544 https://doi.org/10.7717/peerj.8544
+    """
+    print(citation)
+    return citation
 
 def auto_run():
     tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
@@ -4269,6 +4273,8 @@ def main(mode=None):
 
         if args.email:
             H.get_email_for_Entrez(args.email)
+
+    G.logger(citation())
 
     for target in targets:
         target = target.capitalize()

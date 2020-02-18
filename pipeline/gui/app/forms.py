@@ -134,16 +134,16 @@ class PipeConfig(FlaskForm):
 
 class DownloadDB(FlaskForm):
     update_refprok = SubmitField("Start download ref_prok_rep_genomes")
-    update_blastdb = SubmitField("Start download nt_v5")
+    update_blastdb = SubmitField("Start download nt")
     delete = BooleanField(
             "Delete archive files after extraction", default=False)
     update_txids = SubmitField("Update")
     whichdb = SelectField(
             "Select BLAST DB",
             choices=[
-                ("nt_v5", "nt_v5"),
+                ("nt", "nt"),
                 ("ref_prok_rep_genomes", "ref_prok_rep_genomes")],
-            default="nt_v5")
+            default="nt")
     get_blastdb = SubmitField("Start download")
 
 

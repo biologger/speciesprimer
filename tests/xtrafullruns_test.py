@@ -209,7 +209,7 @@ def test_commandline_fail_correct_settings():
 
     outputlist = G.read_shelloutput(cmd)
 
-    assert outputlist == [
+    assert outputlist[-2::] == [
         '/primerdesign/tmp/genus_abbrev.csv',
         'A list containing the settings or a complete settings file'
         ' is required']
