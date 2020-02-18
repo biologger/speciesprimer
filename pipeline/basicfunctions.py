@@ -548,7 +548,7 @@ class ParallelFunctions:
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         cmd = [
             "MFEprimer.py", "-i", primefile.name, "-d", dbfile,
-            "-k 9", "--tab", "--ppc", "10"]
+            "-k", "9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
