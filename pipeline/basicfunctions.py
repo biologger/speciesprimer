@@ -535,6 +535,186 @@ class ParallelFunctions:
         return [[None], result]
 
     @staticmethod
+    def new_MFEprimer_template(self, primerinfo, args):
+        [primer_qc_dir, db, mismatches] = args
+        result = []
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
+        pp_name = "_".join(nameF.split("_")[0:-1])
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "mfeprimer-3.1", "spec", "-i", primefile.name, "-d", db,
+            "--misMatch", str(mismatches), "-s", "50"]
+        cmd = " ".join(cmd)
+
+        result = GeneralFunctions().read_shelloutput(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+        os.unlink(primefile.name)
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.new_MFEprimer_template(primerinfo)
+
+        if datalist == []:
+            if num_amp == 0:
+                return [[pp_name], [["no amplicon"]]]
+            else:
+                return self.new_MFEprimer_template(primerinfo)
+        elif num_amp == 1:
+            return [primerinfo, datalist]
+        else:
+            return [[pp_name], datalist]
+
+    @staticmethod
+    def new_MFEprimer_assembly(self, primerinfo, args):
+        [primer_qc_dir, db, mismatches] = args
+        result = []
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
+        pp_name = "_".join(nameF.split("_")[0:-1])
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "mfeprimer-3.1", "spec", "-i", primefile.name, "-d", db,
+            "--misMatch", str(mismatches), "-s", "50"]
+        cmd = " ".join(cmd)
+
+        result = GeneralFunctions().read_shelloutput(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+        os.unlink(primefile.name)
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.MFEprimer_assembly(primerinfo)
+
+        if datalist == []:
+            if num_amp == 0:
+                return [primerinfo, [["no amplicon"]]]
+            else:
+                return self.MFEprimer_assembly(primerinfo)
+        else:
+            amplen = len(amp_seq)
+            for x in datalist:
+                if int(x[4]) == amplen:
+                    pass
+                else:
+                    return [[pp_name], datalist]
+            target_seqs = list((x[3] for x in datalist))
+            counts = Counter(target_seqs)
+            for values in counts.values():
+                if values == 1:
+                    pass
+                else:
+                    return [[pp_name], datalist]
+
+        return [primerinfo, datalist]
+
+    @staticmethod
+    def new_MFEprimer_nontarget(self, primerinfo, args):
+        num_amp = None
+        [primer_qc_dir, dbfiles, mismatches] = args
+        result = []
+        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
+        pp_name = "_".join(nameF.split("_")[0:-1])
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=self.primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "mfeprimer-3.1", "spec", "-i", primefile.name,
+            "--misMatch", str(mismatches), "-s", "50"]
+        ## How can I solve this?
+        for db in dbfiles:
+            cmd.append("-d")
+            cmd.append(db)
+        cmd = " ".join(cmd)
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(
+                cmd, printcmd=False, logcmd=False, printoption=False)
+        os.unlink(primefile.name)
+        datalist = []
+        for index, item in enumerate(result):
+            try:
+                if "Descriptions of " in item:
+                    num_amp = int(item.split(" ")[3])
+                elif "Amp " in item:
+                    ampsize = result[index+1].split(" ")[2]
+                elif ">Amp_" in item:
+                    amplist = item.split(" ")
+                    amp_c = int(amplist[0].split("_")[1])
+                    fp = amplist[1]
+                    rp = amplist[3]
+                    target = amplist[5]
+                    seq = []
+                    for x in range(index, len(result)):
+                        if not (
+                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+                            seq.append(result[x+1])
+                        else:
+                            ampseq = "".join(seq)
+                            break
+                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+            except IndexError:
+                self.MFEprimer_nontarget(primerinfo)
+
+        if datalist == []:
+            if num_amp == 0:
+                return [primerinfo, [["no amplicon"]]]
+            else:
+                return self.MFEprimer_nontarget(primerinfo)
+        else:
+            return [[pp_name], datalist]
+
+    @staticmethod
     def MFEprimer_nontarget(primerinfo, args):
         result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
@@ -601,14 +781,13 @@ class ParallelFunctions:
     def index_database(inputfilepath):
         primer_qc_dir = os.path.dirname(inputfilepath)
         db_name = os.path.basename(inputfilepath)
-        db_path = inputfilepath + ".sqlite3.db"
+        db_path = inputfilepath + ".primerqc"
         if os.path.isfile(db_path) is True:
             msg = " ".join([db_name, "DB already exists"])
             print(msg)
             GeneralFunctions().logger(msg)
             return 0
         if os.stat(inputfilepath).st_size == 0:
-            db_name = os.path.basename(inputfilepath)
             msg = " ".join(["Problem with", db_name, "input file is empty"])
             GeneralFunctions().logger("> " + msg)
             print("\n!!!" + msg + "!!!\n")
@@ -618,7 +797,7 @@ class ParallelFunctions:
         GeneralFunctions().logger("> Start index non-target DB " + db_name)
         print("\nStart index " + db_name)
         start = time.time()
-        cmd = ["IndexDb.sh", inputfilepath, "9"]
+        cmd = ["mfeprimer-3.1", "index", "-i", db_name]
         try:
             GeneralFunctions().run_subprocess(
                     cmd, True, True, False)

@@ -23,7 +23,7 @@ msg = (
         sudo docker exec -it {Containername} bash
     - Start the tests in the container terminal
         cd /
-        pytest -vv --cov=pipeline /tests/
+        pytest -vv --cov=/pipeline /tests/
     """
     )
 
@@ -37,9 +37,9 @@ testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 
 confargs = {
-    "ignore_qc": True, "mfethreshold": 90, "maxsize": 200,
+    "ignore_qc": True, "mismatches": 1, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
-    "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
+    "blastseqs": 1000, "mfold": -3.0, "dimer": -3.5,
     "offline": False,
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
@@ -60,12 +60,12 @@ def config():
     args = AttrDict(confargs)
     nontargetlist = H.create_non_target_list(args.target)
     config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.minsize, args.maxsize, args.dimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.ignore_qc, args.mismatches, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
 
     config.save_config()
@@ -129,9 +129,10 @@ def test_make_DBs(pqc, config):
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     prepare_QC_testfiles(pqc, config)
     if pqc.collect_primer() == 0:
-        primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
-        pqc.create_template_db_file(primer_qc_list)
-        pqc.create_assembly_db_file()
+        hairpins = pqc.hairpin_check()
+        pqc.primerdimer_check(hairpins)
+        excluded = pqc.filter_primerdimer()
+        pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
         assemblyfilepath = os.path.join(
             pqc.primer_qc_dir,
             H.abbrev(pqc.target) + ".genomic")
@@ -182,9 +183,13 @@ def test_KeyboardInterrupt(config, pqc, monkeypatch):
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
     prepare_QC_testfiles(pqc, config)
     if pqc.collect_primer() == 0:
-        primer_qc_list = pqc.get_primerinfo(pqc.primerlist, "mfeprimer")
-        pqc.create_template_db_file(primer_qc_list)
-        pqc.create_assembly_db_file()
+        hairpins = pqc.hairpin_check()
+        pqc.primerdimer_check(hairpins)
+        excluded = pqc.filter_primerdimer()
+        pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
+#        primer_qc_list = pqc.get_primerinfo(pqc.primerlist)
+#        pqc.create_template_db_file(primer_qc_list)
+#        pqc.create_assembly_db_file()
         assemblyfilepath = os.path.join(
             pqc.primer_qc_dir,
             H.abbrev(pqc.target) + ".genomic")
@@ -206,12 +211,12 @@ def test_qc_nottrue():
     args = AttrDict(confargs)
     nontargetlist = []
     config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.minsize, args.maxsize, args.dimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.ignore_qc, args.mismatches, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:

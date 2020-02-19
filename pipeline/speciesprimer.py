@@ -2838,6 +2838,41 @@ class PrimerQualityControl:
         self.referencegenomes = 10
         self.dbinputfiles = []
 
+    def collect_primer(self):
+        G.logger("Run: collect_primer(" + self.target + ")")
+        G.create_directory(self.hairpin_dir)
+        primer_sorted = []
+        for key in self.primer3_dict:
+            if not self.primer3_dict[key]["Primer_pairs"] == 0:
+                for item in self.primer3_dict[key]:
+                    if "Primer_pair_" in item:
+                        primer_sorted.append([
+                            key, item,
+                            self.primer3_dict[key][item]["primer_P_penalty"]])
+
+        primer_sorted.sort(key=lambda x: float(x[2]))
+        self.write_primerlist(primer_sorted)
+
+        if len(self.primerlist) == 0:
+            info = "potential Primer pair(s): 0"
+            error_msg = "No primers found for conserved sequences"
+            PipelineStatsCollector(self.target_dir).write_stat(info)
+            print("\n" + error_msg)
+            G.logger("> " + error_msg)
+            G.logger("> " + info)
+            errors.append([self.target, error_msg])
+            return 1
+
+        info = (
+            "Number of potential primer pair(s) found "
+            + str(len(self.primerlist)))
+        print("\n" + info + "\n")
+        G.logger("> " + info)
+        PipelineStatsCollector(self.target_dir).write_stat(
+            "potential primer pair(s): "
+            + str(len(self.primerlist)))
+        return 0
+
     def write_primerlist(self, primer_sorted):
         filepath = os.path.join(self.hairpin_dir, "primerlist.fa")
         if (
@@ -2845,7 +2880,7 @@ class PrimerQualityControl:
             or os.stat(filepath).st_size == 0):
             with open(filepath, "w") as f:
                 for item in primer_sorted:
-                    prefix = H.abbrev(self.target, dict_path) + "_"
+                    prefix = H.abbrev(self.target) + "_"
                     gene = item[0]
                     num = "_P" + item[1].split("_")[-1]
                     pname = prefix + gene + num
@@ -2868,7 +2903,7 @@ class PrimerQualityControl:
                             f.write(primer + "\n")
         else:
             for item in primer_sorted:
-                prefix = H.abbrev(self.target, dict_path) + "_"
+                prefix = H.abbrev(self.target) + "_"
                 gene = item[0]
                 num = "_P" + item[1].split("_")[-1]
                 pname = prefix + gene + num
@@ -2893,7 +2928,7 @@ class PrimerQualityControl:
             not os.path.isfile("hairpin_results.txt")
             or os.stat("hairpin_results.txt").st_size == 0):
             cmd = [
-                "mfeprimer3.1", "hairpin", "-i", "primerlist.fa",
+                "mfeprimer-3.1", "hairpin", "-i", "primerlist.fa",
                 "-o", "hairpin_results.txt"]
             cmd = " ".join(cmd)
             G.run_shell(cmd)
@@ -2945,7 +2980,7 @@ class PrimerQualityControl:
                     ">" + nameF + "\n" + seqF + "\n>"
                     + nameR + "\n" + seqR + "\n")
             cmd = [
-                "mfeprimer3.1", "dimer", "-i", primefile.name,
+                "mfeprimer-3.1", "dimer", "-i", primefile.name,
                 "-m", "4", "-s", "4", "-d", str(self.config.dimer + 1)]
             cmd = " ".join(cmd)
             while len(result) <= 5:
@@ -3118,8 +3153,6 @@ class PrimerQualityControl:
         templatefilepath = os.path.join(
                 self.primer_qc_dir, "template.sequences")
         dblist = [assemblyfilepath, templatefilepath]
-        for db in self.dbinputfiles:
-            dblist.append(db)
         # parallelization try
         pool = multiprocessing.Pool()
         results = [
@@ -3148,11 +3181,11 @@ class PrimerQualityControl:
 
         return outputlist
 
-    def MFEprimer_specificity_check(self, excluded):
+    def MFEprimer_QC(self, excluded):
         # option: also allow user provided non-target database created with
         # MFEprimer for primer QC
         G.logger("Run: MFEprimer_QC(" + self.target + ")")
-        info_msg = "Start primer specificity check(" + self.target + ")"
+        info_msg = "Start MFEprimer quality control(" + self.target + ")"
         print(info_msg)
         G.logger("> " + info_msg)
         os.chdir(self.primer_qc_dir)
@@ -3169,10 +3202,16 @@ class PrimerQualityControl:
 
         print("Start MFEprimer with template DB\n")
         G.logger("> Start MFEprimer with template DB")
+
+        tmpdb = os.path.join(
+                self.primer_qc_dir, "template.sequences")
+        assdb = os.path.join(
+                self.primer_qc_dir, H.abbrev(self.target) + ".genomic")
+
         template_list = G.run_parallel(
-                P.MFEprimer_template, primerinfos,
-                [self.primer_qc_dir, self.mfethreshold])
-        check_nontarget = self.write_MFEprimer_results(
+                P.new_MFEprimer_template, primerinfos,
+                [self.primer_qc_dir, tmpdb, self.mismatches])
+        assembly_input = self.write_MFEprimer_results(
                 template_list, "template")
         msg = " primer pair(s) with good target binding"
         info1 = str(len(assembly_input)) + msg
@@ -3182,7 +3221,9 @@ class PrimerQualityControl:
             + str(len(assembly_input)))
         G.logger("> " + info1)
 
-        assembly_results = G.run_parallel(self.MFEprimer_assembly, assembly_input)
+        assembly_results = G.run_parallel(
+                P.new_MFEprimer_assembly, assembly_input, [
+                        self.primer_qc_dir, assdb, self.mismatches])
         nontarget_input = self.write_MFEprimer_results(assembly_results, "assembly")
 
         msg = " primer pair(s) passed secondary PCR amplicon check\n"
@@ -3212,86 +3253,125 @@ class PrimerQualityControl:
 
         return specific_primers
 
-        dbfile = H.abbrev(self.target) + ".genomic"
-        assembly_list = G.run_parallel(
-                P.MFEprimer_assembly, check_assembly,
-                [self.primer_qc_dir, dbfile, self.mfethreshold])
-
-        check_final = self.write_MFEprimer_results(assembly_list, "assembly")
-        msg = " primer pair(s) passed secondary PCR amplicon check\n"
-        info3 = str(len(check_final)) + msg
-        print("\n\n" + info3 + "\n")
-        G.logger("> " + info3)
-        PipelineStatsCollector(self.target_dir).write_stat(
-            "primer pairs left after secondary amplicon QC: "
-            + str(len(check_final)))
-        os.chdir(self.primer_dir)
-
-    def MFEprimer_assembly(self, primerinfo):
-        result = []
-        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
-        pp_name = "_".join(nameF.split("_")[0:-1])
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        db = H.abbrev(self.target, dict_path) + ".genomic"
-        cmd = [
-            "mfeprimer3.1", "spec", "-i", primefile.name, "-d", db,
-            "--misMatch", str(self.mismatches), "-s", "50"]
-        cmd = " ".join(cmd)
-
-        result = G.read_shelloutput(
-            cmd, printcmd=False, logcmd=False, printoption=False)
-        os.unlink(primefile.name)
-        datalist = []
-        for index, item in enumerate(result):
-            try:
-                if "Descriptions of " in item:
-                    num_amp = int(item.split(" ")[3])
-                elif "Amp " in item:
-                    ampsize = result[index+1].split(" ")[2]
-                elif ">Amp_" in item:
-                    amplist = item.split(" ")
-                    amp_c = int(amplist[0].split("_")[1])
-                    fp = amplist[1]
-                    rp = amplist[3]
-                    target = amplist[5]
-                    seq = []
-                    for x in range(index, len(result)):
-                        if not (
-                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
-                            seq.append(result[x+1])
-                        else:
-                            ampseq = "".join(seq)
-                            break
-                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
-            except IndexError:
-                self.MFEprimer_template(primerinfo)
-
-        if datalist == []:
-            if num_amp == 0:
-                return [primerinfo, [["no amplicon"]]]
-            else:
-                return self.MFEprimer_assembly(primerinfo)
-        else:
-            amplen = len(amp_seq)
-            for x in datalist:
-                if int(x[4]) == amplen:
-                    pass
-                else:
-                    return [[pp_name], datalist]
-            target_seqs = list((x[3] for x in datalist))
-            counts = Counter(target_seqs)
-            for values in counts.values():
-                if values == 1:
-                    pass
-                else:
-                    return [[pp_name], datalist]
-
-        return [primerinfo, datalist]
+#    def MFEprimer_template(self, primerinfo):
+#        num_amp = None
+#        result = []
+#        [nameF, seqF, nameR, seqR, temp_seq, amp_seq] = primerinfo
+#        pp_name = "_".join(nameF.split("_")[0:-1])
+#        with tempfile.NamedTemporaryFile(
+#            mode='w+', dir=self.primer_qc_dir, prefix="primer",
+#            suffix=".fa", delete=False
+#        ) as primefile:
+#            primefile.write(
+#                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+#        db = "template.sequences"
+#        cmd = [
+#            "mfeprimer-3.1", "spec", "-i", primefile.name, "--misMatch",
+#            str(self.mismatches), "-s", "50", "-d", db ]
+#        cmd = " ".join(cmd)
+#        result = G.read_shelloutput(
+#            cmd, printcmd=False, logcmd=False, printoption=False)
+#        os.unlink(primefile.name)
+#        datalist = []
+#        for index, item in enumerate(result):
+#            try:
+#                if "Descriptions of " in item:
+#                    num_amp = int(item.split(" ")[3])
+#                elif "Amp " in item:
+#                    ampsize = result[index+1].split(" ")[2]
+#                elif ">Amp_" in item:
+#                    amplist = item.split(" ")
+#                    amp_c = int(amplist[0].split("_")[1])
+#                    fp = amplist[1]
+#                    rp = amplist[3]
+#                    target = amplist[5]
+#                    seq = []
+#                    for x in range(index, len(result)):
+#                        if not (
+#                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+#                            seq.append(result[x+1])
+#                        else:
+#                            ampseq = "".join(seq)
+#                            break
+#                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+#            except IndexError:
+#                self.MFEprimer_template(primerinfo)
+#
+#        if datalist == []:
+#            if num_amp == 0:
+#                return [[pp_name], [["no amplicon"]]]
+#            else:
+#                return self.MFEprimer_template(primerinfo)
+#        elif num_amp == 1:
+#            return [primerinfo, datalist]
+#        else:
+#            return [[pp_name], datalist]
+#
+#    def MFEprimer_assembly(self, primerinfo):
+#        result = []
+#        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
+#        pp_name = "_".join(nameF.split("_")[0:-1])
+#        with tempfile.NamedTemporaryFile(
+#            mode='w+', dir=self.primer_qc_dir, prefix="primer",
+#            suffix=".fa", delete=False
+#        ) as primefile:
+#            primefile.write(
+#                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+#        db = H.abbrev(self.target) + ".genomic"
+#        cmd = [
+#            "mfeprimer-3.1", "spec", "-i", primefile.name, "-d", db,
+#            "--misMatch", str(self.mismatches), "-s", "50"]
+#        cmd = " ".join(cmd)
+#
+#        result = G.read_shelloutput(
+#            cmd, printcmd=False, logcmd=False, printoption=False)
+#        os.unlink(primefile.name)
+#        datalist = []
+#        for index, item in enumerate(result):
+#            try:
+#                if "Descriptions of " in item:
+#                    num_amp = int(item.split(" ")[3])
+#                elif "Amp " in item:
+#                    ampsize = result[index+1].split(" ")[2]
+#                elif ">Amp_" in item:
+#                    amplist = item.split(" ")
+#                    amp_c = int(amplist[0].split("_")[1])
+#                    fp = amplist[1]
+#                    rp = amplist[3]
+#                    target = amplist[5]
+#                    seq = []
+#                    for x in range(index, len(result)):
+#                        if not (
+#                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+#                            seq.append(result[x+1])
+#                        else:
+#                            ampseq = "".join(seq)
+#                            break
+#                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+#            except IndexError:
+#                self.MFEprimer_assembly(primerinfo)
+#
+#        if datalist == []:
+#            if num_amp == 0:
+#                return [primerinfo, [["no amplicon"]]]
+#            else:
+#                return self.MFEprimer_assembly(primerinfo)
+#        else:
+#            amplen = len(amp_seq)
+#            for x in datalist:
+#                if int(x[4]) == amplen:
+#                    pass
+#                else:
+#                    return [[pp_name], datalist]
+#            target_seqs = list((x[3] for x in datalist))
+#            counts = Counter(target_seqs)
+#            for values in counts.values():
+#                if values == 1:
+#                    pass
+#                else:
+#                    return [[pp_name], datalist]
+#
+#        return [primerinfo, datalist]
 
     def run_primerBLAST(self, nontarget_input):
         nontarget_blastseqs = []
@@ -3335,67 +3415,70 @@ class PrimerQualityControl:
             ):
                 self.dbinputfiles.append(files)
         # parallelization try
-        pool = multiprocessing.Pool(processes=4)
+        pool = multiprocessing.Pool()
         results = [
             pool.apply_async(
-                self.make_nontargetDB, args=(inputfiles,))
+                P.index_database, args=(inputfiles,))
             for inputfiles in self.dbinputfiles]
         output = [p.get() for p in results]
+        for item in output:
+            if item:
+                errors.append([self.target, item])
 
-    def MFEprimer_nontarget(self, primerinfo):
-        num_amp = None
-        result = []
-        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
-        pp_name = "_".join(nameF.split("_")[0:-1])
-        with tempfile.NamedTemporaryFile(
-            mode='w+', dir=self.primer_qc_dir, prefix="primer",
-            suffix=".fa", delete=False
-        ) as primefile:
-            primefile.write(
-                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
-        cmd = [
-            "mfeprimer3.1", "spec", "-i", primefile.name,
-            "--misMatch", str(self.mismatches), "-s", "50"]
-        for db in self.dbinputfiles:
-            cmd.append("-d")
-            cmd.append(db)
-        cmd = " ".join(cmd)
-        while result == []:
-            result = G.read_shelloutput(
-                cmd, printcmd=False, logcmd=False, printoption=False)
-        os.unlink(primefile.name)
-        datalist = []
-        for index, item in enumerate(result):
-            try:
-                if "Descriptions of " in item:
-                    num_amp = int(item.split(" ")[3])
-                elif "Amp " in item:
-                    ampsize = result[index+1].split(" ")[2]
-                elif ">Amp_" in item:
-                    amplist = item.split(" ")
-                    amp_c = int(amplist[0].split("_")[1])
-                    fp = amplist[1]
-                    rp = amplist[3]
-                    target = amplist[5]
-                    seq = []
-                    for x in range(index, len(result)):
-                        if not (
-                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
-                            seq.append(result[x+1])
-                        else:
-                            ampseq = "".join(seq)
-                            break
-                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
-            except IndexError:
-                self.MFEprimer_nontarget(primerinfo)
-
-        if datalist == []:
-            if num_amp == 0:
-                return [primerinfo, [["no amplicon"]]]
-            else:
-                return self.MFEprimer_nontarget(primerinfo)
-        else:
-            return [[pp_name], datalist]
+#    def MFEprimer_nontarget(self, primerinfo):
+#        num_amp = None
+#        result = []
+#        [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = primerinfo
+#        pp_name = "_".join(nameF.split("_")[0:-1])
+#        with tempfile.NamedTemporaryFile(
+#            mode='w+', dir=self.primer_qc_dir, prefix="primer",
+#            suffix=".fa", delete=False
+#        ) as primefile:
+#            primefile.write(
+#                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+#        cmd = [
+#            "mfeprimer-3.1", "spec", "-i", primefile.name,
+#            "--misMatch", str(self.mismatches), "-s", "50"]
+#        for db in self.dbinputfiles:
+#            cmd.append("-d")
+#            cmd.append(db)
+#        cmd = " ".join(cmd)
+#        while result == []:
+#            result = G.read_shelloutput(
+#                cmd, printcmd=False, logcmd=False, printoption=False)
+#        os.unlink(primefile.name)
+#        datalist = []
+#        for index, item in enumerate(result):
+#            try:
+#                if "Descriptions of " in item:
+#                    num_amp = int(item.split(" ")[3])
+#                elif "Amp " in item:
+#                    ampsize = result[index+1].split(" ")[2]
+#                elif ">Amp_" in item:
+#                    amplist = item.split(" ")
+#                    amp_c = int(amplist[0].split("_")[1])
+#                    fp = amplist[1]
+#                    rp = amplist[3]
+#                    target = amplist[5]
+#                    seq = []
+#                    for x in range(index, len(result)):
+#                        if not (
+#                            "Parameters" in result[x+1] or "Amp " in result[x+1]):
+#                            seq.append(result[x+1])
+#                        else:
+#                            ampseq = "".join(seq)
+#                            break
+#                    datalist.append([amp_c, fp, rp, target, ampsize, ampseq])
+#            except IndexError:
+#                self.MFEprimer_nontarget(primerinfo)
+#
+#        if datalist == []:
+#            if num_amp == 0:
+#                return [primerinfo, [["no amplicon"]]]
+#            else:
+#                return self.MFEprimer_nontarget(primerinfo)
+#        else:
+#            return [[pp_name], datalist]
 
     def mfold_analysis(self, mfoldinputlist):
         info = "Start mfold analysis of PCR products"
@@ -3657,7 +3740,7 @@ class PrimerQualityControl:
             "Primer name", "Primer penalty", "Gene",
             "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
             "Primer rev seq", "Primer rev TM", "Primer rev penalty",
-            "Probe seq)", "Probe TM", "Probe penalty",
+            "Probe seq", "Probe TM", "Probe penalty",
             "Amplicon size", "Amplicon TM", "Amplicon sequence",
             "Template sequence"]
         if len(choice) > 0:
@@ -3681,7 +3764,7 @@ class PrimerQualityControl:
             self.primerdimer_check(hairpins)
             excluded = self.filter_primerdimer()
             self.prepare_MFEprimer_Dbs(self.primerlist)
-            specific_primers = self.MFEprimer_specificity_check(excluded)
+            specific_primers = self.MFEprimer_QC(excluded)
             self.mfold_analysis(specific_primers)
             selected_primer, excluded_primer = self.mfold_parser()
 
@@ -4108,7 +4191,7 @@ def commandline():
         " The current settings files will be overwritten")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.2")
+        "-V", "--version", action="version", version="%(prog)s 3.0")
     return parser
 
 def citation():
@@ -4146,10 +4229,10 @@ def auto_run():
 
 def get_configuration_from_file(target, conf_from_file):
     (
-        minsize, maxsize, mpprimer, exception, target, path,
+        minsize, maxsize, dimer, exception, target, path,
         intermediate, qc_gene, mfold, skip_download,
         assemblylevel, skip_tree, nolist,
-        offline, ignore_qc, mfethreshold, customdb,
+        offline, ignore_qc, mismatches, customdb,
         blastseqs, probe, blastdbv5
     ) = conf_from_file.get_config(target)
     if nolist:
@@ -4158,10 +4241,10 @@ def get_configuration_from_file(target, conf_from_file):
         nontargetlist = H.create_non_target_list(target)
 
     config = CLIconf(
-        minsize, maxsize, mpprimer, exception, target, path,
+        minsize, maxsize, dimer, exception, target, path,
         intermediate, qc_gene, mfold, skip_download,
         assemblylevel, nontargetlist, skip_tree,
-        nolist, offline, ignore_qc, mfethreshold, customdb,
+        nolist, offline, ignore_qc, mismatches, customdb,
         blastseqs, probe, blastdbv5)
 
     return config
@@ -4219,12 +4302,12 @@ def get_configuration_from_args(target, args):
         nontargetlist = H.create_non_target_list(target)
 
     config = CLIconf(
-        args.minsize, args.maxsize, args.mpprimer, args.exception,
+        args.minsize, args.maxsize, args.dimer, args.exception,
         target, args.path, args.intermediate,
         args.qc_gene, args.mfold, args.skip_download,
         args.assemblylevel, nontargetlist,
         args.skip_tree, args.nolist, args.offline,
-        args.ignore_qc, args.mfethreshold, args.customdb,
+        args.ignore_qc, args.mismatches, args.customdb,
         args.blastseqs, args.probe, args.blastdbv5)
 
     if args.configfile:
