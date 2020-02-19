@@ -362,8 +362,8 @@ class Input:
                 self.input_dict = json.loads(line)
         setlist = [
             "blastseqs", "blastdbv5", "assemblylevel", "qc_gene", "ignore_qc",
-            "skip_tree", "minsize", "maxsize", "probe", "mfold", "mpprimer",
-            "mfethreshold", "intermediate", "nolist"]
+            "skip_tree", "minsize", "maxsize", "probe", "mfold", "dimer",
+            "mismatches", "intermediate", "nolist"]
 
         self.parse_targets(targets)
         listlen = len(self.target_list)
@@ -391,7 +391,7 @@ class Output:
         self.default_dict = {
             "minsize": 70,
             "maxsize": 200,
-            "mpprimer": -3.5,
+            "dimer": -3.5,
             "exception": [],
             "path": os.getcwd(),
             "intermediate": False,
@@ -403,7 +403,7 @@ class Output:
             "nolist": False,
             "offline": False,
             "ignore_qc": False,
-            "mfethreshold": 90,
+            "mismatches": 1,
             "customdb": None,
             "blastseqs": 1000,
             "probe": False,

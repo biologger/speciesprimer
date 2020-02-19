@@ -36,9 +36,9 @@ tmpdir = os.path.join("/", "primerdesign", "tmp")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 confargs = {
-    "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
+    "ignore_qc": False, "mismatches": 1, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
-    "blastseqs": 1000, "mfold": -3.0, "mpprimer": -3.5,
+    "blastseqs": 1000, "mfold": -3.0, "dimer": -3.5,
     "offline": False,
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": [], "minsize": 70, "skip_download": True,
@@ -59,12 +59,12 @@ def config():
     args = AttrDict(confargs)
     nontargetlist = H.create_non_target_list(args.target)
     config = CLIconf(
-            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.minsize, args.maxsize, args.dimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.ignore_qc, args.mismatches, args.customdb,
             args.blastseqs, args.probe, args.blastdbv5)
 
     config.save_config()
@@ -138,10 +138,10 @@ def test_commandline():
     assert args.ignore_qc is False
     assert args.intermediate is False
     assert args.maxsize == 200
-    assert args.mfethreshold == 90
+    assert args.mismatches == 1
     assert args.mfold == -3.0
     assert args.minsize == 70
-    assert args.mpprimer == -3.5
+    assert args.dimer == -3.5
     assert args.nolist is False
     assert args.offline is False
     assert args.path == '/'
@@ -156,13 +156,13 @@ def test_CLIconf(config):
     assert config.minsize == confargs['minsize']
     assert config.maxsize == confargs['maxsize']
     assert config.ignore_qc == confargs['ignore_qc']
-    assert config.mfethreshold == confargs['mfethreshold']
+    assert config.mismatches == confargs['mismatches']
     assert config.target == confargs['target']
     assert config.nolist == confargs['nolist']
     assert config.skip_tree == confargs['skip_tree']
     assert config.blastseqs == confargs['blastseqs']
     assert config.mfold == confargs['mfold']
-    assert config.mpprimer == confargs['mpprimer']
+    assert config.dimer == confargs['dimer']
     assert config.offline == confargs['offline']
     assert config.probe == confargs['probe']
     assert config.exception == confargs['exception']
@@ -204,23 +204,23 @@ def test_auto_run_config():
             target = target.capitalize()
             if use_configfile:
                 (
-                    minsize, maxsize, mpprimer, exception, target, path,
+                    minsize, maxsize, dimer, exception, target, path,
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, skip_tree, nolist,
-                    offline, ignore_qc, mfethreshold, customdb,
+                    offline, ignore_qc, mismatches, customdb,
                     blastseqs, probe, blastdbv5
                 ) = conf_from_file.get_config(target)
 
         assert minsize == confargs['minsize']
         assert maxsize == confargs['maxsize']
         assert ignore_qc == confargs['ignore_qc']
-        assert mfethreshold == confargs['mfethreshold']
+        assert mismatches == confargs['mismatches']
         assert target == confargs['target']
         assert nolist == confargs['nolist']
         assert skip_tree == confargs['skip_tree']
         assert blastseqs == confargs['blastseqs']
         assert mfold == confargs['mfold']
-        assert mpprimer == confargs['mpprimer']
+        assert dimer == confargs['dimer']
         assert offline == confargs['offline']
         assert probe == confargs['probe']
         assert exception == confargs['exception']
@@ -231,10 +231,10 @@ def test_auto_run_config():
         assert blastdbv5 == confargs['blastdbv5']
 
         tmpconfig = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
+            minsize, maxsize, dimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
+            nolist, offline, ignore_qc, mismatches, customdb,
             blastseqs, probe, blastdbv5)
 
         tmpconfig.save_config()
@@ -1072,6 +1072,11 @@ def test_PrimerDesign(config):
         for line in f:
             refdict = json.loads(line)
 
+    with open("/primerdesign/newp3dict", "w") as f:
+        f.write(json.dumps(pd.p3dict))
+        
+    print(len(refdict), len(pd.p3dict))
+    
     assert refdict == pd.p3dict
 
     # test primer3 error
@@ -1293,6 +1298,8 @@ def test_blastparser(config):
 
 
 def prepare_test(config):
+    from speciesprimer import BlastPrep
+    from speciesprimer import Blast
     testdir = os.path.join("/", "primerdesign", "test")
     target_dir = os.path.join(testdir, "Lactobacillus_curvatus")
     pangenome_dir = os.path.join(target_dir, "Pangenome")
@@ -1331,8 +1338,6 @@ def prepare_test(config):
     create_customblastdb()
 
     from speciesprimer import PrimerQualityControl
-    from speciesprimer import Blast
-    from speciesprimer import BlastPrep
     G.create_directory(primer_dir)
 
     config.customdb = dbpath
@@ -1346,16 +1351,23 @@ def prepare_test(config):
     G.create_directory(pqc.primerblast_dir)
     file_path = os.path.join(primerblast_dir, "nontargethits.json")
     if os.path.isfile(file_path):
-        os.remove(file_path)
-    prep = BlastPrep(
-        pqc.primerblast_dir, pqc.primerlist,
-        "primer", pqc.config.blastseqs)
-    use_cores, inputseqs = prep.run_blastprep()
+        os.remove(file_path)  
+    
+    nontarget_blastseqs = []
+    for primer in pqc.primerlist:
+        nontarget_blastseqs.append(primer[0:4])
+    blastsum = os.path.join(pqc.primerblast_dir, "nontargethits.json")
 
-    Blast(pqc.config, pqc.primerblast_dir, "primer").run_blast(
-        "primer", use_cores)
+    if not os.path.isfile(blastsum):
+        G.create_directory(pqc.primerblast_dir)
+        prep = BlastPrep(
+            pqc.primerblast_dir, nontarget_blastseqs,
+            "primer", pqc.config.blastseqs)
+        use_cores, inputseqs = prep.run_blastprep()
+        bla = Blast(pqc.config, pqc.primerblast_dir, "primer")
+        bla.run_blast("primer", use_cores)
 
-    return primer_dir, primerblast_dir, primer_qc_dir
+    return pqc.primer_dir, pqc.primerblast_dir, pqc.primer_qc_dir
 
 
 def test_primerblastparser(config):
@@ -1538,23 +1550,11 @@ def test_PrimerQualityControl_specificitycheck(config):
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
             + 'AAGATTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAA'
             + 'AAG']]
-        ref2 = [[
-            'asnS_1', 'Primer_pair_0',
-            'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
-            + 'AAGATTTCATTCCTCCAATTACGTGATGGCA', 'Lb_curva_asnS_1_P0']]
+
         inputseqs.sort()
-        modes = ['mfeprimer', "mfold", "dimercheck"]
-        for mode in modes:
-            primerinfo = pqc.get_primerinfo([inputseqs[0]], mode)
-            if mode == modes[0]:
-                assert primerinfo == ref1
-            elif mode == modes[1]:
-                assert primerinfo == ref2
-            elif mode == modes[2]:
-                assert primerinfo == [[
-                    'Lb_curva_asnS_1_P0',
-                    'AAACCATGTCGATGAAGAAGTTAAA',
-                    'TGCCATCACGTAATTGGAGGA']]
+        primerinfo = pqc.get_primerinfo([inputseqs[0]])
+        assert primerinfo == ref1
+
 
     def test_MFEprimer_DBs():
         for files in os.listdir(pqc.primer_qc_dir):
@@ -1575,9 +1575,11 @@ def test_PrimerQualityControl_specificitycheck(config):
             "template.sequences",
             "Lb_curva.genomic"]
         dbfiles = [
-            ".2bit",
-            ".sqlite3.db",
-            ".uni"]
+            ".fai",
+            ".json",
+            ".log",
+            ".primerqc",
+            ".primerqc.fai"]
         for db in dbtype:
             for end in dbfiles:
                 files = db + end
@@ -1592,14 +1594,14 @@ def test_PrimerQualityControl_specificitycheck(config):
         os.chdir(pqc.primer_qc_dir)
         # template
         print("Test MFEprimer_template()")
-        ppcth = [100, 90, 80, 70]
+        mism = [0, 1, 2]
         outcome = [
             [None], [None], 'Lb_curva_asnS_1_P0_F', 'Lb_curva_asnS_1_P0_F']
         results = []
-        for index, item in enumerate(ppcth):
-            pqc.mfethreshold = item
+        for index, item in enumerate(mism):
+            pqc.mismatches = item
             result = P.MFEprimer_template(
-                    primerinfo[0], [pqc.primer_qc_dir, pqc.mfethreshold])
+                    primerinfo[0], [pqc.primer_qc_dir, pqc.mismatches])
             results.append(result)
             if outcome[index] == [None]:
                 assert result[0] == outcome[index]
@@ -1632,8 +1634,8 @@ def test_PrimerQualityControl_specificitycheck(config):
                 'gttt']]
         results = []
         nontarget_lists = []
-        for index, item in enumerate(ppcth):
-            pqc.mfethreshold = item
+        for index, item in enumerate(mism):
+            pqc.mismatches = item
             dbfile = pqc.dbinputfiles[0]
             result = P.MFEprimer_nontarget(
                     check_nontarget[1], [dbfile, pqc.primer_qc_dir])
@@ -1656,7 +1658,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         results = []
         outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
         dbfile = dbfile = H.abbrev(pqc.target) + ".genomic"
-        for index, item in enumerate(ppcth):
+        for index, item in enumerate(mism):
             result = P.MFEprimer_assembly(
                     check_assembly[0], [pqc.primer_qc_dir, dbfile, item])
 
@@ -1671,10 +1673,10 @@ def test_PrimerQualityControl_specificitycheck(config):
 
     def test_fullMFEprimer_run():
         outcome = [15, 42, 54, 65]
-        ppcth = [100, 90, 80, 70]
+        mism = [0, 1, 2]
         primerinfos = pqc.get_primerinfo(inputseqs, "mfeprimer")
-        for index, item in enumerate(ppcth):
-            pqc.mfethreshold = item
+        for index, item in enumerate(mism):
+            pqc.mismatches = item
             primer_name_list = pqc.MFEprimer_QC(primerinfos)
             assert len(primer_name_list) == outcome[index]
 
@@ -1834,19 +1836,19 @@ def test_summary(config):
     assert files == ref_files
 
 
-def test_end(config):
-    def remove_test_files(config):
-        test = config.path
-        shutil.rmtree(test)
-        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        if os.path.isdir(tmpdir):
-            shutil.rmtree(tmpdir)
-        os.chdir(BASE_PATH)
-        assert os.path.isdir(test) is False
-
-    remove_test_files(config)
+#def test_end(config):
+#    def remove_test_files(config):
+#        test = config.path
+#        shutil.rmtree(test)
+#        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+#        if os.path.isfile(tmp_path):
+#            os.remove(tmp_path)
+#        if os.path.isdir(tmpdir):
+#            shutil.rmtree(tmpdir)
+#        os.chdir(BASE_PATH)
+#        assert os.path.isdir(test) is False
+#
+#    remove_test_files(config)
 
 
 if __name__ == "__main__":

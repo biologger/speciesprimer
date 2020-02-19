@@ -1952,7 +1952,7 @@ class BlastParser:
             self.mode = "primer"
             self.primer_dir = os.path.join(self.results_dir, "primer")
             self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
-            self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
+            self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
             self.maxgroupsize = 25000
 
     def blastresult_files(self, blast_dir):
@@ -2824,7 +2824,7 @@ class PrimerQualityControl:
         self.primer_dir = os.path.join(self.results_dir, "primer")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
-        self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
+        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
         self.hairpin_dir = os.path.join(self.primer_qc_dir, "hairpin")
         self.primerdimer_dir = os.path.join(self.primer_qc_dir, "primerdimer")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
@@ -3209,7 +3209,7 @@ class PrimerQualityControl:
                 self.primer_qc_dir, H.abbrev(self.target) + ".genomic")
 
         template_list = G.run_parallel(
-                P.new_MFEprimer_template, primerinfos,
+                P.MFEprimer_template, primerinfos,
                 [self.primer_qc_dir, tmpdb, self.mismatches])
         assembly_input = self.write_MFEprimer_results(
                 template_list, "template")
@@ -3222,7 +3222,7 @@ class PrimerQualityControl:
         G.logger("> " + info1)
 
         assembly_results = G.run_parallel(
-                P.new_MFEprimer_assembly, assembly_input, [
+                P.MFEprimer_assembly, assembly_input, [
                         self.primer_qc_dir, assdb, self.mismatches])
         nontarget_input = self.write_MFEprimer_results(assembly_results, "assembly")
 
@@ -3239,7 +3239,8 @@ class PrimerQualityControl:
 
         os.chdir(self.primer_qc_dir)
         nontarget_results = G.run_parallel(
-            self.MFEprimer_nontarget, nontarget_input)
+            self.MFEprimer_nontarget, nontarget_input, [
+                    self.primer_qc_dir, self.dbinputfiles, self.mismatches])
         specific_primers = self.write_MFEprimer_results(
                 nontarget_results, "nontarget")
 
@@ -3813,7 +3814,7 @@ class Summary:
         self.blast_dir = os.path.join(self.results_dir, "blast")
         self.primer_dir = os.path.join(self.results_dir, "primer")
         self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
-        self.primerblast_dir = os.path.join(self.primer_qc_dir, "primerblast")
+        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
         self.mfold_dir = os.path.join(self.primer_dir, "mfold")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")

@@ -82,12 +82,11 @@ probe = (
 mfold = (
     "Delta G threshold for secondary structures in PCR products"
     " at 60 degree Celsius calculated by mfold\ndefault=-3.0\n> ")
-mpprimer = (
-    "Mpprimer threshold for delta G values calculated by "
-    "MPprimer_dimer_check.pl\ndefault=-3.5\n> ")
-mfethreshold = (
-    "MFEprimer threshold for nontarget sequence PPC "
-    "higher values mean more stringent selection.\ndefault=90\n> ")
+dimer = (
+    "MFErimer-3.1 delta G threshold for primer dimers\ndefault=-3.5\n> ")
+mismatches = (
+    "MFEprimr-3.1 max allowed mismatches between kmer and its binding sites, "
+    "options=[0, 1, 2]\ndefault=1\n> ")
 ignore_qc = (
     "Do you want to include genomes that did not"
     " pass quality control?\ndefault=(n)\n> ")
@@ -111,7 +110,7 @@ def alldef_input(prompt):
         start: "n", species: "Lactobacillus curvatus", path: "", skip_tree: "",
         offline: "", skip_download: "", assemblylevel: "", customdb: "",
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
-        probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
+        probe: "", mfold: "", dimer: "", mismatches: "", ignore_qc: "",
         blastdbv5: "", intermediate: "", nolist: "", forall: ""}
     val = prompt_dict[prompt]
     return val
@@ -125,7 +124,7 @@ def offline_input(prompt):
         offline: "yes", skip_download: "", assemblylevel: "contig",
         customdb: "",
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
-        probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
+        probe: "", mfold: "", dimer: "", mismatches: "", ignore_qc: "",
         blastdbv5: "", intermediate: "", nolist: "", forall: "y"}
     val = prompt_dict[prompt]
     return val
@@ -139,7 +138,7 @@ def offline_input2(prompt):
         skip_download: "",
         assemblylevel: "contig", customdb: "", blastseqs: "", qc_gene: "",
         exception: [], minsize: "", maxsize: "", probe: "", mfold: "",
-        mpprimer: "", mfethreshold: "", ignore_qc: "", blastdbv5: "",
+        dimer: "", mismatches: "", ignore_qc: "", blastdbv5: "",
         intermediate: "", nolist: "", forall: "n"}
     val = prompt_dict[prompt]
     return val
@@ -155,7 +154,7 @@ def nodef_input(prompt):
         blastseqs: "2000", qc_gene: "pheS, dnaK",
         exception: "Lactobacillus sunkii",
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5",
-        mpprimer: "-3.0", mfethreshold: "100", ignore_qc: "y", blastdbv5: "y",
+        dimer: "-3.0", mismatches: "1", ignore_qc: "y", blastdbv5: "y",
         intermediate: "y", nolist: "y", forall: "n"}
     val = prompt_dict[prompt]
     return val
@@ -167,7 +166,7 @@ def wrong_input(prompt):
         blastseqs: "66", qc_gene: "tufrrna",
         exception: "Lactobacillus sunkii",
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
-        mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
+        dimer: "minusthreepointfive", mismatches: "1"}
     val = prompt_dict[prompt]
     return val
 
@@ -178,7 +177,7 @@ def wrong_input2(prompt):
         customdb: "customdb.fas", blastseqs: "forty", qc_gene: "tufrrna",
         exception: "Lactobacillus_sunkii",
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
-        mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
+        dimer: "minusthreepointfive", mismatches: "1"}
     val = prompt_dict[prompt]
     return val
 
@@ -191,8 +190,8 @@ def nodef_input2(prompt):
         assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
         blastseqs: "2000", qc_gene: "pheS, dnaK",
         exception: "Lactobacillus sunkii, Lactobacillus helveticus", minsize: "60", maxsize: "300",
-        probe: "y", mfold: "-2.5", mpprimer: "-3.0",
-        mfethreshold: "100", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
+        probe: "y", mfold: "-2.5", dimer: "-3.0",
+        mismatches: "1", ignore_qc: "y", blastdbv5: "y", intermediate: "y",
         skip_download: "y", nolist: "y", forall: "y"}
     val = prompt_dict[prompt]
     return val
@@ -280,18 +279,18 @@ def get_config_from_file(conf_from_file):
     targets.sort()
     for target in targets:
         (
-            minsize, maxsize, mpprimer, exception, target, path,
+            minsize, maxsize, dimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist,
-            offline, ignore_qc, mfethreshold, customdb,
+            offline, ignore_qc, mismatches, customdb,
             blastseqs, probe, blastdbv5
                 ) = conf_from_file.get_config(target)
 
         config = CLIconf(
-            minsize, maxsize, mpprimer, exception, target, path,
+            minsize, maxsize, dimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, nontargetlist, skip_tree,
-            nolist, offline, ignore_qc, mfethreshold, customdb,
+            nolist, offline, ignore_qc, mismatches, customdb,
             blastseqs, probe, blastdbv5)
 
         config.save_config()
