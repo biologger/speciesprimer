@@ -133,12 +133,7 @@ def test_make_DBs(pqc, config):
         pqc.primerdimer_check(hairpins)
         excluded = pqc.filter_primerdimer()
         pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
-        assemblyfilepath = os.path.join(
-            pqc.primer_qc_dir,
-            H.abbrev(pqc.target) + ".genomic")
-        templatefilepath = os.path.join(
-                pqc.primer_qc_dir, "template.sequences")
-        dblist = [assemblyfilepath, templatefilepath]
+        dblist = [genDB, tempDB]
         for dbpath in dblist:
             P.index_database(dbpath)
         assert os.path.isfile(genDB) is True
@@ -154,9 +149,13 @@ def test_make_DBs(pqc, config):
         assert os.path.isfile(genDB) is False
         assert os.path.isfile(tempDB) is False
         print("\n Test this with empty files")
-        dbs = [genDB, tempDB]
-        dbfiles = [".2bit", ".sqlite3.db", ".uni"]
-        for db in dbs:
+        dbfiles = [
+            ".fai",
+            ".json",
+            ".log",
+            ".primerqc",
+            ".primerqc.fai"]
+        for db in dblist:
             for end in dbfiles:
                 if os.path.isfile(db + end):
                     os.remove(db + end)
@@ -165,11 +164,6 @@ def test_make_DBs(pqc, config):
         primer_qc_list = []
         pqc.create_template_db_file(primer_qc_list)
         pqc.create_assembly_db_file()
-        assemblyfilepath = os.path.join(
-            pqc.primer_qc_dir,
-            H.abbrev(pqc.target) + ".genomic")
-        templatefilepath = os.path.join(
-                pqc.primer_qc_dir, "template.sequences")
         for dbpath in dblist:
             P.index_database(dbpath)
         assert os.path.isfile(genDB) is False
@@ -179,24 +173,26 @@ def test_KeyboardInterrupt(config, pqc, monkeypatch):
 
     def mock_keyinterrupt(self, cmd, printcmd, logcmd, printoption):
         raise KeyboardInterrupt
+
     genDB = os.path.join(pqc.primer_qc_dir, "Lb_curva.genomic")
     tempDB = os.path.join(pqc.primer_qc_dir, "template.sequences")
+    dblist = [genDB, tempDB]   
     prepare_QC_testfiles(pqc, config)
-    if pqc.collect_primer() == 0:
-        hairpins = pqc.hairpin_check()
-        pqc.primerdimer_check(hairpins)
-        excluded = pqc.filter_primerdimer()
-        pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
-#        primer_qc_list = pqc.get_primerinfo(pqc.primerlist)
-#        pqc.create_template_db_file(primer_qc_list)
-#        pqc.create_assembly_db_file()
-        assemblyfilepath = os.path.join(
-            pqc.primer_qc_dir,
-            H.abbrev(pqc.target) + ".genomic")
-        templatefilepath = os.path.join(
-                pqc.primer_qc_dir, "template.sequences")
-        dblist = [assemblyfilepath, templatefilepath]
-
+    pqc.collect_primer()
+    hairpins = pqc.hairpin_check()
+    pqc.primerdimer_check(hairpins)
+    excluded = pqc.filter_primerdimer()
+    pqc.prepare_MFEprimer_Dbs(pqc.primerlist)
+    dbfiles = [
+        ".fai",
+        ".json",
+        ".log",
+        ".primerqc",
+        ".primerqc.fai"]
+    for db in dblist:
+        for end in dbfiles:
+            if os.path.isfile(db + end):
+                os.remove(db + end) 
     monkeypatch.setattr(G, "run_subprocess", mock_keyinterrupt)
     for dbpath in dblist:
         with pytest.raises(KeyboardInterrupt):

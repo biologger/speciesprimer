@@ -15,6 +15,7 @@ import multiprocessing
 import wget
 import json
 import urllib
+import tempfile
 from itertools import islice
 from datetime import timedelta
 from Bio import SeqIO
@@ -2930,8 +2931,7 @@ class PrimerQualityControl:
             cmd = [
                 "mfeprimer-3.1", "hairpin", "-i", "primerlist.fa",
                 "-o", "hairpin_results.txt"]
-            cmd = " ".join(cmd)
-            G.run_shell(cmd)
+            G.run_subprocess(cmd)
         with open("hairpin_results.txt", "r", encoding="utf8") as f:
             for line in f:
                 line = line.strip()
@@ -2982,10 +2982,9 @@ class PrimerQualityControl:
             cmd = [
                 "mfeprimer-3.1", "dimer", "-i", primefile.name,
                 "-m", "4", "-s", "4", "-d", str(self.config.dimer + 1)]
-            cmd = " ".join(cmd)
+
             while len(result) <= 5:
-                result = G.read_shelloutput(
-                    cmd, printcmd=False, logcmd=False, printoption=False)
+                result = G.read_shelloutput(cmd)
             os.unlink(primefile.name)
 
             dimerlist = result[5]
@@ -3163,19 +3162,38 @@ class PrimerQualityControl:
             if item:
                 errors.append([self.target, item])
 
+#    def write_MFEprimer_results(self, input_list, name):
+#        outputlist = []
+#        val_list = []
+#        for item in input_list:
+#            # item[0] is the primerinfo
+#            if len(item[0]) > 1:
+#                if not item[0] in outputlist:
+#                    outputlist.append(item[0])
+#            # item[1] are the results of MFEprimer
+#            if len(item[1]) > 1:
+#                for values in item[1]:
+#                    val = values.split("\t")
+#                    val_list.append(val)
+#
+#        G.csv_writer("MFEprimer_" + name + ".csv", val_list)
+#
+#        return outputlist
+
     def write_MFEprimer_results(self, input_list, name):
         outputlist = []
         val_list = []
         for item in input_list:
             # item[0] is the primerinfo
             if len(item[0]) > 1:
-                if not item[0] in outputlist:
-                    outputlist.append(item[0])
+                outputlist.append(item[0])
+                pp_name = "_".join(item[0][0].split("_")[0:-1])
+            else:
+                pp_name = item[0][0]
             # item[1] are the results of MFEprimer
-            if len(item[1]) > 1:
-                for values in item[1]:
-                    val = values.split("\t")
-                    val_list.append(val)
+            for result in item[1]:
+                result.insert(0, pp_name)
+                val_list.append(result)
 
         G.csv_writer("MFEprimer_" + name + ".csv", val_list)
 
@@ -3239,7 +3257,7 @@ class PrimerQualityControl:
 
         os.chdir(self.primer_qc_dir)
         nontarget_results = G.run_parallel(
-            self.MFEprimer_nontarget, nontarget_input, [
+            P.MFEprimer_nontarget, nontarget_input, [
                     self.primer_qc_dir, self.dbinputfiles, self.mismatches])
         specific_primers = self.write_MFEprimer_results(
                 nontarget_results, "nontarget")
@@ -3391,22 +3409,22 @@ class PrimerQualityControl:
 
         self.call_blastparser.run_blastparser("primer")
 
-    def make_nontargetDB(self, inputfiles):
-        db_name = inputfiles
-        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".primerqc")
-        if not os.path.isfile(db_path):
-            G.logger("> Start index non-target DB " + inputfiles)
-            print("\nStart index non-target DB " + inputfiles)
-            self.index_Database(db_name)
-            print("Done indexing non-target DB " + inputfiles)
-            G.logger("> Done indexing non-target DB " + inputfiles)
-
-        infile = os.path.join(self.primer_qc_dir, inputfiles)
-        if os.stat(infile).st_size == 0:
-            msg = "Problem with non-target DB " + inputfiles
-            + " input file is empty"
-            G.logger("> " + msg)
-            print("\n" + msg)
+#    def make_nontargetDB(self, inputfiles):
+#        db_name = inputfiles
+#        db_path = os.path.join(self.primer_qc_dir, inputfiles + ".primerqc")
+#        if not os.path.isfile(db_path):
+#            G.logger("> Start index non-target DB " + inputfiles)
+#            print("\nStart index non-target DB " + inputfiles)
+#            self.index_Database(db_name)
+#            print("Done indexing non-target DB " + inputfiles)
+#            G.logger("> Done indexing non-target DB " + inputfiles)
+#
+#        infile = os.path.join(self.primer_qc_dir, inputfiles)
+#        if os.stat(infile).st_size == 0:
+#            msg = "Problem with non-target DB " + inputfiles
+#            + " input file is empty"
+#            G.logger("> " + msg)
+#            print("\n" + msg)
 
     def prepare_nontargetDB(self):
         for files in os.listdir(self.primer_qc_dir):
@@ -3502,6 +3520,7 @@ class PrimerQualityControl:
         # This removes the Genus species string to shorten the
         # name for mfold (especially for subspecies names). mfold has
         # problems with too long filenames / paths
+        print(mfoldinput)
         [nameF, seqF, nameR, seqR, templ_seq, amp_seq] = mfoldinput
         primer_name = "_".join(nameF.split("_")[0:-1])
         target_id = "_".join(primer_name.split("_")[-3:-1])
