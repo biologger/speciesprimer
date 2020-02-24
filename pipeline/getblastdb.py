@@ -39,7 +39,7 @@ class config:
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "extend": [".nog", ".nsd", ".nsi"]},
+            "extend": [".nog"]},
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
