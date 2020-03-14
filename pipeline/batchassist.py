@@ -361,7 +361,7 @@ class Input:
             for line in f:
                 self.input_dict = json.loads(line)
         setlist = [
-            "blastseqs", "blastdbv5", "assemblylevel", "qc_gene", "ignore_qc",
+            "blastseqs", "virus", "genbank", "assemblylevel", "qc_gene", "ignore_qc",
             "skip_tree", "minsize", "maxsize", "probe", "mfold", "mpprimer",
             "mfethreshold", "intermediate", "nolist"]
 
@@ -407,7 +407,8 @@ class Output:
             "customdb": None,
             "blastseqs": 1000,
             "probe": False,
-            "blastdbv5": False}
+            "virus": False,
+            "genbank": False}
 
     def get_path(self):
         inpath = input(
