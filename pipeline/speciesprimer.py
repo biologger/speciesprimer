@@ -982,7 +982,7 @@ class QualityControl:
                 for index, blast_record in enumerate(blast_record_list):
                     i = 0
                     alignment = blast_record.alignments[i]
-                    aln_data = blapa.get_alignmentdata(alignment)
+                    aln_data = blapa.get_alignmentdata(alignment, exceptions)
                     spec, gi, db_id = aln_data[0], aln_data[1], aln_data[2]
                     query = blast_record.query
                     if str(gi) in excluded_gis:
@@ -992,7 +992,7 @@ class QualityControl:
                         while i < len(blast_record.alignments) - 1:
                             i = i+1
                             alignment = blast_record.alignments[i]
-                            aln_data = blapa.get_alignmentdata(alignment)
+                            aln_data = blapa.get_alignmentdata(alignment, exceptions)
                             spec, gi, db_id = (
                                     aln_data[0], aln_data[1], aln_data[2])
                             if str(gi) not in excluded_gis:
@@ -1961,7 +1961,7 @@ class BlastParser:
                 xmlblastresults.append(file_path)
         return xmlblastresults
 
-    def get_alignmentdata(self, alignment):
+    def get_alignmentdata(self, alignment, exceptions):
         if "gnl|BL_ORD_ID|" in alignment.hit_id:
             error_msg = (
                 "Problem with custom DB, Please use the '-parse_seqids'"
@@ -1991,8 +1991,8 @@ class BlastParser:
 
         db_id = alignment.accession
         lname = alignment.hit_def
+        name = lname.split(" ")
         if not "PREDICTED" in lname:
-            name = lname.split(" ")
             if len(name) >= 3:
                 if "subsp" in str(" ".join(name)):
                     identity = str(" ".join(name[0:4]))
@@ -2000,6 +2000,13 @@ class BlastParser:
                     identity = str(" ".join(name[0:2]))
             else:
                 identity = str(" ".join(name[0:2]))
+        elif self.config.virus:
+            identity = None
+            for ex in exceptions:
+                if ex in lname:
+                   test = str(" ".join(name[0:2]))
+                   if " ".join(ex.split(" ")[0:2]) == test:
+                       identity = self.target
         else:
             identity = None
 
@@ -2215,7 +2222,7 @@ class BlastParser:
         for alignment in blast_record.alignments:
             align_dict.update({blast_record.query: {}})
 
-            aln_data = self.get_alignmentdata(alignment)
+            aln_data = self.get_alignmentdata(alignment, exceptions)
             if aln_data:
                 if self.config.nolist:
                     targetspecies = " ".join(str(self.target).split("_"))
