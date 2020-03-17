@@ -1992,7 +1992,21 @@ class BlastParser:
         db_id = alignment.accession
         lname = alignment.hit_def
         name = lname.split(" ")
-        if not "PREDICTED" in lname:
+        if self.config.virus:
+            identity = "unknown"
+            for ex in exceptions:
+                if ex in lname:
+#                    print("in lname")
+                    test = str(" ".join(name[0:2]))
+                    if " ".join(ex.split(" ")[0:2]) == test:
+                        identity = " ".join(self.target.split("_"))
+            if identity == "unknown":
+                if "," in lname:
+                    identity = lname.split(",")[0]
+                else:
+                    identity = lname
+
+        elif not "PREDICTED" in lname:
             if len(name) >= 3:
                 if "subsp" in str(" ".join(name)):
                     identity = str(" ".join(name[0:4]))
@@ -2000,13 +2014,7 @@ class BlastParser:
                     identity = str(" ".join(name[0:2]))
             else:
                 identity = str(" ".join(name[0:2]))
-        elif self.config.virus:
-            identity = None
-            for ex in exceptions:
-                if ex in lname:
-                   test = str(" ".join(name[0:2]))
-                   if " ".join(ex.split(" ")[0:2]) == test:
-                       identity = self.target
+
         else:
             identity = None
 
@@ -2223,12 +2231,20 @@ class BlastParser:
             align_dict.update({blast_record.query: {}})
 
             aln_data = self.get_alignmentdata(alignment, exceptions)
+
+#            identity, align_length, nuc_ident, e_value = (
+#                    aln_data[0], aln_data[-2], aln_data[-1], aln_data[4])
+#            perc_ident = round(100/align_length * nuc_ident, 0)
+#            print(identity, perc_ident, e_value)
+
+
             if aln_data:
                 if self.config.nolist:
                     targetspecies = " ".join(str(self.target).split("_"))
                     if "subsp" in self.target:
                         targetspecies = (
                             "subsp.".join(targetspecies.split("subsp")))
+
                     if not (
                         str(aln_data[0]) == str(targetspecies) or
                         str(aln_data[0]) in exceptions
