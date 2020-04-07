@@ -532,8 +532,11 @@ class DataCollection():
                     fna.split(".")[0] + "v" + fna.split(".")[1].split("_")[0])
             else:
                 name = fna.split(".fna")[0]
-                file_name = (
-                    "_".join("-".join(name.split(".")).split("_")[0:-1]))
+                if "_" in name:
+                    file_name = (
+                        "_".join("-".join(name.split(".")).split("_")[0:-1]))
+                else:
+                    file_name = "-".join(name.split("."))
 
             if file_name in dirs:
                 if file_name != '':
