@@ -43,7 +43,7 @@ confargs = {
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": [], "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": True,
+    "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"]}
 
 
@@ -65,7 +65,7 @@ def config():
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.blastdbv5)
+            args.blastseqs, args.probe, args.virus, args.genbank)
 
     config.save_config()
 
@@ -130,7 +130,8 @@ def test_commandline():
     parser = speciesprimer.commandline()
     args = parser.parse_args([])
     assert args.assemblylevel == ['all']
-    assert args.blastdbv5 is False
+    assert args.virus is False
+    assert args.genbank is False
     assert args.blastseqs == 1000
     assert args.customdb is None
     assert args.email is None
@@ -170,7 +171,8 @@ def test_CLIconf(config):
     assert config.skip_download == confargs['skip_download']
     assert config.assemblylevel == confargs['assemblylevel']
     assert config.qc_gene == confargs['qc_gene']
-    assert config.blastdbv5 == confargs['blastdbv5']
+    assert config.virus == confargs['virus']
+    assert config.genbank == confargs['genbank']
 
 
 def test_auto_run_config():
@@ -208,7 +210,7 @@ def test_auto_run_config():
                     intermediate, qc_gene, mfold, skip_download,
                     assemblylevel, skip_tree, nolist,
                     offline, ignore_qc, mfethreshold, customdb,
-                    blastseqs, probe, blastdbv5
+                    blastseqs, probe, virus, genbank
                 ) = conf_from_file.get_config(target)
 
         assert minsize == confargs['minsize']
@@ -228,14 +230,15 @@ def test_auto_run_config():
         assert skip_download == confargs['skip_download']
         assert assemblylevel == confargs['assemblylevel']
         assert qc_gene == confargs['qc_gene']
-        assert blastdbv5 == confargs['blastdbv5']
+        assert virus == confargs['virus']
+        assert genbank == confargs['genbank']
 
         tmpconfig = CLIconf(
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, blastdbv5)
+            blastseqs, probe, virus, genbank)
 
         tmpconfig.save_config()
 
@@ -533,7 +536,7 @@ def test_QualityControl(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     targetdir = os.path.join(config.path, config.target)
-    config.blastdbv5 = False
+    config.virus = False
     qc_gene = config.qc_gene[0]
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
@@ -930,7 +933,7 @@ def test_CoreGeneSequences(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
-    config.blastdbv5 = False
+    config.virus = False
     CGS = CoreGeneSequences(config)
 
     def test_seq_alignments():
@@ -1110,7 +1113,7 @@ def test_BlastDBError(config):
     shutil.copy(consfile, consens)
 
     config.customdb = dbpath
-    config.blastdbv5 = False
+    config.virus = False
 
     def dbinputfiles(dbpath, nodesc=False):
         filenames = [
@@ -1253,7 +1256,7 @@ def test_BLASTsettings(config):
             os.path.join(tmpdir, "customdb.fas"),
             os.path.join(tmpdir, "customdb_v5.fas")]
     for i, settings in enumerate(db_settings):
-        config.blastdbv5 = settings[0]
+        config.virus = settings[0]
         config.customdb = settings[1]
         for mode in modes:
             bl = Blast(config, tmpdir, mode)
@@ -1336,7 +1339,7 @@ def prepare_test(config):
     G.create_directory(primer_dir)
 
     config.customdb = dbpath
-    config.blastdbv5 = False
+    config.virus = False
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:
         for line in f:
@@ -1368,7 +1371,7 @@ def test_primerblastparser(config):
         os.remove(file_path)
     dbpath = os.path.join(tmpdir, "customdb.fas")
     config.customdb = dbpath
-    config.blastdbv5 = False
+    config.virus = False
     blapa = BlastParser(config, "primer")
     align_dict = blapa.blast_parser(blapa.primerblast_dir)
 
@@ -1411,7 +1414,7 @@ def test_primerblastparser_exceptions(config):
         os.remove(file_path)
     dbpath = os.path.join(tmpdir, "customdb.fas")
     config.customdb = dbpath
-    config.blastdbv5 = False
+    config.virus = False
     config.exception = [
         'Lactobacillus_sakei', 'Lactobacillus_sakei']
     blapa = BlastParser(config, "primer")
@@ -1451,7 +1454,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
-    config.blastdbv5 = False
+    config.virus = False
 
     def dbinputfiles():
         filenames = [

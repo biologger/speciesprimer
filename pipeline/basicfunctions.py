@@ -372,7 +372,9 @@ class HelperFunctions:
             scienctificname = synresult[0]['ScientificName']
             synonym = synresult[0]['OtherNames']['Synonym']
             includes = synresult[0]['OtherNames']['Includes']
-            synonyms = synonym + includes
+            equivalents = synresult[0]['OtherNames']['EquivalentName']
+            
+            synonyms = synonym + includes + equivalents
             if synonyms != []:
                 synwarn = []
                 target_name = " ".join(target.split("_"))
@@ -466,8 +468,6 @@ class HelperFunctions:
     def BLASTDB_check(config):
         if config.customdb:
             DBname = config.customdb
-        elif config.blastdbv5:
-            DBname = "nt_v5"
         else:
             DBname = "nt"
         if (

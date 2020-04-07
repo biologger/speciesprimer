@@ -44,8 +44,8 @@ confargs = {
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["tuf"],
-    "blastdbv5": False, "intermediate": True,
-    "nontargetlist": ["Lactobacillus sakei"]}
+    "intermediate": True,
+    "nontargetlist": ["Lactobacillus sakei"], "virus": False, "genbank": False}
 
 
 class AttrDict(dict):
@@ -66,7 +66,7 @@ def config():
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.blastdbv5)
+            args.blastseqs, args.probe, args.virus, args.genbank)
 
     config.save_config()
 
@@ -212,7 +212,7 @@ def test_qc_nottrue():
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.blastdbv5)
+            args.blastseqs, args.probe, args.virus, args.genbank)
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:
         for line in f:
@@ -264,7 +264,6 @@ def prepare_blastdb(config):
         shutil.rmtree(tmpdir)
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
-    config.blastdbv5 = False
 
     def dbinputfiles():
         filenames = [
@@ -297,7 +296,6 @@ def prepare_blastdb(config):
 
 def test_get_seq_from_DB(pqc, config, blapar):
     config.customdb = os.path.join(tmpdir, "primer_customdb.fas")
-    config.blastdbv5 = False
     fasta_seqs = []
     maxsize = 25000
     part = 0

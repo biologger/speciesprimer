@@ -81,13 +81,14 @@ class Config:
         customdb = self.config_dict[target]["customdb"]
         blastseqs = self.config_dict[target]["blastseqs"]
         probe = self.config_dict[target]["probe"]
-        blastdbv5 = self.config_dict[target]["blastdbv5"]
+        virus = self.config_dict[target]["virus"]
+        genbank = self.config_dict[target]["genbank"]
 
         return (
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            customdb, blastseqs, probe, blastdbv5)
+            customdb, blastseqs, probe, virus, genbank)
 
 
 class CLIconf:
@@ -96,7 +97,7 @@ class CLIconf:
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            customdb, blastseqs, probe, blastdbv5):
+            customdb, blastseqs, probe, virus, genbank):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -117,7 +118,8 @@ class CLIconf:
         self.customdb = customdb
         self.blastseqs = blastseqs
         self.probe = probe
-        self.blastdbv5 = blastdbv5
+        self.virus = virus
+        self.genbank = genbank
         self.save_config()
 
     def save_config(self):
@@ -141,7 +143,8 @@ class CLIconf:
         config_dict.update({"customdb": self.customdb})
         config_dict.update({"blastseqs": self.blastseqs})
         config_dict.update({"probe": self.probe})
-        config_dict.update({"blastdbv5": self.blastdbv5})
+        config_dict.update({"virus": self.virus})
+        config_dict.update({"genbank": self.genbank})
 
         dir_path = os.path.join(self.path, self.target)
         config_path = os.path.join(self.path, self.target, "config")
@@ -235,8 +238,19 @@ class DataCollection():
                 name = assembly["AssemblyName"]
                 status = assembly["AssemblyStatus"]
                 ftp_path = assembly["FtpPath_RefSeq"]
+
                 if ftp_path == "":
-                    ftp_link = "None"
+                    if self.config.genbank is True:
+                        ftp_path = assembly["FtpPath_GenBank"]
+                        if ftp_path == "":
+                            ftp_link = "None"
+                        else:
+                            ftp_link = (
+                                ftp_path + "/" + ftp_path.split("/")[-1]
+                                + "_genomic.fna.gz"
+                            )
+                    else:
+                        ftp_link = "None"
                 else:
                     ftp_link = (
                         ftp_path + "/" + ftp_path.split("/")[-1]
@@ -480,13 +494,18 @@ class DataCollection():
                         info = "Removed " + filepath
                         G.logger(info)
 
-        def start_prokka(filename, fna):
+        def start_prokka(filename, fna, viral):
             date = time.strftime("%Y%m%d")
-            genus = self.target.split("_")[0]
+            if viral:
+                genus = self.target.split("_")[-1]
+                kingdom = "Viruses"
+            else:
+                genus = self.target.split("_")[0]
+                kingdom = "Bacteria"
             outdir = filename + "_" + date
             prokka_cmd = [
                 "prokka",
-                "--kingdom", "Bacteria",
+                "--kingdom", kingdom,
                 "--outdir", outdir,
                 "--genus", genus,
                 "--locustag", filename,
@@ -545,7 +564,7 @@ class DataCollection():
             elif file_name in qc_fail_dirs:
                 excluded.append(file_name)
             else:
-                start_prokka(file_name, fna)
+                start_prokka(file_name, fna, self.config.virus)
 
         if len(annotated) > 0:
             info = "Already annotated: "
@@ -562,17 +581,6 @@ class DataCollection():
             print(excluded)
 
         return annotation_dirs, annotated
-
-    def create_taxidlist(self, taxid):
-        # removes the target species taxid from the taxidlist
-        # sequences for the target will not searched by blastn
-        txidlist = os.path.join(dict_path, "2.txids")
-        taxidlist = os.path.join(self.config_dir, "taxidlist.txt")
-        with open(taxidlist, "w") as r:
-            with open(txidlist, "r") as f:
-                for line in f:
-                    if not line.strip() == taxid:
-                        r.write(line)
 
     def remove_max_contigs(self):
         maxcontigs = []
@@ -647,7 +655,6 @@ class DataCollection():
             if syn:
                 self.add_synonym_exceptions(syn)
 
-            self.create_taxidlist(taxid)
             self.get_ncbi_links(taxid)
             if not self.config.skip_download:
                 self.ncbi_download()
@@ -1169,7 +1176,7 @@ class QualityControl:
         def remove_files():
             for item in delete:
                 search_str = str(item + "_*")
-                if (("GCF" or "GCA") and "v") in item:
+                if "GCF" and "v" in item or "GCA" and "v" in item:
                     accession = ".".join(item.split("v"))
                     search_str = str(accession + "_*")
                 # genomic_fna
@@ -1858,8 +1865,6 @@ class Blast:
         self.mode = mode
 
     def get_blast_cmd(self, blastfile, filename, cores):
-        taxidlist = os.path.join(dict_path, "2.txids")
-        locallist = os.path.join(self.config_dir, "taxidlist.txt")
         if self.mode == "quality_control":
             blast_cmd = [
                 "blastn", "-task", "megablast", "-num_threads",
@@ -1877,15 +1882,6 @@ class Blast:
                 "blastn", "-task", "blastn-short", "-num_threads",
                 str(cores), "-query", blastfile,
                 "-evalue", "500", "-out", filename, "-outfmt", "5"]
-
-        if self.config.blastdbv5:
-            if self.mode == "quality_control":
-                if os.path.isfile(locallist):
-                    blast_cmd.append("-taxidlist")
-                    blast_cmd.append(locallist)
-                else:
-                    blast_cmd.append("-taxidlist")
-                    blast_cmd.append(taxidlist)
 
         blast_cmd.append("-db")
         if self.config.customdb:
@@ -1974,7 +1970,7 @@ class BlastParser:
                 xmlblastresults.append(file_path)
         return xmlblastresults
 
-    def get_alignmentdata(self, alignment):
+    def get_alignmentdata(self, alignment, exceptions):
         if "gnl|BL_ORD_ID|" in alignment.hit_id:
             error_msg = (
                 "Problem with custom DB, Please use the '-parse_seqids'"
@@ -2004,8 +2000,22 @@ class BlastParser:
 
         db_id = alignment.accession
         lname = alignment.hit_def
-        if not "PREDICTED" in lname:
-            name = lname.split(" ")
+        name = lname.split(" ")
+        if self.config.virus:
+            identity = "unknown"
+            for ex in exceptions:
+                if ex in lname:
+#                    print("in lname")
+                    test = str(" ".join(name[0:2]))
+                    if " ".join(ex.split(" ")[0:2]) == test:
+                        identity = " ".join(self.target.split("_"))
+            if identity == "unknown":
+                if "," in lname:
+                    identity = lname.split(",")[0]
+                else:
+                    identity = lname
+
+        elif not "PREDICTED" in lname:
             if len(name) >= 3:
                 if "subsp" in str(" ".join(name)):
                     identity = str(" ".join(name[0:4]))
@@ -2013,6 +2023,7 @@ class BlastParser:
                     identity = str(" ".join(name[0:2]))
             else:
                 identity = str(" ".join(name[0:2]))
+
         else:
             identity = None
 
@@ -2228,13 +2239,21 @@ class BlastParser:
         for alignment in blast_record.alignments:
             align_dict.update({blast_record.query: {}})
 
-            aln_data = self.get_alignmentdata(alignment)
+            aln_data = self.get_alignmentdata(alignment, exceptions)
+
+#            identity, align_length, nuc_ident, e_value = (
+#                    aln_data[0], aln_data[-2], aln_data[-1], aln_data[4])
+#            perc_ident = round(100/align_length * nuc_ident, 0)
+#            print(identity, perc_ident, e_value)
+
+
             if aln_data:
                 if self.config.nolist:
                     targetspecies = " ".join(str(self.target).split("_"))
                     if "subsp" in self.target:
                         targetspecies = (
                             "subsp.".join(targetspecies.split("subsp")))
+
                     if not (
                         str(aln_data[0]) == str(targetspecies) or
                         str(aln_data[0]) in exceptions
@@ -3613,6 +3632,7 @@ class Summary:
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
+        self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
         self.results_dir = os.path.join(self.pangenome_dir, "results")
         self.blast_dir = os.path.join(self.results_dir, "blast")
@@ -3629,6 +3649,41 @@ class Summary:
             self.total_results = total_results
 
     def collect_qc_infos(self, qc_gene):
+
+        def genome_info_init(row):
+            accessiondata = {
+                "name": "", "assemblystatus": "",
+                "strain": "",
+                "rRNA": {
+                    "status": "", "hit": "",
+                    "GI": "", "DB_id": ""},
+                "tuf": {
+                    "status": "", "hit": "",
+                    "GI": "", "DB_id": ""},
+                "recA": {
+                    "status": "", "hit": "",
+                    "GI": "", "DB_id": ""},
+                "dnaK": {
+                    "status": "", "hit": "",
+                    "GI": "", "DB_id": ""},
+                "pheS": {
+                    "status": "", "hit": "",
+                    "GI": "", "DB_id": ""}}
+
+            accession = "_".join(row[0].split("_")[0:-1])
+            if "GCF" in accession or "GCA" in accession:
+                accession = ".".join(accession.split("v"))
+
+            if accession not in self.g_info_dict.keys():
+                add_accession = {
+                    accession: accessiondata}
+                self.g_info_dict.update(add_accession)
+
+            self.g_info_dict[accession][qc_gene]["GI"] = row[1]
+            self.g_info_dict[accession][qc_gene]["DB_id"] = row[2]
+            self.g_info_dict[accession][qc_gene]["hit"] = row[3]
+            self.g_info_dict[accession][qc_gene]["status"] = row[5]
+
         if not qc_gene == "None":
             G.logger(
                 "Run: collect_qc_infos(" + self.target + " " + qc_gene + ")")
@@ -3639,39 +3694,15 @@ class Summary:
                     reader = csv.reader(r)
                     next(reader, None)
                     for row in reader:
-                        accession = "_".join(row[0].split("_")[0:-1])
-                        if ("GCF" or "GCA") in row[0]:
-                            accession = ".".join(accession.split("v"))
-
-                        if accession not in self.g_info_dict.keys():
-                            add_accession = {
-                                accession: {
-                                    "name": "", "assemblystatus": "",
-                                    "strain": "",
-                                    "rRNA": {
-                                        "status": "", "hit": "",
-                                        "GI": "", "DB_id": ""},
-                                    "tuf": {
-                                        "status": "", "hit": "",
-                                        "GI": "", "DB_id": ""},
-                                    "recA": {
-                                        "status": "", "hit": "",
-                                        "GI": "", "DB_id": ""},
-                                    "dnaK": {
-                                        "status": "", "hit": "",
-                                        "GI": "", "DB_id": ""},
-                                    "pheS": {
-                                        "status": "", "hit": "",
-                                        "GI": "", "DB_id": ""}}}
-
-                            self.g_info_dict.update(add_accession)
-
-                        self.g_info_dict[accession][qc_gene]["GI"] = row[1]
-                        self.g_info_dict[accession][qc_gene]["DB_id"] = row[2]
-                        self.g_info_dict[accession][qc_gene]["hit"] = row[3]
-                        self.g_info_dict[accession][qc_gene]["status"] = row[5]
+                        genome_info_init(row)
             except FileNotFoundError:
                 pass
+        else:
+            qc_gene = "rRNA"
+            filelist = os.listdir(self.fna_dir)
+            for filename in filelist:
+                row = [filename, "", "", "", "", ""]
+                genome_info_init(row)
 
     def get_genome_infos(self):
         G.logger("Run: get_genome_infos(" + self.target + ")")
@@ -3851,8 +3882,11 @@ class Summary:
         G.logger("Run: run_summary(" + self.target + ")")
         G.create_directory(self.summ_dir)
         self.write_results(self.total_results)
-        for qc_gene in self.config.qc_gene:
-            self.collect_qc_infos(qc_gene)
+        if not self.config.qc_gene is None:
+            for qc_gene in self.config.qc_gene:
+                self.collect_qc_infos(qc_gene)
+        else:
+            self.collect_qc_infos("None")
         self.copy_mostcommon_hits()
         self.get_genome_infos()
         self.write_genome_info()
@@ -3901,7 +3935,8 @@ def commandline():
     parser.add_argument(
         "-t", "--target", nargs="*", type=str, help="Bacterial species in "
         "format: 'Genus_species' e.g. 'Lactobacillus_casei'"
-        " use spaces to separate different species")
+        " use spaces to separate different species, Virus species in format "
+        "Species_genus e.g. Wuhan_coronavirus")
     # path
     parser.add_argument(
         "-p", "--path", type=str, help="Absolute path of working directory, "
@@ -3966,9 +4001,12 @@ def commandline():
         "--nolist", action="store_true", help="Species list is not used"
         " and only sequences without blast hits are used for primer design "
         "[Experimental, not recommended for nt DB!]")
-    parser.add_argument(
-        "--blastdbv5", action="store_true", help="If you have a local copy "
-        " of the nt_v5 BLAST database select this option")
+    # option not continued
+    # V5 DB is now standard
+    # customdb option allows smaller & faster BLAST DBs
+#    parser.add_argument(
+#        "--blastdbv5", action="store_true", help="If you have a local copy "
+#        " of the nt_v5 BLAST database select this option")
     parser.add_argument(
         "--offline", action="store_true", help="Work offline no data from"
         " NCBI is collected, use your own Genomic sequences")
@@ -3991,7 +4029,6 @@ def commandline():
         '["genus_abbrev", "genus_abbrev.csv"], '
         '["species_list","species_list.txt"], '
         '["p3settings", "p3parameters"], '
-        '["excludedgis", "no_blast.gi"]'
         "The current settings files will be overwritten")
     parser.add_argument(
         "--runmode", "-m", type=str, default=["species"],
@@ -4001,9 +4038,18 @@ def commandline():
         "--single", nargs="*", type=str, help="Start of filename of annotated "
         "fna file, GCF_XYZXYZXYZv1, will only search for singletons for this "
         "genome", default = None)
+
+    parser.add_argument(
+        "-g", "--genbank", action="store_true",
+        help="Download genome assemblies from Genbank"
+            )
+    parser.add_argument(
+        "-v", "--virus", action="store_true",
+        help="Design primers for viruses")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.2")
+        "-V", "--version", action="version", version="%(prog)s 2.1.3")
+
     return parser
 
 
@@ -4047,7 +4093,7 @@ def get_configuration_from_file(target, conf_from_file):
         intermediate, qc_gene, mfold, skip_download,
         assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
-        blastseqs, probe, blastdbv5
+        blastseqs, probe, virus, genbank
     ) = conf_from_file.get_config(target)
     if nolist:
         nontargetlist = []
@@ -4059,7 +4105,7 @@ def get_configuration_from_file(target, conf_from_file):
         intermediate, qc_gene, mfold, skip_download,
         assemblylevel, nontargetlist, skip_tree,
         nolist, offline, ignore_qc, mfethreshold, customdb,
-        blastseqs, probe, blastdbv5)
+        blastseqs, probe, virus, genbank)
 
     return config
 
@@ -4075,20 +4121,24 @@ def run_pipeline_for_target(target, config, runmode="species", single=None):
     newconfig = DataCollection(config).collect()
     if newconfig != 0:
         config = newconfig
-    qc_count = []
-    for qc_gene in config.qc_gene:
-        qc = QualityControl(config).quality_control(qc_gene)
-        qc_count.append(qc)
-    if not sum(qc_count) == 0:
-        total_results = []
-        Summary(config, total_results).run_summary()
-    else:
-        # writes QC summary in summary directory
-        try:
+    if config.virus is False:
+        qc_count = []
+        for qc_gene in config.qc_gene:
+            qc = QualityControl(config).quality_control(qc_gene)
+            qc_count.append(qc)
+        if not sum(qc_count) == 0:
             total_results = []
             Summary(config, total_results).run_summary()
-        except FileNotFoundError:
-            pass
+            return
+
+    else:
+        config.qc_gene = None
+
+    try:
+        total_results = []
+        Summary(config, total_results).run_summary()
+    except FileNotFoundError:
+        pass
         # end
         PangenomeAnalysis(config).run_pangenome_analysis()
         if "singleton" in runmode:
@@ -4125,7 +4175,7 @@ def get_configuration_from_args(target, args):
         args.assemblylevel, nontargetlist,
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
-        args.blastseqs, args.probe, args.blastdbv5)
+        args.blastseqs, args.probe, args.virus, args.genbank)
 
     if args.configfile:
         exitstat = H.advanced_pipe_config(args.configfile)
