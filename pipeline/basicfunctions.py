@@ -539,7 +539,8 @@ class ParallelFunctions:
         result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         [dbfilepath, primer_qc_dir] = args
-        dbfile = os.path.basename(dbfilepath)
+#        dbfile = os.path.basename(dbfilepath)
+
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=primer_qc_dir, prefix="primer",
             suffix=".fa", delete=False
@@ -547,8 +548,9 @@ class ParallelFunctions:
             primefile.write(
                 ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
         cmd = [
-            "MFEprimer.py", "-i", primefile.name, "-d", dbfile,
+            "MFEprimer.py", "-i", primefile.name, "-d", dbfilepath,
             "-k", "9", "--tab", "--ppc", "10"]
+
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
@@ -596,6 +598,22 @@ class ParallelFunctions:
                 return [primerinfo, result]
 
         return [[None], result]
+
+
+    @staticmethod
+    def MFEprimer_singleton(primerinfo, args):
+        [primer_qc_dir, db, mfethreshold, short] = args
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        targetname = "_".join(nameF.split(short)[1].split("_")[0:-3])
+        dbname = os.path.basename(os.path.dirname(db))
+        if dbname == targetname:
+            result = ParallelFunctions().MFEprimer_assembly(
+                                                        primerinfo, args[0:3])
+        else:
+            result = ParallelFunctions().MFEprimer_nontarget(
+                    primerinfo, [db, primer_qc_dir])
+        return result
+
 
     @staticmethod
     def index_database(inputfilepath):
