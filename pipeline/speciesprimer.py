@@ -148,6 +148,7 @@ class CLIconf:
         file_path = os.path.join(config_path, "config.json")
         G.create_directory(dir_path)
         G.create_directory(config_path)
+        # Add warning if a previous file is overwritten
         with open(file_path, "w") as f:
             f.write(json.dumps(config_dict))
 
@@ -2677,8 +2678,12 @@ class PrimerDesign():
         def parseSeqId(key, value):
             if key.startswith("SEQUENCE_ID"):
                 if "group" in value:
-                    spval = value.split("group_")
-                    value = spval[0] + "g" + spval[1]
+                    if self.config.singleton:
+                        spval = value.split("group_")
+                        value = spval[0] + "g" + spval[1]
+                    else:
+                        value = "g" + value.split("group_")[1]
+
                 seq_id = value
                 self.p3dict.update({seq_id: {"Primer_pairs": None}})
                 p3list.append(seq_id)
