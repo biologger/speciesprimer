@@ -96,6 +96,23 @@ virus ="Do you want to design primers for a virus? \ndefault=(n)\n> "
 
 genbank = "Download genome assemblies from GenBank? \ndefault=(n)\n> "
 
+nuc_identity = (
+    "Nucleotide identity threshold for BLAST search, all results with a lower "
+    "value pass\ndefault=0\n>")
+
+evalue = (
+    "E-value threshold for BLAST search, all results with a lower value "
+    "pass\ndefault=10\n>")
+
+runmode = (
+    "Select the runmode.\noptions: [species, singleton], "
+    "default=[species]\n>")
+
+single = (
+    "Start of filename(s) of annotated fna file, e.g. "
+    "GCF_XYZXYZXYZv1, will only search for singletons for "
+    "specified genome(s). (comma separated)")
+
 #blastdbv5 = (
 #    "Do you have the Version 5 of the BLAST DB? \ndefault=(n)\n> ")
 
@@ -118,7 +135,8 @@ def alldef_input(prompt):
         offline: "", skip_download: "", assemblylevel: "", customdb: "",
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
-        virus: "", intermediate: "", nolist: "", forall: "", genbank: ""}
+        virus: "", intermediate: "", nolist: "", forall: "", genbank: "",
+        single: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 

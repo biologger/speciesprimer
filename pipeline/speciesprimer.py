@@ -83,12 +83,17 @@ class Config:
         probe = self.config_dict[target]["probe"]
         virus = self.config_dict[target]["virus"]
         genbank = self.config_dict[target]["genbank"]
+        evalue = self.config_dict[target]["evalue"]
+        nuc_identity = self.config_dict[target]["nuc_identity"]
+        runmode = self.config_dict[target]["runmode"]
+        single = self.config_dict[target]["single"]
 
         return (
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            customdb, blastseqs, probe, virus, genbank)
+            customdb, blastseqs, probe, virus, genbank,
+            evalue, nuc_identity, runmode, single)
 
 
 class CLIconf:
@@ -97,7 +102,8 @@ class CLIconf:
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
-            customdb, blastseqs, probe, virus, genbank):
+            customdb, blastseqs, probe, virus, genbank,
+            evalue, nuc_identity, runmode, single):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -120,6 +126,10 @@ class CLIconf:
         self.probe = probe
         self.virus = virus
         self.genbank = genbank
+        self.evalue = evalue
+        self.nuc_identity = nuc_identity
+        self.runmode = runmode
+        self.single = single
         self.save_config()
 
     def save_config(self):
@@ -145,6 +155,10 @@ class CLIconf:
         config_dict.update({"probe": self.probe})
         config_dict.update({"virus": self.virus})
         config_dict.update({"genbank": self.genbank})
+        config_dict.update({"evalue": self.evalue})
+        config_dict.update({"nuc_identity": self.nuc_identity})
+        config_dict.update({"runmode": self.runmode})
+        config_dict.update({"single": self.single})
 
         dir_path = os.path.join(self.path, self.target)
         config_path = os.path.join(self.path, self.target, "config")
@@ -4001,12 +4015,6 @@ def commandline():
         "--nolist", action="store_true", help="Species list is not used"
         " and only sequences without blast hits are used for primer design "
         "[Experimental, not recommended for nt DB!]")
-    # option not continued
-    # V5 DB is now standard
-    # customdb option allows smaller & faster BLAST DBs
-#    parser.add_argument(
-#        "--blastdbv5", action="store_true", help="If you have a local copy "
-#        " of the nt_v5 BLAST database select this option")
     parser.add_argument(
         "--offline", action="store_true", help="Work offline no data from"
         " NCBI is collected, use your own Genomic sequences")
@@ -4037,12 +4045,20 @@ def commandline():
     parser.add_argument(
         "--single", nargs="*", type=str, help="Start of filename of annotated "
         "fna file, GCF_XYZXYZXYZv1, will only search for singletons for this "
-        "genome", default = None)
+        "genome", default = [])
 
     parser.add_argument(
         "-g", "--genbank", action="store_true",
         help="Download genome assemblies from Genbank"
             )
+    parser.add_argument(
+        "--evalue", type=int, default=10,
+        help="E-value threshold for BLAST search, "
+        "all results with a lower value pass")
+    parser.add_argument(
+        "--nuc_identity", type=int, default=0,
+        help="Nucleotide identity threshold for BLAST search, "
+        "all results with a lower value pass")
     parser.add_argument(
         "-v", "--virus", action="store_true",
         help="Design primers for viruses")
@@ -4093,7 +4109,8 @@ def get_configuration_from_file(target, conf_from_file):
         intermediate, qc_gene, mfold, skip_download,
         assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
-        blastseqs, probe, virus, genbank
+        blastseqs, probe, virus, genbank,
+        evalue, nuc_identity, runmode, single
     ) = conf_from_file.get_config(target)
     if nolist:
         nontargetlist = []
@@ -4103,9 +4120,10 @@ def get_configuration_from_file(target, conf_from_file):
     config = CLIconf(
         minsize, maxsize, mpprimer, exception, target, path,
         intermediate, qc_gene, mfold, skip_download,
-        assemblylevel, nontargetlist, skip_tree,
-        nolist, offline, ignore_qc, mfethreshold, customdb,
-        blastseqs, probe, virus, genbank)
+        assemblylevel, nontargetlist, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold, customdb,
+        blastseqs, probe, virus, genbank,
+        evalue, nuc_identity, runmode, single)
 
     return config
 
@@ -4175,7 +4193,8 @@ def get_configuration_from_args(target, args):
         args.assemblylevel, nontargetlist,
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
-        args.blastseqs, args.probe, args.virus, args.genbank)
+        args.blastseqs, args.probe, args.virus, args.genbank,
+        args.evalue, args.nuc_identity, args.runmode, args.single)
 
     if args.configfile:
         exitstat = H.advanced_pipe_config(args.configfile)

@@ -239,6 +239,27 @@ class Input:
                     self.config_dict[target].update({"exception": exception})
                 print("exception", exception)
 
+    def get_single(self, target, index, listlen):
+        if "singleton" == self.config_dict[target]["runmode"]:
+            if "single" not in self.config_dict[target].keys():
+                single = []
+                print("\n" + target + ":")
+                insingle = input(
+                    "Start of filename(s) of annotated fna file, e.g. "
+                    "GCF_XYZXYZXYZv1, will only search for singletons for "
+                    "specified genome(s). (comma separated)")
+                if insingle:
+                    inputsingle = list(insingle.split(","))
+                    for i, item in enumerate(inputsingle):
+                        x = item.strip()
+                        single.insert(i, x)
+
+                    self.config_dict[target].update({"single": single})
+                    print("single", single)
+                else:
+                    self.config_dict[target].update({"single": single})
+                    print("single", single)
+
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
             forall = input(
@@ -361,9 +382,10 @@ class Input:
             for line in f:
                 self.input_dict = json.loads(line)
         setlist = [
-            "blastseqs", "virus", "genbank", "assemblylevel", "qc_gene", "ignore_qc",
+            "runmode", "blastseqs", "virus", "genbank",
+            "assemblylevel", "qc_gene", "ignore_qc",
             "skip_tree", "minsize", "maxsize", "probe", "mfold", "mpprimer",
-            "mfethreshold", "intermediate", "nolist"]
+            "mfethreshold", "evalue", "nuc_identity", "intermediate", "nolist"]
 
         self.parse_targets(targets)
         listlen = len(self.target_list)
@@ -376,6 +398,7 @@ class Input:
             self.get_customdb(target, i, listlen)
             for item in setlist:
                 self.get_userinput(target, i, listlen, item)
+            self.get_single(target, i, listlen)
 
         for target in self.target_list:
             self.write_config_file(target)
@@ -408,7 +431,11 @@ class Output:
             "blastseqs": 1000,
             "probe": False,
             "virus": False,
-            "genbank": False}
+            "genbank": False,
+            "evalue": 10,
+            "nuc_identity": 0,
+            "runmode": ["species"],
+            "single": []}
 
     def get_path(self):
         inpath = input(
