@@ -109,7 +109,7 @@ runmode = "Select runmode. options: [species, singleton], default=[species]\n>"
 single = (
     "Start of filename(s) of annotated fna file, e.g. "
     "GCF_XYZXYZXYZv1, will only search for singletons for "
-    "specified genome(s). (comma separated)")
+    "specified genome(s). (comma separated), default=[]")
 
 #blastdbv5 = (
 #    "Do you have the Version 5 of the BLAST DB? \ndefault=(n)\n> ")
@@ -148,7 +148,8 @@ def offline_input(prompt):
         customdb: "",
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
-        virus: "", intermediate: "", nolist: "", forall: "y", genbank: ""}
+        virus: "", intermediate: "", nolist: "", forall: "y", genbank: "",
+        single: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 
@@ -162,7 +163,8 @@ def offline_input2(prompt):
         assemblylevel: "contig", customdb: "", blastseqs: "", qc_gene: "",
         exception: [], minsize: "", maxsize: "", probe: "", mfold: "",
         mpprimer: "", mfethreshold: "", ignore_qc: "", virus: "",
-        intermediate: "", nolist: "", forall: "n", genbank: ""}
+        intermediate: "", nolist: "", forall: "n", genbank: "",
+        single: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 
@@ -178,7 +180,8 @@ def nodef_input(prompt):
         exception: "Lactobacillus sunkii",
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5",
         mpprimer: "-3.0", mfethreshold: "100", ignore_qc: "y", virus: "y",
-        intermediate: "y", nolist: "y", forall: "n", genbank: "y"}
+        intermediate: "y", nolist: "y", forall: "n", genbank: "y",
+        single: "GCF_XYZXYZXYZv1", runmode: "singleton", evalue: 110, nuc_identity: 70}
     val = prompt_dict[prompt]
     return val
 
@@ -189,7 +192,8 @@ def wrong_input(prompt):
         blastseqs: "66", qc_gene: "tufrrna",
         exception: "Lactobacillus sunkii", "virus": "lala",
         minsize: "50.36", maxsize: "twohundred", mfold: "minusthree",
-        mpprimer: "minusthreepointfive", mfethreshold: "99.9"}
+        mpprimer: "minusthreepointfive", mfethreshold: "99.9",
+        "evalue": "ten", "nuc_identity": "zero", "runmode": ["spec"]}
     val = prompt_dict[prompt]
     return val
 
@@ -212,11 +216,13 @@ def nodef_input2(prompt):
         path: "primerdesign/test", skip_tree: "YES", offline: "",
         assemblylevel: "all", customdb: "/primerdesign/tmp/customdb.fas",
         blastseqs: "2000", qc_gene: "pheS, dnaK",
-        exception: "Lactobacillus sunkii, Lactobacillus helveticus", 
+        exception: "Lactobacillus sunkii, Lactobacillus helveticus",
         minsize: "60", maxsize: "300",
         probe: "y", mfold: "-2.5", mpprimer: "-3.0",
         mfethreshold: "100", ignore_qc: "y", virus: "y", intermediate: "y",
-        skip_download: "y", nolist: "y", forall: "y", genbank: "n"}
+        skip_download: "y", nolist: "y", forall: "y", genbank: "n",
+        evalue: 100, nuc_identity: 80,
+        runmode: "singleton, species", single: "GCF_XYZXYZXYZv1, GCF_007v2"}
     val = prompt_dict[prompt]
     return val
 
@@ -307,7 +313,8 @@ def get_config_from_file(conf_from_file):
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist,
             offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, virus, genbank
+            blastseqs, probe, virus, genbank,
+            evalue, nuc_identity, runmode, single
                 ) = conf_from_file.get_config(target)
 
         config = CLIconf(
@@ -315,7 +322,9 @@ def get_config_from_file(conf_from_file):
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
-            blastseqs, probe, virus, genbank)
+            blastseqs, probe, virus, genbank,
+            evalue, nuc_identity, runmode, single)
+
 
         config.save_config()
 

@@ -4037,6 +4037,7 @@ def commandline():
         '["genus_abbrev", "genus_abbrev.csv"], '
         '["species_list","species_list.txt"], '
         '["p3settings", "p3parameters"], '
+        '["excludedgis", "no_blast.gi"]'
         "The current settings files will be overwritten")
     parser.add_argument(
         "--runmode", "-m", type=str, default=["species"],
@@ -4064,7 +4065,7 @@ def commandline():
         help="Design primers for viruses")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.3")
+        "-V", "--version", action="version", version="%(prog)s 2.2.0-dev")
 
     return parser
 
@@ -4157,6 +4158,7 @@ def run_pipeline_for_target(target, config, runmode="species", single=None):
             pass
 
     PangenomeAnalysis(config).run_pangenome_analysis()
+
     if "singleton" in runmode:
         import singleton
         singleton.main(config, single)
