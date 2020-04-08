@@ -98,15 +98,13 @@ genbank = "Download genome assemblies from GenBank? \ndefault=(n)\n> "
 
 nuc_identity = (
     "Nucleotide identity threshold for BLAST search, all results with a lower "
-    "value pass\ndefault=0\n>")
+    "value pass. default=0\n>")
 
 evalue = (
     "E-value threshold for BLAST search, all results with a lower value "
-    "pass\ndefault=10\n>")
+    "pass. default=10\n>")
 
-runmode = (
-    "Select the runmode.\noptions: [species, singleton], "
-    "default=[species]\n>")
+runmode = "Select runmode. options: [species, singleton], default=[species]\n>"
 
 single = (
     "Start of filename(s) of annotated fna file, e.g. "
