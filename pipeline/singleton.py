@@ -29,7 +29,7 @@ from speciesprimer import Summary
 
 
 class Singletons(CoreGenes):
-    def __init__(self, configuration, single):
+    def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
@@ -44,7 +44,7 @@ class Singletons(CoreGenes):
         self.blast_dir = os.path.join(self.single_dir, "blast")
         self.singleton_seqs = []
         self.single_dict = {}
-        self.single = single
+        self.single = self.config.single
 
     def get_singleton_genes(self):
         G.create_directory(self.single_dir)
@@ -564,8 +564,8 @@ class SingletonSummary(Summary):
             self.total_results = total_results
 
 
-def main(config, single):
-    SI = Singletons(config, single)
+def main(config):
+    SI = Singletons(config)
     SI.coregene_extract()
     single_dict = SI.run_singleseqs()
     str_unique = SingletonBlastParser(

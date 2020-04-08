@@ -25,7 +25,7 @@ msg = (
         sudo docker exec -it {Containername} bash
     - Start the tests in the container terminal
         cd /
-        pytest -vv --cov=pipeline /tests/
+        pytest -vv --cov=/pipeline /tests
     """)
 
 
@@ -45,8 +45,9 @@ confargs = {
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": [], "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
-    "blastdbv5": False, "intermediate": True,
-    "nontargetlist": ["Lactobacillus sakei"]}
+    "virus": False, "genbank": False, "intermediate": True,
+    "nontargetlist": ["Lactobacillus sakei"],
+    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "single": []}
 
 
 class AttrDict(dict):
@@ -66,8 +67,8 @@ def config():
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.blastdbv5)
+            args.ignore_qc, args.mfethreshold, args.virus, args.genbank,
+            args.evalue, args.nuc_identity, args.runmode, args.single)
 
     config.save_config()
 
@@ -129,7 +130,7 @@ def test_Singleton(config):
         ref.sort()
         assert res == ref
         return single_dict
-        
+
     def test_BlastParser(config):
         from singleton import SingletonBlastParser
         str_unique = SingletonBlastParser(

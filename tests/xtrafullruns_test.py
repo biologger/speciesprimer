@@ -186,6 +186,7 @@ def assert_ref_files(nolist=False):
     if nolist:
         ref_files.append("potential_specieslist.txt")
         ref_files.remove("Lb_curva_primer.csv")
+#        ref_files.remove('mostcommonhits.csv')
 
     files.sort()
     ref_files.sort()

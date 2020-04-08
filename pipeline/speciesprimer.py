@@ -3195,7 +3195,8 @@ class PrimerQualityControl:
         print("\nStart MFEprimer with assembly DB\n")
         G.logger("> Start MFEprimer with assembly DB")
 
-        dbfile = H.abbrev(self.target) + ".genomic"
+        dbfile = os.path.join(
+                self.primer_qc_dir, H.abbrev(self.target) + ".genomic")
         assembly_list = G.run_parallel(
                 P.MFEprimer_assembly, check_assembly,
                 [self.primer_qc_dir, dbfile, self.mfethreshold])
@@ -4130,7 +4131,7 @@ def get_configuration_from_file(target, conf_from_file):
     return config
 
 
-def run_pipeline_for_target(target, config, runmode="species", single=None):
+def run_pipeline_for_target(target, config):
     print("\nStart searching primer for " + target)
     G.logger("> Start searching primer for " + target)
     target_dir = os.path.join(config.path, target)
@@ -4160,10 +4161,10 @@ def run_pipeline_for_target(target, config, runmode="species", single=None):
 
     PangenomeAnalysis(config).run_pangenome_analysis()
 
-    if "singleton" in runmode:
+    if "singleton" in config.runmode:
         import singleton
-        singleton.main(config, single)
-    if "species" in runmode:
+        singleton.main(config)
+    if "species" in config.runmode:
         CoreGenes(config).run_CoreGenes()
         conserved_seq_dict = CoreGeneSequences(
                 config).run_coregeneanalysis()
@@ -4244,10 +4245,6 @@ def main(mode=None):
         if args.email:
             H.get_email_for_Entrez(args.email)
 
-        # singleton args
-        runmode = args.runmode
-        single = args.single
-
     G.logger(citation())
 
     for target in targets:
@@ -4263,7 +4260,7 @@ def main(mode=None):
         G.logger(config.__dict__)
 
         try:
-            run_pipeline_for_target(target, config, runmode, single)
+            run_pipeline_for_target(target, config)
         except Exception as exc:
             msg = [
                 "fatal error while working on", target,
