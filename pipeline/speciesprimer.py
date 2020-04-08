@@ -1001,7 +1001,7 @@ class QualityControl:
                     i = 0
                     try:
                         alignment = blast_record.alignments[i]
-                        aln_data = blapa.get_alignmentdata(alignment)
+                        aln_data = blapa.get_alignmentdata(alignment, [])
                         spec, gi, db_id = aln_data[0], aln_data[1], aln_data[2]
                         query = blast_record.query
                         if str(gi) in excluded_gis:
@@ -1011,7 +1011,8 @@ class QualityControl:
                             while i < len(blast_record.alignments) - 1:
                                 i = i+1
                                 alignment = blast_record.alignments[i]
-                                aln_data = blapa.get_alignmentdata(alignment)
+                                aln_data = blapa.get_alignmentdata(
+                                                                alignment, [])
                                 spec, gi, db_id = (
                                         aln_data[0], aln_data[1], aln_data[2])
                                 if str(gi) not in excluded_gis:
