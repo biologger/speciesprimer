@@ -45,7 +45,8 @@ confargs = {
     "probe": False, "exception": None, "minsize": 70, "skip_download": True,
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["tuf"],
     "intermediate": True,
-    "nontargetlist": ["Lactobacillus sakei"], "virus": False, "genbank": False}
+    "nontargetlist": ["Lactobacillus sakei"], "virus": False, "genbank": False,
+    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "single": []}
 
 
 class AttrDict(dict):
@@ -66,7 +67,8 @@ def config():
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.virus, args.genbank)
+            args.blastseqs, args.probe, args.virus, args.genbank,
+            args.evalue, args.nuc_identity, args.runmode, args.single)
 
     config.save_config()
 
@@ -212,7 +214,9 @@ def test_qc_nottrue():
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
-            args.blastseqs, args.probe, args.virus, args.genbank)
+            args.blastseqs, args.probe, args.virus, args.genbank,
+            args.evalue, args.nuc_identity, args.runmode, args.single)
+
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:
         for line in f:
