@@ -34,9 +34,11 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
+dbpath = os.path.join(tmpdir, "customdb.fas")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 testdir = os.path.join("/", "primerdesign", "test")
+
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,
@@ -44,10 +46,10 @@ confargs = {
     "offline": False,
     "path": os.path.join("/", "primerdesign", "test"),
     "probe": False, "exception": [], "minsize": 70, "skip_download": True,
-    "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
+    "customdb": dbpath, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "single": []}
+    "evalue": 10, "nuc_identity": 0, "runmode": ["singleton"], "single": []}
 
 
 class AttrDict(dict):
@@ -67,16 +69,56 @@ def config():
             args.qc_gene, args.mfold, args.skip_download,
             args.assemblylevel, nontargetlist,
             args.skip_tree, args.nolist, args.offline,
-            args.ignore_qc, args.mfethreshold, args.virus, args.genbank,
+            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.blastseqs, args.probe, args.virus, args.genbank,
             args.evalue, args.nuc_identity, args.runmode, args.single)
 
     config.save_config()
 
     return config
 
+
 def test_start():
     if os.path.isdir(testdir):
         shutil.rmtree(testdir)
+
+    def dbinputfiles():
+        filenames = [
+            "GCF_004088235v1_20191001.fna",
+            "GCF_002224565.1_ASM222456v1_genomic.fna"]
+        with open(dbpath, "w") as f:
+            for filename in filenames:
+                filepath = os.path.join(testfiles_dir, filename)
+                records = SeqIO.parse(filepath, "fasta")
+                for record in records:
+                    if record.id == record.description:
+                        description = (
+                            record.id +
+                            " Lactobacillus curvatus strain SRCM103465")
+                        record.description = description
+                    SeqIO.write(record, f, "fasta")
+            mockseqs = os.path.join(testfiles_dir, "mocktemplate.seqs")
+            records = list(SeqIO.parse(mockseqs, "fasta"))
+            SeqIO.write(records, f, "fasta")
+
+        return dbpath
+
+    def create_customblastdb():
+        cmd = [
+            "makeblastdb", "-in", dbpath, "-parse_seqids", "-title",
+            "mockconservedDB", "-dbtype", "nucl", "-out", dbpath]
+        G.run_subprocess(
+            cmd, printcmd=False, logcmd=False, printoption=False)
+
+    if os.path.isdir(os.path.dirname(dbpath)):
+        shutil.rmtree(os.path.dirname(dbpath))
+    test =  os.path.join("/", "primerdesign", "test")
+    if os.path.isdir(test):
+        shutil.rmtree(test)
+
+    G.create_directory(os.path.dirname(dbpath))
+    dbinputfiles()
+    create_customblastdb()
 
 def test_skip_pangenome_analysis(config):
     from speciesprimer import PangenomeAnalysis
@@ -89,6 +131,7 @@ def test_skip_pangenome_analysis(config):
     shutil.copy(fromfile, tofile)
     exitstat = PA.run_pangenome_analysis()
     assert exitstat == 2
+
 
 def test_Singleton(config):
     from singleton import Singletons
