@@ -4142,44 +4142,45 @@ def run_pipeline_for_target(target, config):
     newconfig = DataCollection(config).collect()
     if newconfig != 0:
         config = newconfig
-    if config.virus is False:
-        qc_count = []
-        for qc_gene in config.qc_gene:
-            qc = QualityControl(config).quality_control(qc_gene)
-            qc_count.append(qc)
-        if not sum(qc_count) == 0:
-            total_results = []
-            Summary(config, total_results).run_summary()
-
+    if config.virus is True:
+        config.qc_gene = []
+    qc_count = []
+    for qc_gene in config.qc_gene:
+        qc = QualityControl(config).quality_control(qc_gene)
+        qc_count.append(qc)
+    if not sum(qc_count) == 0:
+        # writes QC summary in summary directory, run is finished
+        total_results = []
+        Summary(config, total_results).run_summary()
     else:
-        config.qc_gene = None
+        # writes QC summary in summary directory, run continues
         try:
             total_results = []
             Summary(config, total_results).run_summary()
         except FileNotFoundError:
             pass
 
-    PangenomeAnalysis(config).run_pangenome_analysis()
+        PangenomeAnalysis(config).run_pangenome_analysis()
 
-    if "singleton" in config.runmode:
-        import singleton
-        singleton.main(config)
-    if "species" in config.runmode:
-        CoreGenes(config).run_CoreGenes()
-        conserved_seq_dict = CoreGeneSequences(
-                config).run_coregeneanalysis()
-        if not conserved_seq_dict == 1:
-            conserved = BlastParser(
-                    config).run_blastparser(conserved_seq_dict)
-            if conserved == 0:
-                primer_dict = PrimerDesign(config).run_primerdesign()
-                total_results = PrimerQualityControl(
-                    config, primer_dict).run_primer_qc()
-                Summary(config, total_results).run_summary(mode="last")
+        if "singleton" in config.runmode:
+            import singleton
+            singleton.main(config)
+        if "species" in config.runmode:
+            CoreGenes(config).run_CoreGenes()
+            conserved_seq_dict = CoreGeneSequences(
+                    config).run_coregeneanalysis()
+            if not conserved_seq_dict == 1:
+                conserved = BlastParser(
+                        config).run_blastparser(conserved_seq_dict)
+                if conserved == 0:
+                    primer_dict = PrimerDesign(config).run_primerdesign()
+                    total_results = PrimerQualityControl(
+                        config, primer_dict).run_primer_qc()
+                    Summary(config, total_results).run_summary(mode="last")
+                else:
+                    Summary(config, total_results).run_summary(mode="last")
             else:
                 Summary(config, total_results).run_summary(mode="last")
-        else:
-            Summary(config, total_results).run_summary(mode="last")
 
 
 def get_configuration_from_args(target, args):

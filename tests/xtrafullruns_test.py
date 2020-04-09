@@ -245,7 +245,6 @@ def test_run(monkeypatch):
     monkeypatch.setattr('builtins.input', start_allinput)
     main()
 
-
     if os.path.isdir(summ_dir):
         shutil.rmtree(summ_dir)
 
