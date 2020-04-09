@@ -104,11 +104,12 @@ evalue = (
     "E-value threshold for BLAST search, all results with a lower value "
     "pass. default=10\n>")
 
-runmode = "Select runmode. options: [species, singleton], default=[species]\n>"
+runmode = "Select runmode. options: [species, strain], default=[species]\n>"
 
-single = (
+strains = (
     "Start of filename(s) of annotated fna file, e.g. "
-    "GCF_XYZXYZXYZv1, will only search for singletons for "
+    "GCF_XYZXYZXYZv1, will only search for singletons "
+    "(strain specific primers) for "
     "specified genome(s). (comma separated), default=[]")
 
 #blastdbv5 = (
@@ -134,7 +135,7 @@ def alldef_input(prompt):
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
         virus: "", intermediate: "", nolist: "", forall: "", genbank: "",
-        single: "", runmode: "", evalue: "", nuc_identity: ""}
+        strains: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 
@@ -149,7 +150,7 @@ def offline_input(prompt):
         blastseqs: "", qc_gene: "", exception: [], minsize: "", maxsize: "",
         probe: "", mfold: "", mpprimer: "", mfethreshold: "", ignore_qc: "",
         virus: "", intermediate: "", nolist: "", forall: "y", genbank: "",
-        single: "", runmode: "", evalue: "", nuc_identity: ""}
+        strains: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 
@@ -164,7 +165,7 @@ def offline_input2(prompt):
         exception: [], minsize: "", maxsize: "", probe: "", mfold: "",
         mpprimer: "", mfethreshold: "", ignore_qc: "", virus: "",
         intermediate: "", nolist: "", forall: "n", genbank: "",
-        single: "", runmode: "", evalue: "", nuc_identity: ""}
+        strains: "", runmode: "", evalue: "", nuc_identity: ""}
     val = prompt_dict[prompt]
     return val
 
@@ -181,7 +182,7 @@ def nodef_input(prompt):
         minsize: "60", maxsize: "300", probe: "y", mfold: "-2.5",
         mpprimer: "-3.0", mfethreshold: "100", ignore_qc: "y", virus: "y",
         intermediate: "y", nolist: "y", forall: "n", genbank: "y",
-        single: "GCF_XYZXYZXYZv1", runmode: "singleton", evalue: 110, nuc_identity: 70}
+        strains: "GCF_XYZXYZXYZv1", runmode: "strain", evalue: 110, nuc_identity: 70}
     val = prompt_dict[prompt]
     return val
 
@@ -222,7 +223,7 @@ def nodef_input2(prompt):
         mfethreshold: "100", ignore_qc: "y", virus: "y", intermediate: "y",
         skip_download: "y", nolist: "y", forall: "y", genbank: "n",
         evalue: 100, nuc_identity: 80,
-        runmode: "singleton, species", single: "GCF_XYZXYZXYZv1, GCF_007v2"}
+        runmode: "strain, species", strains: "GCF_XYZXYZXYZv1, GCF_007v2"}
     val = prompt_dict[prompt]
     return val
 
@@ -314,7 +315,7 @@ def get_config_from_file(conf_from_file):
             assemblylevel, skip_tree, nolist,
             offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, single
+            evalue, nuc_identity, runmode, strains
                 ) = conf_from_file.get_config(target)
 
         config = CLIconf(
@@ -323,7 +324,7 @@ def get_config_from_file(conf_from_file):
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, single)
+            evalue, nuc_identity, runmode, strains)
 
 
         config.save_config()

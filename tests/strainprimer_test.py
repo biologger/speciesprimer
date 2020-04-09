@@ -49,7 +49,7 @@ confargs = {
     "customdb": dbpath, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 10, "nuc_identity": 0, "runmode": ["singleton"], "single": []}
+    "evalue": 10, "nuc_identity": 0, "runmode": ["strain"], "strains": []}
 
 
 class AttrDict(dict):
@@ -71,7 +71,7 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.single)
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
 
     config.save_config()
 
@@ -120,6 +120,7 @@ def test_start():
     dbinputfiles()
     create_customblastdb()
 
+
 def test_skip_pangenome_analysis(config):
     from speciesprimer import PangenomeAnalysis
     PA = PangenomeAnalysis(config)
@@ -134,7 +135,7 @@ def test_skip_pangenome_analysis(config):
 
 
 def test_Singleton(config):
-    from singleton import Singletons
+    from strainprimer import Singletons
     SI = Singletons(config)
 
     def prepare_tests():
@@ -175,7 +176,7 @@ def test_Singleton(config):
         return single_dict
 
     def test_BlastParser(config):
-        from singleton import SingletonBlastParser
+        from strainprimer import SingletonBlastParser
         str_unique = SingletonBlastParser(
             config).run_blastparser(single_dict)
         print("str_unique", str_unique)

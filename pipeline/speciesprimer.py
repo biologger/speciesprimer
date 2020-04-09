@@ -86,14 +86,14 @@ class Config:
         evalue = self.config_dict[target]["evalue"]
         nuc_identity = self.config_dict[target]["nuc_identity"]
         runmode = self.config_dict[target]["runmode"]
-        single = self.config_dict[target]["single"]
+        strains = self.config_dict[target]["strains"]
 
         return (
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
             customdb, blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, single)
+            evalue, nuc_identity, runmode, strains)
 
 
 class CLIconf:
@@ -103,7 +103,7 @@ class CLIconf:
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
             customdb, blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, single):
+            evalue, nuc_identity, runmode, strains):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -129,7 +129,7 @@ class CLIconf:
         self.evalue = evalue
         self.nuc_identity = nuc_identity
         self.runmode = runmode
-        self.single = single
+        self.strains = strains
         self.save_config()
 
     def save_config(self):
@@ -158,7 +158,7 @@ class CLIconf:
         config_dict.update({"evalue": self.evalue})
         config_dict.update({"nuc_identity": self.nuc_identity})
         config_dict.update({"runmode": self.runmode})
-        config_dict.update({"single": self.single})
+        config_dict.update({"strains": self.strains})
 
         dir_path = os.path.join(self.path, self.target)
         config_path = os.path.join(self.path, self.target, "config")
@@ -4043,10 +4043,10 @@ def commandline():
         "The current settings files will be overwritten")
     parser.add_argument(
         "--runmode", "-m", type=str, default=["species"],
-        choices=["species", "singleton"], help="Singleton is a new feature "
+        choices=["species", "strain"], help="Singleton is a new feature "
         "under development")
     parser.add_argument(
-        "--single", nargs="*", type=str, help="Start of filename of annotated "
+        "--strains", nargs="*", type=str, help="Start of filename of annotated "
         "fna file, GCF_XYZXYZXYZv1, will only search for singletons for this "
         "genome", default = [])
 
@@ -4113,7 +4113,7 @@ def get_configuration_from_file(target, conf_from_file):
         assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
         blastseqs, probe, virus, genbank,
-        evalue, nuc_identity, runmode, single
+        evalue, nuc_identity, runmode, strains
     ) = conf_from_file.get_config(target)
     if nolist:
         nontargetlist = []
@@ -4126,7 +4126,7 @@ def get_configuration_from_file(target, conf_from_file):
         assemblylevel, nontargetlist, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
         blastseqs, probe, virus, genbank,
-        evalue, nuc_identity, runmode, single)
+        evalue, nuc_identity, runmode, strains)
 
     return config
 
@@ -4162,9 +4162,9 @@ def run_pipeline_for_target(target, config):
 
         PangenomeAnalysis(config).run_pangenome_analysis()
 
-        if "singleton" in config.runmode:
-            import singleton
-            singleton.main(config)
+        if "strain" in config.runmode:
+            import strainprimer
+            strainprimer.main(config)
         if "species" in config.runmode:
             CoreGenes(config).run_CoreGenes()
             conserved_seq_dict = CoreGeneSequences(
@@ -4197,7 +4197,7 @@ def get_configuration_from_args(target, args):
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
         args.blastseqs, args.probe, args.virus, args.genbank,
-        args.evalue, args.nuc_identity, args.runmode, args.single)
+        args.evalue, args.nuc_identity, args.runmode, args.strains)
 
     if args.configfile:
         exitstat = H.advanced_pipe_config(args.configfile)

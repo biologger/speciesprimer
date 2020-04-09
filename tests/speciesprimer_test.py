@@ -45,7 +45,7 @@ confargs = {
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "single": []}
+    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "strains": []}
 
 
 class AttrDict(dict):
@@ -67,7 +67,7 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.single)
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
 
     config.save_config()
 
@@ -178,7 +178,7 @@ def test_CLIconf(config):
     assert config.evalue == confargs['evalue']
     assert config.nuc_identity == confargs['nuc_identity']
     assert config.runmode == confargs['runmode']
-    assert config.single == confargs['single']
+    assert config.strains == confargs['strains']
 
 
 def test_auto_run_config():
@@ -217,7 +217,7 @@ def test_auto_run_config():
                     assemblylevel, skip_tree, nolist,
                     offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, virus, genbank,
-                    evalue, nuc_identity, runmode, single
+                    evalue, nuc_identity, runmode, strains
                 ) = conf_from_file.get_config(target)
 
         assert minsize == confargs['minsize']
@@ -242,7 +242,7 @@ def test_auto_run_config():
         assert evalue == confargs['evalue']
         assert nuc_identity == confargs['nuc_identity']
         assert runmode == confargs['runmode']
-        assert single == confargs['single']
+        assert strains == confargs['strains']
 
         tmpconfig = CLIconf(
             minsize, maxsize, mpprimer, exception, target, path,
@@ -250,7 +250,7 @@ def test_auto_run_config():
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, single)
+            evalue, nuc_identity, runmode, strains)
 
         tmpconfig.save_config()
 

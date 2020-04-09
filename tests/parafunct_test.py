@@ -46,7 +46,7 @@ confargs = {
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["tuf"],
     "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"], "virus": False, "genbank": False,
-    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "single": []}
+    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "strains": []}
 
 
 class AttrDict(dict):
@@ -68,7 +68,7 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.single)
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
 
     config.save_config()
 
@@ -215,7 +215,7 @@ def test_qc_nottrue():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.single)
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
 
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
     with open(reffile) as f:

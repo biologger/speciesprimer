@@ -44,7 +44,7 @@ class Singletons(CoreGenes):
         self.blast_dir = os.path.join(self.single_dir, "blast")
         self.singleton_seqs = []
         self.single_dict = {}
-        self.single = self.config.single
+        self.strains = self.config.strains
 
     def get_singleton_genes(self):
         G.create_directory(self.single_dir)
@@ -58,9 +58,9 @@ class Singletons(CoreGenes):
             accessions = header[14:]
             genomes = len(accessions)
             rows = None
-            if self.single:
+            if self.strains:
                 rows = []
-                for s in self.single:
+                for s in self.strains:
                     for index, item in enumerate(header):
                         if "_".join(item.split("_")[0:-1]) == s:
                             rows.append(index)
@@ -69,7 +69,7 @@ class Singletons(CoreGenes):
                 gene_name = row[0]
                 number_isolates = int(row[3])
                 number_sequences = int(row[4])
-                if self.single:
+                if self.strains:
                     loci = []
                     for item in rows:
                         loci.append(row[item])

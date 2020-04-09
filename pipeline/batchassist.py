@@ -240,24 +240,25 @@ class Input:
                 print("exception", exception)
 
     def get_single(self, target, index, listlen):
-        if "single" not in self.config_dict[target].keys():
-            single = []
-            if "singleton" in self.config_dict[target]["runmode"]:
+        if "strains" not in self.config_dict[target].keys():
+            strains = []
+            if "strain" in self.config_dict[target]["runmode"]:
                 print("\n" + target + ":")
                 insingle = input(
                     "Start of filename(s) of annotated fna file, e.g. "
-                    "GCF_XYZXYZXYZv1, will only search for singletons for "
+                    "GCF_XYZXYZXYZv1, will only search for singletons "
+                    "(strain specific primers) for "
                     "specified genome(s). (comma separated), default=[]")
 
                 inputsingle = list(insingle.split(","))
                 for i, item in enumerate(inputsingle):
                     x = item.strip()
-                    single.insert(i, x)
+                    strains.insert(i, x)
 
-                self.config_dict[target].update({"single": single})
-                print("single", single)
+                self.config_dict[target].update({"strains": strains})
+                print("strains", strains)
             else:
-                self.config_dict[target].update({"single": single})
+                self.config_dict[target].update({"strains": strains})
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
@@ -434,7 +435,7 @@ class Output:
             "evalue": 10,
             "nuc_identity": 0,
             "runmode": ["species"],
-            "single": []}
+            "strains": []}
 
     def get_path(self):
         inpath = input(
