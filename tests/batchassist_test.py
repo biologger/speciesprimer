@@ -102,7 +102,7 @@ nuc_identity = (
 
 evalue = (
     "E-value threshold for BLAST search, all results with a lower value "
-    "pass. default=10\n>")
+    "pass. default=500\n>")
 
 runmode = "Select runmode. options: [species, strain], default=[species]\n>"
 

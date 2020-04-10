@@ -1960,6 +1960,8 @@ class BlastParser:
         self.exception = configuration.exception
         self.config = configuration
         self.target = configuration.target
+        self.evalue = self.config.evalue
+        self.nuc_identity = self.config.nuc_identity
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
@@ -2621,6 +2623,23 @@ class BlastParser:
             ["GI", "Species", "BLAST hits [%]", "BLAST hits [count]"]]
         G.csv_writer(output, results, header)
 
+
+    def filter_nonreddict(self, nonred_dict):
+        filtdict = {}
+        for key, val in nonred_dict.items():
+            filtdict.update({key: {}})
+            for item in val:
+                nident = val[item]["identity"]
+                evalue = val[item]["evalue"]
+                if (
+                    int(nident) >= self.config.nuc_identity and
+                    float(evalue) <= self.config.evalue
+                ):
+                    filtdict[key] = val
+
+        return filtdict
+
+
     def run_blastparser(self, conserved_seq_dict):
         if self.mode == "primer":
             filepath = os.path.join(self.primerblast_dir, "nontargethits.json")
@@ -2655,7 +2674,9 @@ class BlastParser:
             else:
                 nonred_dict = align_dict
 
-            selected_seqs = self.get_selected_sequences(nonred_dict)
+            filtered_dict = self.filter_nonreddict(nonred_dict)
+
+            selected_seqs = self.get_selected_sequences(filtered_dict)
             self.write_primer3_input(selected_seqs, conserved_seq_dict)
             duration = time.time() - self.start
             info = ("species specific conserved sequences: "
@@ -4055,7 +4076,7 @@ def commandline():
         help="Download genome assemblies from Genbank"
             )
     parser.add_argument(
-        "--evalue", type=int, default=10,
+        "--evalue", type=float, default=500.0,
         help="E-value threshold for BLAST search, "
         "all results with a lower value pass")
     parser.add_argument(

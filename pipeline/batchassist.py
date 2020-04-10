@@ -432,7 +432,7 @@ class Output:
             "probe": False,
             "virus": False,
             "genbank": False,
-            "evalue": 10,
+            "evalue": 500,
             "nuc_identity": 0,
             "runmode": ["species"],
             "strains": []}

@@ -45,7 +45,7 @@ confargs = {
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 10, "nuc_identity": 0, "runmode": ["species"], "strains": []}
+    "evalue": 500, "nuc_identity": 0, "runmode": ["species"], "strains": []}
 
 
 class AttrDict(dict):
@@ -945,7 +945,6 @@ def test_CoreGeneSequences(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
-    config.virus = False
     CGS = CoreGeneSequences(config)
 
     def test_seq_alignments():
@@ -1014,12 +1013,16 @@ def test_CoreGeneSequences(config):
                         non_dict[key].update(
                             {
                                 "Lactobacillus sakei_" + str(i + 2):
-                                    {"main_id": item, "gi_ids": []}})
+                                    {
+                                        "main_id": item, "gi_ids": [],
+                                        "identity": 0, "evalue": 500}})
                 except KeyError:
                     non_dict[key].update(
                         {
                             "Lactobacillus sakei_" + str(i + 2):
-                            {"main_id": item, "gi_ids": []}})
+                            {
+                                "main_id": item, "gi_ids": [],
+                                "identity": 0, "evalue": 500}})
         with open(os.path.join(CGS.blast_dir, "nontargethits.json"), "w") as f:
             f.write(json.dumps(non_dict))
 
