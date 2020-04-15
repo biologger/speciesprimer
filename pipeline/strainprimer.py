@@ -57,9 +57,8 @@ class Singletons(CoreGenes):
             header = next(reader)
             accessions = header[14:]
             genomes = len(accessions)
-            rows = None
+            rows = []
             if self.strains:
-                rows = []
                 for s in self.strains:
                     for index, item in enumerate(header):
                         if "_".join(item.split("_")[0:-1]) == s:

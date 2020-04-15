@@ -35,6 +35,7 @@ dict_path = os.path.join(pipe_dir, "dictionaries")
 tmpdir = os.path.join("/", "primerdesign", "tmp")
 testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
+
 confargs = {
     "ignore_qc": False, "mfethreshold": 90, "maxsize": 200,
     "target": "Lactobacillus_curvatus", "nolist": False, "skip_tree": False,

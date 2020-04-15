@@ -232,7 +232,8 @@ def test_run_parallel_exceptions():
             "lactis_subsp_lactis", "lactis subsp. lactis",
             "enterica", "enterica"]
     result = G.run_parallel(a_function, inputlist, args=False, verbosity="")
-    assert result == ['lactis_subsp_lactis', 'enterica', 'enterica']
+    ref = ['lactis_subsp_lactis', 'enterica', 'enterica']
+    assert result.sort() == ref.sort()
 
 
 def test_subspecies_handler():

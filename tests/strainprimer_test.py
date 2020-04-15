@@ -146,7 +146,7 @@ def test_Singleton(config):
 
     def test_get_singlecopy_genes():
         singleton_count = SI.get_singleton_genes()
-        assert singleton_count == 2
+        assert singleton_count == 3
 
     def test_write_fasta():
         locustags = SI.get_sequences_from_ffn()
@@ -168,28 +168,55 @@ def test_Singleton(config):
     def test_run_singleseqs():
         single_dict = SI.run_singleseqs()
         ref = [
-            'GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360']
+            'GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360',
+            'GCF_001698165v1_group_2246']
         res = list(single_dict.keys())
         res.sort()
         ref.sort()
         assert res == ref
         return single_dict
 
-    def test_BlastParser(config):
-        from strainprimer import SingletonBlastParser
-        str_unique = SingletonBlastParser(
-            config).run_blastparser(single_dict)
-        print("str_unique", str_unique)
+
 
     prepare_tests()
     test_get_singlecopy_genes()
     test_write_fasta()
     test_coregene_extract()
     single_dict = test_run_singleseqs()
-#    test_BlastParser(config)
+
+    from strainprimer import SingletonBlastParser
+    SiB = SingletonBlastParser(config)
+    status_unique = SiB.run_blastparser(single_dict)
+    assert status_unique == 0
+    
+    pfile = os.path.join(SiB.results_dir, "primer3_input")
+    selected_seqs = []
+    with open(pfile) as f:
+        for line in f:
+            if "SEQUENCE_ID=" in line:
+                seq = line.split("=")[1]
+                selected_seqs.append(seq)
+    assert len(selected_seqs) == 2
+
+def test_SingletonPrimerQualityControl(config):
+    pass
+
+# Future implementation - Primersummary, add annotation and warning if transposon
+
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) is False
+
+    remove_test_files(config)
 
 
-def test_end():
-    os.chdir(pipe_dir)
-    if os.path.isdir(testdir):
-        shutil.rmtree(testdir)
+if __name__ == "__main__":
+    print(msg)

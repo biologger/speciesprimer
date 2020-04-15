@@ -55,3 +55,4 @@ agaC,,hypothetical protein,2,3,1.5,15,3069,321,11,,239,911,598,,,,,,,,,,,,,,,,GC
 group_1172,lagD_2,Lactococcin-G-processing and transport ATP-binding protein LagD,2,2,1,15,1790,1,644,,1175,2171,1673,GCF_000235705v1_00032,,,,,,,,,,,,,GCF_003410375v1_02025,,,,,,,,
 btuD_5,,Vitamin B12 import ATP-binding protein BtuD,1,1,1,15,215,1,1343,,917,917,917,,,,,,,,,,,,,GCF_003254785v1_02023,,,,,,,,,
 group_3360,,IS30 family transposase ISStin2,1,1,1,15,214,1,1342,,851,851,851,,,,,,,,,,,,,GCF_003254785v1_02024,,,,,,,,,
+group_2246,,IS1380 family transposase IS1678,1,3,3,11,1844,335,6,,1310,1310,1310,,,,,GCF_001698165v1_00029	GCF_001698165v1_00398	GCF_001698165v1_01111,,,,,,,,,,,,,,,,,

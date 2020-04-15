@@ -1342,13 +1342,12 @@ class PangenomeAnalysis:
                 print(info)
                 G.logger("> " + info)
                 exitstat = 2
-            else:
-                shutil.rmtree(self.pangenome_dir)
-                self.run_roary()
-                self.run_fasttree()
-        else:
-            self.run_roary()
-            self.run_fasttree()
+                return exitstat
+
+            shutil.rmtree(self.pangenome_dir)
+
+        self.run_roary()
+        self.run_fasttree()
         return exitstat
 
 
@@ -2257,12 +2256,6 @@ class BlastParser:
             align_dict.update({blast_record.query: {}})
 
             aln_data = self.get_alignmentdata(alignment, exceptions)
-
-#            identity, align_length, nuc_ident, e_value = (
-#                    aln_data[0], aln_data[-2], aln_data[-1], aln_data[4])
-#            perc_ident = round(100/align_length * nuc_ident, 0)
-#            print(identity, perc_ident, e_value)
-
 
             if aln_data:
                 if self.config.nolist:
