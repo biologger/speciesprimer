@@ -143,6 +143,19 @@ def test_Singleton(config):
             shutil.rmtree(SI.ffn_dir)
         new_ffn_dir = os.path.join(testfiles_dir, "ffn_files")
         shutil.copytree(new_ffn_dir, SI.ffn_dir)
+        G.create_directory(SI.fna_dir)
+#        filenames = os.listdir(SI.ffn_dir)
+        filenames =  [
+            "GCF_001698165v1_20190923.ffn", "GCF_001435495v1_20190923.ffn",
+            "GCF_003254785v1_20190923.ffn", "GCF_002224425v1_20190923.ffn"]
+        for filename in filenames:
+            frompath = os.path.join(SI.ffn_dir, filename)
+            fna_file = filename.split(".ffn")[0] + ".fna"
+            topath = os.path.join(SI.fna_dir, fna_file)
+            try:
+                shutil.copy(frompath, topath)
+            except OSError:
+                pass
 
     def test_get_singlecopy_genes():
         singleton_count = SI.get_singleton_genes()
@@ -167,16 +180,17 @@ def test_Singleton(config):
 
     def test_run_singleseqs():
         single_dict = SI.run_singleseqs()
-        ref = [
-            'GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360',
-            'GCF_001698165v1_group_2246']
+        if SI.config.strains:
+            ref = ['GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360']
+        else:
+            ref = [
+                'GCF_003254785v1_btuD_5', 'GCF_003254785v1_group_3360',
+                'GCF_001698165v1_group_2246']
         res = list(single_dict.keys())
         res.sort()
         ref.sort()
         assert res == ref
         return single_dict
-
-
 
     prepare_tests()
     test_get_singlecopy_genes()
@@ -188,34 +202,94 @@ def test_Singleton(config):
     SiB = SingletonBlastParser(config)
     status_unique = SiB.run_blastparser(single_dict)
     assert status_unique == 0
-    
+
     pfile = os.path.join(SiB.results_dir, "primer3_input")
     selected_seqs = []
     with open(pfile) as f:
         for line in f:
             if "SEQUENCE_ID=" in line:
-                seq = line.split("=")[1]
-                selected_seqs.append(seq)
-    assert len(selected_seqs) == 2
+                seq = line.split("=")[1].strip()
+                if "group_" in seq:
+                    seq = seq.split("group_")[0] + "g" + seq.split("group_")[1]
+                selected_seqs.append("Lb_curva_" + seq + "_P2")
 
-def test_SingletonPrimerQualityControl(config):
-    pass
+    if SiB.config.strains:
+        assert len(selected_seqs) == 1
+    else:
+        assert len(selected_seqs) == 2
+
+    from strainprimer import SingletonPrimerDesign, SingletonSummary
+    from strainprimer import SingletonPrimerQualityControl
+    primer_dict = SingletonPrimerDesign(config).run_primerdesign()
+    SIQ = SingletonPrimerQualityControl(config, primer_dict)
+    infos = SIQ.get_primerinfo(selected_seqs, "mfeprimer")
+    assert len(infos[0]) == 5
+    total_results = SIQ.run_primer_qc()
+
+    SSu = SingletonSummary(config, total_results)
+    SSu.run_summary(mode="last")
+    pfile = os.path.join(SSu.summ_dir, "Lb_curva_primer.csv")
+    primer = []
+    with open(pfile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        for row in reader:
+            primer.append(row[0])
+
+    primerref = [
+       "Lb_curva_GCF_001698165v1_g2246_P0",
+       "Lb_curva_GCF_001698165v1_g2246_P6",
+       "Lb_curva_GCF_001698165v1_g2246_P3",
+       "Lb_curva_GCF_003254785v1_btuD_5_P0",
+       "Lb_curva_GCF_003254785v1_btuD_5_P9",
+       "Lb_curva_GCF_001698165v1_g2246_P7"]
+
+    assert primer.sort() == primerref.sort()
+
+    return primer
+
+def test_single_conf():
+    os.chdir(BASE_PATH)
+    test_start()
+    confargs["strains"] = ["GCF_003254785v1"]
+
+    from speciesprimer import CLIconf
+    args = AttrDict(confargs)
+    nontargetlist = H.create_non_target_list(args.target)
+    config = CLIconf(
+            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.target, args.path, args.intermediate,
+            args.qc_gene, args.mfold, args.skip_download,
+            args.assemblylevel, nontargetlist,
+            args.skip_tree, args.nolist, args.offline,
+            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.blastseqs, args.probe, args.virus, args.genbank,
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
+
+    test_skip_pangenome_analysis(config)
+    primer = test_Singleton(config)
+
+    primerref = [
+       "Lb_curva_GCF_003254785v1_btuD_5_P0",
+       "Lb_curva_GCF_003254785v1_btuD_5_P9"]
+
+    assert primer.sort() == primerref.sort()
 
 # Future implementation - Primersummary, add annotation and warning if transposon
 
-def test_end(config):
-    def remove_test_files(config):
-        test = config.path
-        shutil.rmtree(test)
-        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
-        if os.path.isfile(tmp_path):
-            os.remove(tmp_path)
-        if os.path.isdir(tmpdir):
-            shutil.rmtree(tmpdir)
-        os.chdir(BASE_PATH)
-        assert os.path.isdir(test) is False
-
-    remove_test_files(config)
+#def test_end(config):
+#    def remove_test_files(config):
+#        test = config.path
+#        shutil.rmtree(test)
+#        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+#        if os.path.isfile(tmp_path):
+#            os.remove(tmp_path)
+#        if os.path.isdir(tmpdir):
+#            shutil.rmtree(tmpdir)
+#        os.chdir(BASE_PATH)
+#        assert os.path.isdir(test) is False
+#
+#    remove_test_files(config)
 
 
 if __name__ == "__main__":

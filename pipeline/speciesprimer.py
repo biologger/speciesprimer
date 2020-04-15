@@ -2726,11 +2726,11 @@ class PrimerDesign():
         def parseSeqId(key, value):
             if key.startswith("SEQUENCE_ID"):
                 if "group" in value:
-                    if self.config.runmode == "singleton":
+                    if value.startswith("group_"):
+                        value = "g" + value.split("group_")[1]
+                    else:
                         spval = value.split("group_")
                         value = spval[0] + "g" + spval[1]
-                    else:
-                        value = "g" + value.split("group_")[1]
 
                 seq_id = value
                 self.p3dict.update({seq_id: {"Primer_pairs": None}})

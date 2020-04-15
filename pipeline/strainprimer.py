@@ -34,6 +34,7 @@ class Singletons(CoreGenes):
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.results_dir = os.path.join(self.pangenome_dir, "results")
@@ -82,8 +83,15 @@ class Singletons(CoreGenes):
                             data_row.append(locus)
                     if len(data_row) > 1:
                         newtabledata.append(data_row)
+
+        print(self.strains)             
+        print(rows)   
+        print(newtabledata)
         if len(newtabledata) > 0:
             G.csv_writer(self.singleton, newtabledata)
+        else:
+            print("No singleton genes were identified")
+            # Add warning
         return len(singleton_count)
 
     def get_fasta(self, locustags):
@@ -278,9 +286,8 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                         val_list.append(info)
 
             except Exception:
-                G.logger(
-                    "error in get_primerinfo()"
-                    + str(sys.exc_info()))
+                G.logger("error in get_primerinfo()" + str(sys.exc_info()))
+                print("error in get_primerinfo()" + str(sys.exc_info()))
 
         return val_list
 
@@ -479,6 +486,7 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
             self.call_blastparser.run_blastparser("primer")
 
             primer_qc_list = self.get_primerinfo(self.primerlist, "mfeprimer")
+            print(self.primerlist)
 
             for files in os.listdir(self.primer_qc_dir):
                 if (
