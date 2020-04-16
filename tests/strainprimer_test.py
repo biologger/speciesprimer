@@ -14,7 +14,9 @@ from Bio import Entrez
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import ParallelFunctions as P
-
+from strainprimer import SingletonPrimerDesign
+from strainprimer import SingletonSummary
+from strainprimer import SingletonPrimerQualityControl
 
 msg = (
     """
@@ -161,6 +163,13 @@ def test_Singleton(config):
         singleton_count = SI.get_singleton_genes()
         assert singleton_count == 3
 
+    def test_genenames():
+        genes = ["rbsK/rbiA", "rec A", "tarJ'"]
+        names = ["rbsK-rbiA", "rec-A", "tarJ"]
+        for i, gene in enumerate(genes):
+            gene_name = SI.check_genename(gene)
+            assert gene_name == names[i]
+
     def test_write_fasta():
         locustags = SI.get_sequences_from_ffn()
         SI.get_fasta(locustags)
@@ -192,11 +201,18 @@ def test_Singleton(config):
         assert res == ref
         return single_dict
 
+    def test_no_results():
+        SIQ = SingletonPrimerQualityControl(config, {})
+        total_results = SIQ.run_primer_qc()
+        assert total_results == []
+
     prepare_tests()
     test_get_singlecopy_genes()
+    test_genenames()
     test_write_fasta()
     test_coregene_extract()
     single_dict = test_run_singleseqs()
+    test_no_results()
 
     from strainprimer import SingletonBlastParser
     SiB = SingletonBlastParser(config)
@@ -218,8 +234,6 @@ def test_Singleton(config):
     else:
         assert len(selected_seqs) == 2
 
-    from strainprimer import SingletonPrimerDesign, SingletonSummary
-    from strainprimer import SingletonPrimerQualityControl
     primer_dict = SingletonPrimerDesign(config).run_primerdesign()
     SIQ = SingletonPrimerQualityControl(config, primer_dict)
     infos = SIQ.get_primerinfo(selected_seqs, "mfeprimer")
@@ -275,21 +289,84 @@ def test_single_conf():
 
     assert primer.sort() == primerref.sort()
 
-# Future implementation - Primersummary, add annotation and warning if transposon
+start = (
+    "Create new config files or start pipeline with previously "
+    "generated files?\ntype (n)ew or (s)tart:\n")
+species = (
+        "Please specify target species (comma separated) "
+        "or type help for format examples: \n")
+path = (
+        "Please specify a path to use as the working directory "
+        "or hit return to use the current working directory:\n")
+targets = (
+        "Search for config files for (a)ll or (s)elect targets:\n")
 
-#def test_end(config):
-#    def remove_test_files(config):
-#        test = config.path
-#        shutil.rmtree(test)
-#        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
-#        if os.path.isfile(tmp_path):
-#            os.remove(tmp_path)
-#        if os.path.isdir(tmpdir):
-#            shutil.rmtree(tmpdir)
-#        os.chdir(BASE_PATH)
-#        assert os.path.isdir(test) is False
-#
-#    remove_test_files(config)
+def start_oneinput(prompt):
+    prompt_dict = {
+        start: "s",
+        targets: "s",
+        species: "Lactobacillus curvatus",
+        path: "/primerdesign/test"
+    }
+    val = prompt_dict[prompt]
+    return val
+
+def test_repeat_run(monkeypatch, config):
+
+    SSu = SingletonSummary(config, [])
+    confdir = os.path.join(
+        "/", "primerdesign", "test", "Lactobacillus_curvatus", "config")
+    testconfig = os.path.join(confdir, "config.json")
+    with open(testconfig) as f:
+        for line in f:
+            confdict = json.loads(line)
+    confdict.update({"probe": True})
+    confdict.update({"intermediate": False})
+    with open(testconfig, "w") as f:
+        f.write(json.dumps(confdict))
+    monkeypatch.setattr('builtins.input', start_oneinput)
+    from speciesprimer import main
+    main()
+
+    pfile = os.path.join(SSu.summ_dir, "Lb_curva_primer.csv")
+    primer = []
+    with open(pfile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        for row in reader:
+            primer.append(row[0])
+
+    primerref = [
+       "Lb_curva_GCF_003254785v1_btuD_5_P0",
+       "Lb_curva_GCF_003254785v1_btuD_5_P9"]
+
+    assert primer.sort() == primerref.sort()
+
+
+def test_falsestart():
+    cmd = [
+        "strainprimer.py", "-t", "Lactobacillus_curvatus"]
+
+    outputlist = G.read_shelloutput(cmd)
+    
+    assert outputlist == [
+        "Start this script with speciesprimer.py and the "
+        "'--runmode strain' option"]
+
+
+def test_end(config):
+    def remove_test_files(config):
+        test = config.path
+        shutil.rmtree(test)
+        tmp_path = os.path.join("/", "pipeline", "tmp_config.json")
+        if os.path.isfile(tmp_path):
+            os.remove(tmp_path)
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)
+        os.chdir(BASE_PATH)
+        assert os.path.isdir(test) is False
+
+    remove_test_files(config)
 
 
 if __name__ == "__main__":

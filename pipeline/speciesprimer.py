@@ -2421,7 +2421,7 @@ class BlastParser:
                 print(info2)
                 G.logger(info2)
                 return
-            info3 = "Finished writing" + filename
+            info3 = "Finished writing " + filename
             print(info3)
             G.logger(info3)
 
@@ -3623,7 +3623,7 @@ class PrimerQualityControl:
 
             total_results = self.write_results(choice)
 
-            if total_results == []:
+            if total_results != []:
                 error_msg = "No compatible primers found"
                 print(error_msg)
                 G.logger("> " + error_msg)
@@ -3632,30 +3632,20 @@ class PrimerQualityControl:
                 G.logger(
                     "> PrimerQC time: "
                     + str(timedelta(seconds=duration)).split(".")[0])
-            else:
-                info = (
-                    "Found " + str(len(total_results))
-                    + " primer pair(s) for " + self.target)
-                print("\n" + info + "\n")
-                G.logger("> " + info)
-                duration = time.time() - self.start
-                G.logger(
-                    "> PrimerQC time: "
-                    + str(timedelta(seconds=duration)).split(".")[0])
+                return total_results
 
-        else:
-            error_msg = "No compatible primers found"
-            duration = time.time() - self.start
-            G.logger(
-                "> PrimerQC time: "
-                + str(timedelta(seconds=duration)).split(".")[0])
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
+        error_msg = "No compatible primers found"
+        duration = time.time() - self.start
+        G.logger(
+            "> PrimerQC time: "
+            + str(timedelta(seconds=duration)).split(".")[0])
+        print(error_msg)
+        G.logger("> " + error_msg)
+        errors.append([self.target, error_msg])
 
         return total_results
 
-
+# Future implementation - Primersummary, add annotation and warning if transposon
 class Summary:
     def __init__(self, configuration, total_results):
         self.config = configuration
@@ -3673,10 +3663,7 @@ class Summary:
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
-        if total_results is None:
-            self.total_results = []
-        else:
-            self.total_results = total_results
+        self.total_results = total_results
 
     def collect_qc_infos(self, qc_gene):
 

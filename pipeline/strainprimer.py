@@ -84,9 +84,6 @@ class Singletons(CoreGenes):
                     if len(data_row) > 1:
                         newtabledata.append(data_row)
 
-        print(self.strains)             
-        print(rows)   
-        print(newtabledata)
         if len(newtabledata) > 0:
             G.csv_writer(self.singleton, newtabledata)
         else:
@@ -94,27 +91,27 @@ class Singletons(CoreGenes):
             # Add warning
         return len(singleton_count)
 
+    def check_genename(self, gene):
+        if "/" in gene:
+            gene_name = "-".join(gene.split("/"))
+        elif " " in gene:
+            gene_name = "-".join(gene.split(" "))
+        elif "'" in gene:
+            gene_name = str(gene)[0:-1]
+            gene = gene + "'"
+        else:
+            gene_name = gene
+
+        return gene_name
+
     def get_fasta(self, locustags):
-
-        def check_genename(gene):
-            if "/" in gene:
-                gene_name = "-".join(gene.split("/"))
-            elif " " in gene:
-                gene_name = "-".join(gene.split(" "))
-            elif "'" in gene:
-                gene_name = str(gene)[0:-1]
-                gene = gene + "'"
-            else:
-                gene_name = gene
-
-            return gene_name
         G.create_directory(self.blast_dir)
         with open(self.singleton, "r") as f:
             reader = csv.reader(f)
             outfile = os.path.join(self.blast_dir, "singleton_sequences.fas")
             with open(outfile, "w") as r:
                 for row in reader:
-                    gene = check_genename(row[0])
+                    gene = self.check_genename(row[0])
                     items = row[1]
                     if "\t" in items:
                         item_s = items.split("\t")
@@ -233,7 +230,6 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                 else:
                     primer_name = item
 
-#                target_id = "_".join(primer_name.split("_")[-3:-1])
                 shortname = primer_name.split(H.abbrev(self.target) + "_")[1]
                 target_id = "_".join(shortname.split("_")[0:-1])
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
@@ -287,7 +283,6 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
 
             except Exception:
                 G.logger("error in get_primerinfo()" + str(sys.exc_info()))
-                print("error in get_primerinfo()" + str(sys.exc_info()))
 
         return val_list
 
@@ -460,7 +455,6 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                 line = line.strip()
                 if re.search("Structure", line):
                     name = "".join(islice(f, 1, 2)).strip()
-#                    primername = self.get_primername(name)
                     mfoldvalues = self.parse_values(f, line)
                     results.append(
                         self.interpret_values(
@@ -486,7 +480,6 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
             self.call_blastparser.run_blastparser("primer")
 
             primer_qc_list = self.get_primerinfo(self.primerlist, "mfeprimer")
-            print(self.primerlist)
 
             for files in os.listdir(self.primer_qc_dir):
                 if (
@@ -513,17 +506,7 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
 
             total_results = self.write_results(choice)
 
-            if total_results == []:
-                from speciesprimer import errors
-                error_msg = "No compatible primers found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-                duration = time.time() - self.start
-                G.logger(
-                    "> PrimerQC time: "
-                    + str(timedelta(seconds=duration)).split(".")[0])
-            else:
+            if total_results != []:
                 info = (
                     "Found " + str(len(total_results))
                     + " primer pair(s) for " + self.target)
@@ -533,19 +516,20 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                 G.logger(
                     "> PrimerQC time: "
                     + str(timedelta(seconds=duration)).split(".")[0])
+                return total_results
 
-        else:
-            from speciesprimer import errors
-            error_msg = "No compatible primers found"
-            duration = time.time() - self.start
-            G.logger(
-                "> PrimerQC time: "
-                + str(timedelta(seconds=duration)).split(".")[0])
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
+        from speciesprimer import errors
+        error_msg = "No compatible primers found"
+        duration = time.time() - self.start
+        G.logger(
+            "> PrimerQC time: "
+            + str(timedelta(seconds=duration)).split(".")[0])
+        print(error_msg)
+        G.logger("> " + error_msg)
+        errors.append([self.target, error_msg])
 
         return total_results
+
 
 class SingletonSummary(Summary):
     def __init__(self, configuration, total_results):
@@ -565,10 +549,7 @@ class SingletonSummary(Summary):
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
-        if total_results is None:
-            self.total_results = []
-        else:
-            self.total_results = total_results
+        self.total_results = total_results
 
 
 def main(config):
@@ -583,4 +564,6 @@ def main(config):
 
 
 if __name__ == "__main__":
-    main()
+    print(
+        "Start this script with speciesprimer.py and the "
+        "'--runmode strain' option")
