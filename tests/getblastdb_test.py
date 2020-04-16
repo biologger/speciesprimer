@@ -212,6 +212,17 @@ def test_commandline():
                 "database", "ref_prok_rep_genomes", "dbpath", "/blastdb"])
 
 
+def test_config():
+    db = "ref_prok_rep_genomes"
+    delete = True
+    test = False
+    c = config(db, tmpdir, delete, test)
+
+    assert (c.baseurl, c.httpurl, c.extract_end) == (
+                "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
+                "http://ftp.ncbi.nlm.nih.gov/blast/db/",
+                ['.nhr', '.nin', '.nnd', '.nni', '.nsq', '.nog'])
+
 def test_run():
     try:
         remfile = os.path.join(
@@ -524,6 +535,26 @@ def test_badrequest(monkeypatch):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     assert os.path.isdir(tmpdir) is False
+
+
+def test_keyboardinterrupt(monkeypatch):
+    db = "ref_prok_rep_genomes"
+    delete = True
+    test = False
+    c = config(db, tmpdir, delete, test)
+    G.create_directory(tmpdir)
+    def mock_exend(filename, conf):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(getblastdb, "get_extracted_endings", mock_exend)
+    with pytest.raises(KeyboardInterrupt):
+        from getblastdb import download_from_ftp
+        files = ["mock1", "mock2"]
+        download_from_ftp(files, c)
+
+def test_exitatsigterm():
+    from getblastdb import exitatsigterm
+    with pytest.raises(SystemExit):
+        exitatsigterm(4, "")
 
 
 if __name__ == "__main__":

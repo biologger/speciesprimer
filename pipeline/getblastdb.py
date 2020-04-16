@@ -30,20 +30,20 @@ class htmllinkparser(HTMLParser):
 
 
 class config:
-    baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq"]
+    baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq", ".nog"]
     urldict = {
         "nt": {
             "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "extend": [".nhd", ".nhi", ".nog"]},
+            "extend": [".nhd", ".nhi"]},
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "extend": [".nog"]},
+            "extend": []},
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
-            "extend": [".nog", ".nsd", ".nsi"]}}
+            "extend": [".nsd", ".nsi"]}}
 
     def __init__(self, db, db_dir, delete, test):
         self.db = db
