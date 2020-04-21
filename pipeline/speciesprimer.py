@@ -312,14 +312,14 @@ class DataCollection():
             statmsg = "genome assemblies from NCBI: 0 (offline/skip download)"
             info = msg
         else:
-            info = str(len(link_list)) + " " + msg
+            info = str(len(link_list)) + msg
         print(info)
         G.logger("> " + info)
         PipelineStatsCollector(self.target_dir).write_stat(statmsg)
 
         write_links(link_list)
         os.chdir(self.target_dir)
-
+        return info
 
     def check_download_files(self, input_line):
         line = input_line.strip()
@@ -508,9 +508,9 @@ class DataCollection():
                         info = "Removed " + filepath
                         G.logger(info)
 
-        def start_prokka(filename, fna, viral):
+        def start_prokka(filename, fna):
             date = time.strftime("%Y%m%d")
-            if viral:
+            if self.config.virus:
                 genus = self.target.split("_")[-1]
                 kingdom = "Viruses"
             else:
@@ -578,7 +578,7 @@ class DataCollection():
             elif file_name in qc_fail_dirs:
                 excluded.append(file_name)
             else:
-                start_prokka(file_name, fna, self.config.virus)
+                start_prokka(file_name, fna)
 
         if len(annotated) > 0:
             info = "Already annotated: "
@@ -672,26 +672,16 @@ class DataCollection():
             self.get_ncbi_links(taxid)
             if not self.config.skip_download:
                 self.ncbi_download()
-            else:
-                G.create_directory(self.gff_dir)
-                G.create_directory(self.ffn_dir)
-                G.create_directory(self.fna_dir)
-                for files in os.listdir(self.genomic_dir):
-                    if files.endswith(".gz"):
-                        filepath = os.path.join(self.genomic_dir, files)
-                        G.run_subprocess(
-                            ["gunzip", filepath], False, True, False)
-                os.chdir(self.target_dir)
-        else:
-            G.create_directory(self.gff_dir)
-            G.create_directory(self.ffn_dir)
-            G.create_directory(self.fna_dir)
-            for files in os.listdir(self.genomic_dir):
-                if files.endswith(".gz"):
-                    filepath = os.path.join(self.genomic_dir, files)
-                    G.run_subprocess(
-                        ["gunzip", filepath], False, True, False)
-            os.chdir(self.target_dir)
+
+        G.create_directory(self.gff_dir)
+        G.create_directory(self.ffn_dir)
+        G.create_directory(self.fna_dir)
+        for files in os.listdir(self.genomic_dir):
+            if files.endswith(".gz"):
+                filepath = os.path.join(self.genomic_dir, files)
+                G.run_subprocess(
+                    ["gunzip", filepath], False, True, False)
+        os.chdir(self.target_dir)
 
         self.remove_max_contigs()
         self.create_GI_list()

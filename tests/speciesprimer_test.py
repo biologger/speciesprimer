@@ -55,6 +55,44 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
+class MockingBird():
+    def __init__(self):
+        self.count = 0
+
+    def mock_syn(self, *args, **kwargs):
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "efetchmock01.xml")
+        f = open(mockfile)
+        return f
+
+    def mock_getsummary(self, *args, **kwargs):
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "getsummarymock.xml")
+        f = open(mockfile)
+        return f
+
+    def mock_getlinks(self, *args, **kwargs):
+        mockfile = os.path.join(
+                testfiles_dir, "entrezmocks", "getlinksmock.xml")
+        f = open(mockfile)
+        return f
+
+    def run(self, *args, **kwargs):
+        print("\n count \n")
+        print(self.count)
+        if self.count == 0:
+            self.count += 1
+            return self.mock_syn(*args)
+
+        if self.count == 1:
+            self.count += 1
+            return  self.mock_getsummary(*args, **kwargs)
+
+        if self.count == 2:
+            self.count += 1
+            return  self.mock_getlinks(*args, **kwargs)
+
+
 @pytest.fixture
 def config():
     from speciesprimer import CLIconf
@@ -72,6 +110,22 @@ def config():
 
     config.save_config()
 
+    return config
+
+
+def reconfiguration():
+    from speciesprimer import CLIconf
+    args = AttrDict(confargs)
+    nontargetlist = H.create_non_target_list(args.target)
+    config = CLIconf(
+            args.minsize, args.maxsize, args.mpprimer, args.exception,
+            args.target, args.path, args.intermediate,
+            args.qc_gene, args.mfold, args.skip_download,
+            args.assemblylevel, nontargetlist,
+            args.skip_tree, args.nolist, args.offline,
+            args.ignore_qc, args.mfethreshold, args.customdb,
+            args.blastseqs, args.probe, args.virus, args.genbank,
+            args.evalue, args.nuc_identity, args.runmode, args.strains)
     return config
 
 
@@ -276,7 +330,6 @@ def test_DataCollection(config, monkeypatch):
     for i, filepath in enumerate([dtd1, dtd2]):
         if not os.path.isfile(filepath):
             shutil.copy(mocks[i], filepath)
-
 
     from speciesprimer import DataCollection
     shutil.rmtree(os.path.join(config.path, config.target))
@@ -500,6 +553,43 @@ def test_DataCollection(config, monkeypatch):
         G.create_directory(fna)
         os.chdir(config.path)
 
+    def test_get_ncbi_links(config, monkeypatch):
+
+        def mock_getsummary(db, term, retmax):
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "getsummarymock.xml")
+            f = open(mockfile)
+            return f
+
+        def mock_getlinks(db, id, rettype, retmode):
+            mockfile = os.path.join(
+                    testfiles_dir, "entrezmocks", "getlinksmock02.xml")
+            f = open(mockfile)
+            return f
+
+        monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
+        monkeypatch.setattr(Entrez, "efetch", mock_getlinks)
+
+        taxid = str(28038)
+        DC = DataCollection(config)
+        info = DC.get_ncbi_links(taxid)
+        assert info == "5 genome assemblies are available for download"
+
+        confargs['offline'] = True
+        confargs['assemblylevel'] = ["offline"]
+        reconf = reconfiguration()
+        DCr = DataCollection(reconf)
+        info = DCr.get_ncbi_links(taxid)
+        assert info == "Skip download / Working offline"
+
+        confargs['assemblylevel'] = ["all"]
+        confargs['genbank'] = True
+        confargs['virus'] = True
+        reconf = reconfiguration()
+        DCr = DataCollection(reconf)
+        info = DCr.get_ncbi_links(taxid)
+        assert info == "6 genome assemblies are available for download"
+
     def prepare_prokka(config):
         targetdir = os.path.join(config.path, config.target)
         fileformat = ["fna", "gff", "ffn"]
@@ -513,7 +603,16 @@ def test_DataCollection(config, monkeypatch):
                         tofile = os.path.join(targetdir, "genomic_fna", files)
                         shutil.copy(fromfile, tofile)
 
+        print(os.listdir(os.path.join(targetdir, "genomic_fna")))
+
     def test_run_prokka():
+        excluded_dir = os.path.join(
+                DC.config.path, "excludedassemblies", DC.config.target)
+        G.create_directory(excluded_dir)
+        exfile = os.path.join(excluded_dir, "excluded_list.txt")
+        with open(exfile, "w") as f:
+            f.write("GCF_002224565v1")
+
         annotation_dirs, annotated = DC.run_prokka()
         assert annotated == ["GCF_004088235v1"]
         DC.copy_genome_files()
@@ -530,11 +629,18 @@ def test_DataCollection(config, monkeypatch):
             shutil.rmtree(dirpath)
             G.create_directory(dirpath)
 
+    def test_collect():
+        mb = MockingBird()
+        monkeypatch.setattr(Entrez, "esearch", mb.run)
+        monkeypatch.setattr(Entrez, "efetch", mb.run)
+        DC.collect()
+
     test_get_email_from_config(config)
     test_maxcontigs(config)
     DC.prepare_dirs()
     test_get_taxid(config.target, monkeypatch)
     test_ncbi_download("28038", monkeypatch)
+    test_get_ncbi_links(config, monkeypatch)
     test_syn_exceptions(config)
     test_create_GI_list()
     G.create_directory(DC.gff_dir)
@@ -542,7 +648,45 @@ def test_DataCollection(config, monkeypatch):
     G.create_directory(DC.fna_dir)
     prepare_prokka(config)
     test_run_prokka()
+    test_collect()
     remove_prokka_testfiles()
+
+
+def test_viral_prokka(monkeypatch):
+    from speciesprimer import DataCollection
+    confargs['target'] = "Wuhan_coronavirus"
+    confargs['virus'] = True
+    reconf = reconfiguration()
+    DCr = DataCollection(reconf)
+
+    confargs['target'] = "Lactobacillus_curvatus"
+    confargs['virus'] = False
+
+    virfile = os.path.join(
+            testfiles_dir, "vir", "GCF_009858895.2_ASM985889v3_genomic.fna")
+    targetdir = os.path.join(
+                        DCr.config.path, DCr.config.target, "genomic_fna")
+
+    G.create_directory(targetdir)
+    G.create_directory(DCr.gff_dir)
+    G.create_directory(DCr.ffn_dir)
+    G.create_directory(DCr.fna_dir)
+
+    shutil.copy(
+            virfile, os.path.join(
+                    targetdir, "GCF_009858895.2_ASM985889v3_genomic.fna"))
+    annotation_dirs, annotated = DCr.run_prokka()
+    assert [
+        "_".join(
+            annotation_dirs[0].split("_")[0:-1])] == ["GCF_009858895v2"]
+
+    def mock_interrupt(cmd, printcmd, logcmd, printoption):
+        raise SystemExit
+
+    monkeypatch.setattr(G, "run_subprocess", mock_interrupt)
+    with pytest.raises(SystemExit):
+        annotation_dirs, annotated = DCr.run_prokka()
+    shutil.rmtree(os.path.join(DCr.config.path, DCr.config.target))
 
 
 def test_QualityControl(config):
@@ -885,7 +1029,7 @@ def test_QualityControl(config):
         shutil.rmtree(QC.ex_dir)
 
 
-def test_skip_pangenome_analysis(config):
+def test_skip_pangenome_analysis(config, monkeypatch):
     from speciesprimer import PangenomeAnalysis
     PA = PangenomeAnalysis(config)
     G.create_directory(PA.pangenome_dir)
@@ -894,8 +1038,6 @@ def test_skip_pangenome_analysis(config):
     if os.path.isfile(tofile):
         os.remove(tofile)
     shutil.copy(fromfile, tofile)
-    exitstat = PA.run_pangenome_analysis()
-    assert exitstat == 2
 
     num_cpus = str(multiprocessing.cpu_count())
     config.skip_tree = True
@@ -912,6 +1054,32 @@ def test_skip_pangenome_analysis(config):
             "roary", "-f", "./Pangenome", "-s", "-p", num_cpus,
             "-cd", "100", "-e", "-n", "./gff_files/*.gff"]
 
+    def mock_interrupt(cmd, printcmd, logcmd, log):
+        raise SystemExit
+
+    monkeypatch.setattr(G, "run_shell", mock_interrupt)
+    with pytest.raises(SystemExit):
+        cmd = PA.run_roary()
+
+    assert os.path.isdir(PA.pangenome_dir) is False
+
+    G.create_directory(PA.pangenome_dir)
+    shutil.copy(fromfile, tofile)
+
+    corealn = os.path.join(PA.pangenome_dir, "core_gene_alignment.aln")
+    with open(corealn, "w") as f:
+        f.write("mockalnfile")
+
+    with pytest.raises(SystemExit):
+        PA.run_fasttree()
+
+    tree = os.path.join(PA.pangenome_dir, "Lbcurva_tree.nwk")
+
+    assert os.path.isfile(tree) is False
+    os.remove(corealn)
+
+    exitstat = PA.run_pangenome_analysis()
+    assert exitstat == 2
 
 def test_CoreGenes(config):
     from speciesprimer import CoreGenes

@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"  ?>
+<!DOCTYPE eSummaryResult PUBLIC "-//NLM//DTD esummary assembly 20180216//EN" "https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20180216/esummary_assembly.dtd">
+<eSummaryResult>
+
+<DocumentSummarySet status="OK">
+<DbBuild>Build200417-1935.1</DbBuild>
+
+<DocumentSummary uid="5344931">
+	<RsUid>15483748</RsUid>
+	<GbUid>15468598</GbUid>
+	<AssemblyAccession>GCF_009683145.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_009683145.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>9683145</ChainId>
+	<AssemblyName>ASM968314v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Scaffold</AssemblyStatus>
+	<WGS>WKKT01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA588983</BioprojectAccn>
+			<BioprojectId>588983</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMN13262481</BioSampleAccn>
+	<BioSampleId>13262481</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>VRA_2sq_n</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>0.97</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>15483738</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/11/21 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/11/22 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/11/20 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/11/23 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/11/20 00:00</SubmissionDate>
+	<LastUpdateDate>2019/11/23 00:00</LastUpdateDate>
+	<SubmitterOrganization>Kazan Federal University</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has-plasmid</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_009683145.1</Genbank>
+		<RefSeq>GCF_009683145.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>158901</ContigN50>
+	<ScaffoldN50>158901</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/009/683/145/GCA_009683145.1_ASM968314v1</FtpPath_GenBank>
+	<FtpPath_RefSeq>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/683/145/GCF_009683145.1_ASM968314v1</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/683/145/GCF_009683145.1_ASM968314v1/GCF_009683145.1_ASM968314v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/683/145/GCF_009683145.1_ASM968314v1/GCF_009683145.1_ASM968314v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5X9998410980096831459898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="5344881">
+	<RsUid>15483488</RsUid>
+	<GbUid>15468478</GbUid>
+	<AssemblyAccession>GCF_009683015.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_009683015.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>9683015</ChainId>
+	<AssemblyName>ASM968301v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Scaffold</AssemblyStatus>
+	<WGS>WKLA01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA588983</BioprojectAccn>
+			<BioprojectId>588983</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMN13262493</BioSampleAccn>
+	<BioSampleId>13262493</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>VRA_2sq_f</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>0.96</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>15483478</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/11/21 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/11/22 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/11/20 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/11/23 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/11/20 00:00</SubmissionDate>
+	<LastUpdateDate>2019/11/23 00:00</LastUpdateDate>
+	<SubmitterOrganization>Kazan Federal University</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has-plasmid</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_009683015.1</Genbank>
+		<RefSeq>GCF_009683015.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>188312</ContigN50>
+	<ScaffoldN50>188312</ScaffoldN50>
+	<FtpPath_GenBank></FtpPath_GenBank>
+	<FtpPath_RefSeq></FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/683/015/GCF_009683015.1_ASM968301v1/GCF_009683015.1_ASM968301v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/009/683/015/GCF_009683015.1_ASM968301v1/GCF_009683015.1_ASM968301v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5X9998116870096830159898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="4416701">
+	<RsUid>13442058</RsUid>
+	<GbUid>13386898</GbUid>
+	<AssemblyAccession>GCF_902362325.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_902362325.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>902362325</ChainId>
+	<AssemblyName>MGYG-HGUT-00020</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Scaffold</AssemblyStatus>
+	<WGS>CABIVZ01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJEB33885</BioprojectAccn>
+			<BioprojectId>559126</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMEA5849521</BioSampleAccn>
+	<BioSampleId>12518472</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate>MGYG-HGUT-00020</Isolate>
+	</Biosource>
+	<Coverage>10</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>13442048</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/08/24 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/08/27 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/08/22 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/08/28 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/08/22 00:00</SubmissionDate>
+	<LastUpdateDate>2019/08/28 00:00</LastUpdateDate>
+	<SubmitterOrganization>EMG</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_902362325.1</Genbank>
+		<RefSeq>GCF_902362325.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>39114</ContigN50>
+	<ScaffoldN50>42986</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/902/362/325/GCA_902362325.1_MGYG-HGUT-00020</FtpPath_GenBank>
+	<FtpPath_RefSeq>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/902/362/325/GCF_902362325.1_MGYG-HGUT-00020/GCF_902362325.1_MGYG-HGUT-00020_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5X9999608859023623259898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="4317261">
+	<RsUid>13207488</RsUid>
+	<GbUid>13146418</GbUid>
+	<AssemblyAccession>GCF_007954645.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_007954645.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>7954645</ChainId>
+	<AssemblyName>ASM795464v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Complete Genome</AssemblyStatus>
+	<WGS></WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA544551</BioprojectAccn>
+			<BioprojectId>544551</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMN11843669</BioSampleAccn>
+	<BioSampleId>11843669</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>CBA3617</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>328.12</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>13207478</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/08/11 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/08/16 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/08/11 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/08/16 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/08/11 00:00</SubmissionDate>
+	<LastUpdateDate>2019/08/16 00:00</LastUpdateDate>
+	<SubmitterOrganization>World Institute of Kimchi</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has-chromosome</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_007954645.1</Genbank>
+		<RefSeq>GCF_007954645.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>1915352</ContigN50>
+	<ScaffoldN50>1915352</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/007/954/645/GCA_007954645.1_ASM795464v1</FtpPath_GenBank>
+	<FtpPath_RefSeq>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/007/954/645/GCF_007954645.1_ASM795464v1</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/007/954/645/GCF_007954645.1_ASM795464v1/GCF_007954645.1_ASM795464v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/007/954/645/GCF_007954645.1_ASM795464v1/GCF_007954645.1_ASM795464v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C1X9980846470079546459898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="3589421">
+	<RsUid>11654878</RsUid>
+	<GbUid>11593968</GbUid>
+	<AssemblyAccession>GCF_006540285.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_006540285.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>6540285</ChainId>
+	<AssemblyName>ASM654028v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Contig</AssemblyStatus>
+	<WGS>BJOQ01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJDB6021</BioprojectAccn>
+			<BioprojectId>396331</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMD00097598</BioSampleAccn>
+	<BioSampleId>7811391</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>NBRC 15884</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>135</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>11654868</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/07/01 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/07/04 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/06/12 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/07/04 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/06/12 00:00</SubmissionDate>
+	<LastUpdateDate>2019/07/04 00:00</LastUpdateDate>
+	<SubmitterOrganization>National Institute of Technology and Evaluation</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>from-type</string>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType>assembly from type material</FromType>
+	<Synonym>
+		<Genbank>GCA_006540285.1</Genbank>
+		<RefSeq>GCF_006540285.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>54228</ContigN50>
+	<ScaffoldN50>54228</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/006/540/285/GCA_006540285.1_ASM654028v1</FtpPath_GenBank>
+	<FtpPath_RefSeq>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/006/540/285/GCF_006540285.1_ASM654028v1</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/006/540/285/GCF_006540285.1_ASM654028v1/GCF_006540285.1_ASM654028v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/006/540/285/GCF_006540285.1_ASM654028v1/GCF_006540285.1_ASM654028v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5T9999457710065402859898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="2704301">
+	<RsUid>9747598</RsUid>
+	<GbUid>9629248</GbUid>
+	<AssemblyAccession>GCF_005049195.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_005049195.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>5049195</ChainId>
+	<AssemblyName>ASM504919v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>28038</Taxid>
+	<Organism>Lactobacillus curvatus (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Contig</AssemblyStatus>
+	<WGS>SUMW01</WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA533291</BioprojectAccn>
+			<BioprojectId>533291</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMN11456254</BioSampleAccn>
+	<BioSampleId>11456254</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>S46</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>122</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>9747588</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/05/02 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/05/05 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/05/01 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/05/05 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/05/01 00:00</SubmissionDate>
+	<LastUpdateDate>2019/05/05 00:00</LastUpdateDate>
+	<SubmitterOrganization>Agriculture and Agri-Food Canada</SubmitterOrganization>
+	<RefSeq_category>na</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>wgs</string>
+	</PropertyList>
+	<FromType></FromType>
+	<Synonym>
+		<Genbank>GCA_005049195.1</Genbank>
+		<RefSeq>GCF_005049195.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>66928</ContigN50>
+	<ScaffoldN50>66928</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/005/049/195/GCA_005049195.1_ASM504919v1</FtpPath_GenBank>
+	<FtpPath_RefSeq></FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/005/049/195/GCF_005049195.1_ASM504919v1/GCF_005049195.1_ASM504919v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/005/049/195/GCF_005049195.1_ASM504919v1/GCF_005049195.1_ASM504919v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>5C5X9999330710050491959898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+<DocumentSummary uid="2214181">
+	<RsUid>8334388</RsUid>
+	<GbUid>8330098</GbUid>
+	<AssemblyAccession>GCF_004101845.1</AssemblyAccession>
+	<LastMajorReleaseAccession>GCF_004101845.1</LastMajorReleaseAccession>
+	<LatestAccession></LatestAccession>
+	<ChainId>4101845</ChainId>
+	<AssemblyName>ASM410184v1</AssemblyName>
+	<UCSCName></UCSCName>
+	<EnsemblName></EnsemblName>
+	<Taxid>1293592</Taxid>
+	<Organism>Lactobacillus curvatus JCM 1096 = DSM 20019 (firmicutes)</Organism>
+	<SpeciesTaxid>28038</SpeciesTaxid>
+	<SpeciesName>Lactobacillus curvatus</SpeciesName>
+	<AssemblyType>haploid</AssemblyType>
+	<AssemblyClass>haploid</AssemblyClass>
+	<AssemblyStatus>Complete Genome</AssemblyStatus>
+	<WGS></WGS>
+	<GB_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA397497</BioprojectAccn>
+			<BioprojectId>397497</BioprojectId>
+		</Bioproj>
+	</GB_BioProjects>
+	<GB_Projects>
+	</GB_Projects>
+	<RS_BioProjects>
+		<Bioproj>
+			<BioprojectAccn>PRJNA224116</BioprojectAccn>
+			<BioprojectId>224116</BioprojectId>
+		</Bioproj>
+	</RS_BioProjects>
+	<RS_Projects>
+	</RS_Projects>
+	<BioSampleAccn>SAMN07459897</BioSampleAccn>
+	<BioSampleId>7459897</BioSampleId>
+	<Biosource>
+		<InfraspeciesList>
+			<Infraspecie>
+				<Sub_type>strain</Sub_type>
+				<Sub_value>DSM 20019</Sub_value>
+			</Infraspecie>
+		</InfraspeciesList>
+		<Sex></Sex>
+		<Isolate></Isolate>
+	</Biosource>
+	<Coverage>245.95</Coverage>
+	<PartialGenomeRepresentation>false</PartialGenomeRepresentation>
+	<Primary>8334378</Primary>
+	<AssemblyDescription></AssemblyDescription>
+	<ReleaseLevel>Major</ReleaseLevel>
+	<ReleaseType>Major</ReleaseType>
+	<AsmReleaseDate_GenBank>2019/01/22 00:00</AsmReleaseDate_GenBank>
+	<AsmReleaseDate_RefSeq>2019/01/23 00:00</AsmReleaseDate_RefSeq>
+	<SeqReleaseDate>2019/01/22 00:00</SeqReleaseDate>
+	<AsmUpdateDate>2019/01/23 00:00</AsmUpdateDate>
+	<SubmissionDate>2019/01/22 00:00</SubmissionDate>
+	<LastUpdateDate>2019/01/23 00:00</LastUpdateDate>
+	<SubmitterOrganization>Kyungpook National University</SubmitterOrganization>
+	<RefSeq_category>representative genome</RefSeq_category>
+	<AnomalousList>
+	</AnomalousList>
+	<ExclFromRefSeq>
+	</ExclFromRefSeq>
+	<PropertyList>
+		<string>from-type</string>
+		<string>full-genome-representation</string>
+		<string>genbank_has_annotation</string>
+		<string>has-chromosome</string>
+		<string>has-plasmid</string>
+		<string>has_annotation</string>
+		<string>latest</string>
+		<string>latest_genbank</string>
+		<string>latest_refseq</string>
+		<string>refseq_has_annotation</string>
+		<string>representative</string>
+	</PropertyList>
+	<FromType>assembly from type material</FromType>
+	<Synonym>
+		<Genbank>GCA_004101845.1</Genbank>
+		<RefSeq>GCF_004101845.1</RefSeq>
+		<Similarity>identical</Similarity>
+	</Synonym>
+	<ContigN50>1898076</ContigN50>
+	<ScaffoldN50>1898076</ScaffoldN50>
+	<FtpPath_GenBank>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/004/101/845/GCA_004101845.1_ASM410184v1</FtpPath_GenBank>
+	<FtpPath_RefSeq>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/004/101/845/GCF_004101845.1_ASM410184v1</FtpPath_RefSeq>
+	<FtpPath_Assembly_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/004/101/845/GCF_004101845.1_ASM410184v1/GCF_004101845.1_ASM410184v1_assembly_report.txt</FtpPath_Assembly_rpt>
+	<FtpPath_Stats_rpt>ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/004/101/845/GCF_004101845.1_ASM410184v1/GCF_004101845.1_ASM410184v1_assembly_stats.txt</FtpPath_Stats_rpt>
+	<FtpPath_Regions_rpt></FtpPath_Regions_rpt>
+	<SortOrder>2C1T9981019230041018459898</SortOrder>
+	<Meta></Meta>
+</DocumentSummary>
+
+</DocumentSummarySet></eSummaryResult>
