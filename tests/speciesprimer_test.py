@@ -78,8 +78,6 @@ class MockingBird():
         return f
 
     def run(self, *args, **kwargs):
-        print("\n count \n")
-        print(self.count)
         if self.count == 0:
             self.count += 1
             return self.mock_syn(*args)
@@ -1103,10 +1101,18 @@ def test_CoreGenes(config):
         ref_dir = os.path.join(ref_data, "fasta")
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         compare_ref_files(fasta_dir, ref_dir)
+        
+    def test_check_genenames():
+        genes = ["rbsK/rbiA", "cas9-2", "cas9-2", "tarJ'"]
+        refname = ["rbsK-rbiA", "cas9-2", "cas9-2", "tarJ"]
+        for i, gene in enumerate(genes):
+            name = CG.check_genename(gene)
+            assert name == refname[i]
 
     prepare_tests()
     test_get_singlecopy_genes()
     test_coregene_extract()
+    test_check_genenames()
 
 def test_CoreGeneSequences(config):
     from speciesprimer import CoreGeneSequences

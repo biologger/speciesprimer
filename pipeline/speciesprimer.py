@@ -165,6 +165,7 @@ class CLIconf:
         file_path = os.path.join(config_path, "config.json")
         G.create_directory(dir_path)
         G.create_directory(config_path)
+        # To do
         # Add warning if a previous file is overwritten
         with open(file_path, "w") as f:
             f.write(json.dumps(config_dict))
@@ -1445,25 +1446,25 @@ class CoreGenes:
 
         return locustags
 
+    def check_genename(self, gene):
+        if "/" in gene:
+            gene_name = "-".join(gene.split("/"))
+        elif " " in gene:
+            gene_name = "-".join(gene.split(" "))
+        elif "'" in gene:
+            gene_name = str(gene)[0:-1]
+            gene = gene + "'"
+        else:
+            gene_name = gene
+
+        return gene_name
+
     def get_fasta(self, locustags):
-
-        def check_genename(gene):
-            if "/" in gene:
-                gene_name = "-".join(gene.split("/"))
-            elif " " in gene:
-                gene_name = "-".join(gene.split(" "))
-            elif "'" in gene:
-                gene_name = str(gene)[0:-1]
-                gene = gene + "'"
-            else:
-                gene_name = gene
-
-            return gene_name
 
         with open(self.singlecopy, "r") as f:
             reader = csv.reader(f)
             for row in reader:
-                gene = check_genename(row[0])
+                gene = self.check_genename(row[0])
                 outfile = os.path.join(self.fasta_dir, gene + ".fasta")
                 with open(outfile, "w") as r:
                     for item in row[1:]:
@@ -2011,7 +2012,6 @@ class BlastParser:
             identity = "unknown"
             for ex in exceptions:
                 if ex in lname:
-#                    print("in lname")
                     test = str(" ".join(name[0:2]))
                     if " ".join(ex.split(" ")[0:2]) == test:
                         identity = " ".join(self.target.split("_"))
@@ -2426,6 +2426,7 @@ class BlastParser:
                 + "Please check the species list and/or BLAST database")
             print(msg)
             G.logger("> " + msg)
+            errors.append([self.target, msg])
             return 1
 
         self.write_nontarget_sequences(nonreddata)
@@ -2846,6 +2847,13 @@ class PrimerDesign():
                         self.p3dict[key][pp].update(
                             {"amplicon_seq": pcr_product})
 
+    def get_annotation_info():
+        # To do
+        # create a dict with gene names and annotations
+        # add this info to primer_dict or final summary
+        # Warning if transposon?
+        pass
+
     def write_primer3_data(self):
         file_path = os.path.join(self.primer_dir, "primer3_summary.json")
         with open(file_path, "w") as f:
@@ -3166,6 +3174,9 @@ class PrimerQualityControl:
             "primer pairs with good target binding: "
             + str(len(check_nontarget)))
         G.logger("> " + info1)
+
+        # To do:
+        # find solution if no potential hits for non-target DB are found
 
         nontarget_lists = []
         print("\nStart MFEprimer with nontarget DB\n")
@@ -3635,7 +3646,7 @@ class PrimerQualityControl:
 
         return total_results
 
-# Future implementation - Primersummary, add annotation and warning if transposon
+
 class Summary:
     def __init__(self, configuration, total_results):
         self.config = configuration
