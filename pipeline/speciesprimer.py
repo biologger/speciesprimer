@@ -3028,7 +3028,7 @@ class PrimerQualityControl:
                         lseq, lTM, lpen,
                         rseq, rTM, rpen,
                         iseq, iTM, ipen,
-                        pp_prodsize, pp_prodTM, annotation, amp_seq,
+                        pp_prodsize, pp_prodTM, amp_seq,
                         template_seq]
                     if info not in val_list:
                         val_list.append(info)
@@ -3111,12 +3111,20 @@ class PrimerQualityControl:
                     break
 
         ref_assembly = []
-        assembly_dict, check = self.find_QC_assemblies()
-        assembly_stats = ["Complete Genome", "Chromosome", "Scaffold", ""]
-        for stat in assembly_stats:
-            assembly_selection(stat)
-        ref_assembly.sort()
 
+        if self.config.virus is True:
+            assemblies = os.listdir(self.fna_dir)
+            for assem in assemblies:
+                if assem.endswith(".fna"):
+                    ref_assembly.append("_".join(assem.split("_")[0:-1]))
+
+        else:
+            assembly_dict, check = self.find_QC_assemblies()
+            assembly_stats = ["Complete Genome", "Chromosome", "Scaffold", ""]
+            for stat in assembly_stats:
+                assembly_selection(stat)
+
+        ref_assembly.sort()
         target_fasta = []
         for files in os.listdir(self.fna_dir):
             for item in ref_assembly:
@@ -3200,9 +3208,6 @@ class PrimerQualityControl:
             "primer pairs with good target binding: "
             + str(len(check_nontarget)))
         G.logger("> " + info1)
-
-        # To do:
-        # find solution if no potential hits for non-target DB are found
 
         nontarget_lists = []
         print("\nStart MFEprimer with nontarget DB\n")
@@ -3651,10 +3656,6 @@ class PrimerQualityControl:
             total_results = self.write_results(choice)
 
             if total_results != []:
-                error_msg = "No compatible primers found"
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
                 duration = time.time() - self.start
                 G.logger(
                     "> PrimerQC time: "
@@ -3669,7 +3670,6 @@ class PrimerQualityControl:
         print(error_msg)
         G.logger("> " + error_msg)
         errors.append([self.target, error_msg])
-
         return total_results
 
 

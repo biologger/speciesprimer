@@ -1969,7 +1969,8 @@ def test_PrimerQualityControl_structures(config):
     total_results = pqc.write_results(choice)
     total_results.sort()
     assert total_results[0] == [
-        'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2', 'TACCAAGCAACAACGCCATG',
+        'Lb_curva_comFA_2_P1', 100.0, 1.64, 'ComF operon protein 1',
+        'TACCAAGCAACAACGCCATG',
         59.4, 0.63, 'ACACACACGCTGCCCATTAG', 60.95, 0.99,
         'None', 'None', 'None', 106, 82.53,
         'TACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAGG'
@@ -1984,7 +1985,7 @@ def test_PrimerQualityControl_structures(config):
 def test_summary(config):
     total_results = [
         [
-            'Lb_curva_comFA_2_P1', 100.0, 1.64, 'comFA_2',
+            'Lb_curva_comFA_2_P1', 100.0, 1.64, 'ComF operon protein 1',
             'TACCAAGCAACAACGCCATG', 59.4, 0.63,
             'ACACACACGCTGCCCATTAG', 60.95, 0.99,
             'None', 'None', 'None', 106, 82.53,

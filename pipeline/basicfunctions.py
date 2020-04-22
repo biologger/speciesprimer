@@ -373,7 +373,7 @@ class HelperFunctions:
             synonym = synresult[0]['OtherNames']['Synonym']
             includes = synresult[0]['OtherNames']['Includes']
             equivalents = synresult[0]['OtherNames']['EquivalentName']
-            
+
             synonyms = synonym + includes + equivalents
             if synonyms != []:
                 synwarn = []
@@ -539,7 +539,6 @@ class ParallelFunctions:
         result = []
         nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
         [dbfilepath, primer_qc_dir] = args
-#        dbfile = os.path.basename(dbfilepath)
 
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=primer_qc_dir, prefix="primer",
