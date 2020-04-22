@@ -1101,7 +1101,7 @@ def test_CoreGenes(config):
         ref_dir = os.path.join(ref_data, "fasta")
         fasta_dir = os.path.join(CG.results_dir, "fasta")
         compare_ref_files(fasta_dir, ref_dir)
-        
+
     def test_check_genenames():
         genes = ["rbsK/rbiA", "cas9-2", "cas9-2", "tarJ'"]
         refname = ["rbsK-rbiA", "cas9-2", "cas9-2", "tarJ"]
@@ -1259,12 +1259,11 @@ def test_PrimerDesign(config):
     pd.run_primer3()
 
     assert os.path.isfile(p3_output) is True
-    pd.run_primerdesign()
 
+    pd.run_primerdesign()
     with open(reffile) as f:
         for line in f:
             refdict = json.loads(line)
-
     assert refdict == pd.p3dict
 
     # test primer3 error

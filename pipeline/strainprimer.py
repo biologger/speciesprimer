@@ -234,6 +234,7 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                 target_id = "_".join(shortname.split("_")[0:-1])
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
                 template_seq = self.primer3_dict[target_id]["template_seq"]
+                annotation = self.primer3_dict[target_id]["annotation"]
                 x = self.primer3_dict[target_id][primerpair]
                 pp_penalty = round(x["primer_P_penalty"], 2)
                 pp_prodsize = x["product_size"]
@@ -272,7 +273,7 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                         iTM = "None"
 
                     info = [
-                        primer_name, ppc, pp_penalty, target_id,
+                        primer_name, ppc, pp_penalty, annotation,
                         lseq, lTM, lpen,
                         rseq, rTM, rpen,
                         iseq, iTM, ipen,

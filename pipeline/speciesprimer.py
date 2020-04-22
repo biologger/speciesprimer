@@ -2847,12 +2847,36 @@ class PrimerDesign():
                         self.p3dict[key][pp].update(
                             {"amplicon_seq": pcr_product})
 
-    def get_annotation_info():
-        # To do
-        # create a dict with gene names and annotations
-        # add this info to primer_dict or final summary
-        # Warning if transposon?
-        pass
+    def get_annotation_info(self):
+        annot_dict = {}
+        gpa_file = os.path.join(
+                self.pangenome_dir, "gene_presence_absence.csv")
+        with open(gpa_file, "r") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            for row in reader:
+                gene = row[0]
+                annotation = row[2]
+                if not gene in annot_dict.keys():
+                    if "group" in gene:
+                        if gene.startswith("group_"):
+                            gene = "g" + gene.split("group_")[1]
+                    annot_dict.update({gene: annotation})
+
+        return annot_dict
+
+    def update_annotation_info(self):
+        annot_dict = self.get_annotation_info()
+        for key in self.p3dict.keys():
+            genename = "_".join(key.split("_")[0:-1])
+            try:
+                annotation = annot_dict[genename]
+            except KeyError:
+                for i in range(1, len(key.split("_"))):
+                    geneid = "_".join(key.split("_")[i::])
+                    if geneid in annot_dict.keys():
+                        annotation = annot_dict[geneid]
+            self.p3dict[key]["annotation"] = annotation
 
     def write_primer3_data(self):
         file_path = os.path.join(self.primer_dir, "primer3_summary.json")
@@ -2869,6 +2893,7 @@ class PrimerDesign():
         p3_output = os.path.join(self.primer_dir, "primer3_output")
         self.parse_Primer3_output(p3_output)
         self.get_amplicon_seq()
+        self.update_annotation_info()
         self.write_primer3_data()
         return self.p3dict
 
@@ -2960,6 +2985,7 @@ class PrimerQualityControl:
                 target_id = "_".join(primer_name.split("_")[-3:-1])
                 primerpair = "Primer_pair_" + primer_name.split("_P")[-1]
                 template_seq = self.primer3_dict[target_id]["template_seq"]
+                annotation = self.primer3_dict[target_id]["annotation"]
                 x = self.primer3_dict[target_id][primerpair]
                 pp_penalty = round(x["primer_P_penalty"], 2)
                 pp_prodsize = x["product_size"]
@@ -2998,11 +3024,11 @@ class PrimerQualityControl:
                         iTM = "None"
 
                     info = [
-                        primer_name, ppc, pp_penalty, target_id,
+                        primer_name, ppc, pp_penalty, annotation,
                         lseq, lTM, lpen,
                         rseq, rTM, rpen,
                         iseq, iTM, ipen,
-                        pp_prodsize, pp_prodTM, amp_seq,
+                        pp_prodsize, pp_prodTM, annotation, amp_seq,
                         template_seq]
                     if info not in val_list:
                         val_list.append(info)
@@ -3564,7 +3590,7 @@ class PrimerQualityControl:
         G.logger("Run: write_results(" + self.target + ")")
         results = []
         header = [
-            "Primer name", "PPC", "Primer penalty", "Gene",
+            "Primer name", "PPC", "Primer penalty", "Annotation",
             "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
             "Primer rev seq", "Primer rev TM", "Primer rev penalty",
             "Probe seq)", "Probe TM", "Probe penalty",
@@ -3807,7 +3833,7 @@ class Summary:
             wrote = []
             outputlist = []
             header = [
-                "Primer name", "PPC", "Primer penalty", "Gene",
+                "Primer name", "PPC", "Primer penalty", "Annotation",
                 "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
                 "Primer rev seq", "Primer rev TM", "Primer rev penalty",
                 "Probe seq", "Probe TM", "Probe penalty",
