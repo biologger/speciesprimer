@@ -59,7 +59,8 @@ class Singletons(CoreGenes):
             accessions = header[14:]
             genomes = len(accessions)
             rows = []
-            if self.strains:
+
+            if len(self.strains) > 0:
                 for s in self.strains:
                     for index, item in enumerate(header):
                         if "_".join(item.split("_")[0:-1]) == s:
@@ -119,7 +120,6 @@ class Singletons(CoreGenes):
                         item_s = [items]
 
                     for item in item_s:
-
                         name = "_".join(locustags[item]["name"].split("_")[0:-1])
                         seq = locustags[item]["seq"]
                         ident = '{}_{}'.format(name, gene)

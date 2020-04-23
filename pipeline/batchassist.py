@@ -250,15 +250,15 @@ class Input:
                     "(strain specific primers) for "
                     "specified genome(s). (comma separated), default=[]")
 
-                inputsingle = list(insingle.split(","))
-                for i, item in enumerate(inputsingle):
-                    x = item.strip()
-                    strains.insert(i, x)
+                if isinstance(insingle, str) and len(insingle) > 0:
+                    inputsingle = list(insingle.split(","))
+                    for i, item in enumerate(inputsingle):
+                        x = item.strip()
+                        strains.insert(i, x)
 
-                self.config_dict[target].update({"strains": strains})
-                print("strains", strains)
-            else:
-                self.config_dict[target].update({"strains": strains})
+            self.config_dict[target].update({"strains": strains})
+            print("strains", strains)
+
 
     def value_for_all(self, key, value, listlen):
         if listlen > 1:

@@ -104,7 +104,7 @@ evalue = (
     "E-value threshold for BLAST search, all results with a lower value "
     "pass. default=500\n>")
 
-runmode = "Select runmode. options: [species, strain], default=[species]\n>"
+runmode = "Select runmode. options: [species, strain], default=species\n>"
 
 strains = (
     "Start of filename(s) of annotated fna file, e.g. "
@@ -345,8 +345,6 @@ def test_sys_exit(monkeypatch):
     monkeypatch.setattr('builtins.input', fail_startinput)
     with pytest.raises(SystemExit):
         conf_from_file = Config()
-
-# mockprimer_csv = os.path.join(path, "Summary", target, abbr + "_primer.csv")
 
 
 def test_default_input(monkeypatch):
