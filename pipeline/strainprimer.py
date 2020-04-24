@@ -462,6 +462,25 @@ class SingletonPrimerQualityControl(PrimerQualityControl):
                             name, primername, mfoldvalues))
         return results
 
+    def write_results(self, choice):
+        G.logger("Run: write_results(" + self.target + ")")
+        results = []
+        header = [
+            "Primer name", "PPC", "Primer penalty", "Annotation",
+            "Primer fwd seq", "Primer fwd TM", "Primer fwd penalty",
+            "Primer rev seq", "Primer rev TM", "Primer rev penalty",
+            "Probe seq)", "Probe TM", "Probe penalty",
+            "Amplicon size", "Amplicon TM", "Amplicon sequence",
+            "Template sequence"]
+        if len(choice) > 0:
+            results = self.get_primerinfo(choice, mode="results")
+            results.sort(key=lambda x: float(x[1]), reverse=True)
+            file_path = os.path.join(
+                    self.single_dir,
+                    H.abbrev(self.target) + "_primer.csv")
+            G.csv_writer(file_path, results, header)
+
+        return results
 
     def run_primer_qc(self):
         G.logger("Run: run_primer_qc(" + self.target + ")")
