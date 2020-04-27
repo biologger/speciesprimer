@@ -1021,6 +1021,11 @@ def test_QualityControl(config):
 
     test_DBError()
 
+    from speciesprimer import PangenomeAnalysis
+    PA = PangenomeAnalysis(config)
+    num = PA.get_numberofgenomes()
+    assert num == 1
+
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
     if os.path.isdir(QC.ex_dir):
@@ -1103,7 +1108,7 @@ def test_CoreGenes(config):
         compare_ref_files(fasta_dir, ref_dir)
 
     def test_check_genenames():
-        genes = ["rbsK/rbiA", "cas9-2", "cas9-2", "tarJ'"]
+        genes = ["rbsK/rbiA", "cas9-2", "cas9 2", "tarJ'"]
         refname = ["rbsK-rbiA", "cas9-2", "cas9-2", "tarJ"]
         for i, gene in enumerate(genes):
             name = CG.check_genename(gene)
@@ -1398,7 +1403,7 @@ def test_blastprep(config):
     G.create_directory(tmpdir)
     input_list = []
     for i in range(0, 5000):
-        i = i + 1
+        i += 1
         elem = ["seq_" + str(i), i * "A"]
         input_list.append(elem)
     name = "test"

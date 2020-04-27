@@ -27,7 +27,6 @@ from speciesprimer import PipelineStatsCollector
 from speciesprimer import Summary
 
 
-
 class Singletons(CoreGenes):
     def __init__(self, configuration):
         self.config = configuration

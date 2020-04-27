@@ -1279,6 +1279,14 @@ class PangenomeAnalysis:
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
 
+    def get_numberofgenomes(self):
+        inputgenomes = os.listdir(self.gff_dir)
+        number = len(inputgenomes)
+        stats = PipelineStatsCollector(self.target_dir)
+        msg = ["genome assemblies for pan-genome analysis:", str(number)]
+        stats.write_stat(" ".join(msg))
+        return number
+
     def run_roary(self):
         num_cpus = str(multiprocessing.cpu_count())
         G.logger("Run: run_roary(" + self.target + ")")
@@ -1337,6 +1345,7 @@ class PangenomeAnalysis:
 
             shutil.rmtree(self.pangenome_dir)
 
+        self.get_numberofgenomes()
         self.run_roary()
         self.run_fasttree()
         return exitstat
@@ -1460,7 +1469,6 @@ class CoreGenes:
         return gene_name
 
     def get_fasta(self, locustags):
-
         with open(self.singlecopy, "r") as f:
             reader = csv.reader(f)
             for row in reader:
@@ -1624,8 +1632,7 @@ class CoreGeneSequences:
                 for line in f:
                     if ">" in line:
                         li = line.strip()
-                        filename = (
-                            li.split(target)[1].split("_consensus")[0])
+                        filename = li.split(target)[1].split("_consensus")[0]
                         output_files.append(filename)
         else:
             for files in os.listdir(self.consensus_dir):
@@ -2329,7 +2336,6 @@ class BlastParser:
             return nonreddata
 
         posdict = self.create_posdict(nonred_dict)
-
         for key in posdict.keys():
             posdict[key].sort()
             inrange = []
@@ -4192,8 +4198,21 @@ def run_pipeline_for_target(target, config):
 
         if "strain" in config.runmode:
             import strainprimer
+
             strainprimer.main(config)
+
+            msg = "Start strain specific primer design"
+            print(msg)
+            G.logger(msg)
+#            from strainprimer import main
+#            from multiprocessing import Process
+#            ps = Process(target=main, args=(config,))
+#            ps.start()
+#            ps.join()
         if "species" in config.runmode:
+            msg = "Start species specific primer design"
+            print(msg)
+            G.logger(msg)
             CoreGenes(config).run_CoreGenes()
             conserved_seq_dict = CoreGeneSequences(
                     config).run_coregeneanalysis()
@@ -4273,6 +4292,13 @@ def main(mode=None):
 
         if args.email:
             H.get_email_for_Entrez(args.email)
+
+        if unknown:
+            msg = "\t!!! Warning !!! the following arguments are not known:"
+            print("\n" + msg)
+            print("\n".join(unknown))
+            G.logger(msg)
+            G.logger(unknown)
 
     G.logger(citation())
 
