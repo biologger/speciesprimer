@@ -232,9 +232,14 @@ def check_targets():
 
 def update_db(sub_dict, target, data):
     (
-        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
-        minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
+        minsize, maxsize, mpprimer,
+        exception, path, intermediate,
+        qc_gene, mfold, skip_download,
+        assemblylevel, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold,
+        customdb, blastseqs, probe,
+        virus, genbank, evalue,
+        nuc_identity, runmode, strains
     ) = data
     sub_dict.update({
             'target': target,
@@ -243,28 +248,50 @@ def update_db(sub_dict, target, data):
             'qc_gene': qc_gene, 'mfold': mfold, 'skip_download': skip_download,
             'assemblylevel': assemblylevel, 'skip_tree': skip_tree,
             'nolist': nolist, 'offline': offline, 'ignore_qc': ignore_qc,
-            'mfethreshold': mfeprimer_threshold, 'customdb': customdb,
-            'blastseqs': blastseqs, 'probe': designprobe,
-            'blastdbv5': blastdbv5})
+            'mfethreshold': mfethreshold, 'customdb': customdb,
+            'blastseqs': blastseqs, 'probe': probe,
+            'virus': virus, "genbank": genbank, "evalue": evalue,
+            "nuc_identity": nuc_identity, "runmode": runmode,
+            "strains": strains})
     return sub_dict
 
 
 def reset_settings(form):
+
+    print(form.exception.entries)
+    
+    for ent in form.exception.entries:
+        print(ent.data)
+
+#    form.strains.data = []
+    print(form.exception.data)
+    print(form.intermediate.data)
+
+    print(dir(form.exception))
+
+    form.exception.data = [""]
+    form.intermediate.data = False
+
     (
-        form.qc_gene.data, form.ignore_qc.data, form.skip_download.data,
-        form.assemblylevel.data, form.skip_tree.data, form.exception.data,
-        form.minsize.data, form.maxsize.data, form.designprobe.data,
-        form.mfold.data, form.mpprimer.data, form.mfeprimer_threshold.data,
-        form.work_offline.data, form.customdb.data, form.blastseqs.data,
-        form.blastdbv5.data, form.intermediate.data, form.nolist.data
+        form.minsize.data, form.maxsize.data, form.mpprimer.data,
+        form.exception.data, form.intermediate.data #,
+#        form.qc_gene.data, form.mfold.data, form.skip_download.data,
+#        form.assemblylevel.data, form.skip_tree.data, form.nolist.data,
+#        form.offline.data, form.ignore_qc.data, form.mfethreshold.data,
+#        form.customdb.data, form.blastseqs.data, form.probe.data,
+#        form.virus.data, form.genbank.data, form.evalue.data #,
+#        form.nuc_identity.data, form.runmode.data, form.strains.data
     ) = (
-        ["rRNA"], False, False,
-        ["all"], False, [],
-        70, 200, False,
-        -3.0, -3.5, 90,
-        False, None, 1000,
-        False, False, False
-    )
+        70, 200, -3.5,
+        [''], False #,
+#        ["rRNA"], -3.0, False,
+#        ["all"], False, False,
+#        False, False, 90,
+#        None, 1000, False,
+#        False, False, 500 # ,
+#        0, [], []
+        )
+
     return form
 
 
@@ -273,50 +300,57 @@ def load_settings(tmp_db):
         target = key
     settings = tmp_db['new_run']['targets'][target]
     (
-        qc_gene, ignore_qc, skip_download,
-        assemblylevel, skip_tree, exception,
-        minsize, maxsize, designprobe,
-        mfold, mpprimer, mfeprimer_threshold,
-        work_offline, customdb, blastseqs,
-        change_wd, blastdbv5, intermediate, nolist
+        minsize, maxsize, mpprimer,
+        exception, path, intermediate,
+        qc_gene, mfold, skip_download,
+        assemblylevel, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold,
+        customdb, blastseqs, probe,
+        virus, genbank, evalue,
+        nuc_identity, runmode, strains
     ) = (
-        settings["qc_gene"], settings["ignore_qc"], settings["skip_download"],
-        settings["assemblylevel"], settings["skip_tree"],
-        settings["exception"], settings["minsize"], settings["maxsize"],
-        settings["probe"], settings["mfold"], settings["mpprimer"],
-        settings["mfethreshold"], settings["offline"], settings["customdb"],
-        settings["blastseqs"], settings['path'], settings['blastdbv5'],
-        settings["intermediate"], settings['nolist']
+        settings["minsize"], settings["maxsize"], settings["mpprimer"],
+        settings["exception"], settings["path"], settings["intermediate"],
+        settings["qc_gene"], settings["mfold"], settings["skip_download"],
+        settings["assemblylevel"], settings["skip_tree"], settings["nolist"],
+        settings["offline"], settings["ignore_qc"], settings["mfethreshold"],
+        settings["customdb"], settings['blastseqs'], settings['probe'],
+        settings["virus"], settings['genbank'], settings['evalue'],
+        settings["nuc_identity"], settings['runmode'], settings['strains']
     )
 
     data = {
         "targets": target, "qc_gene": qc_gene, "ignore_qc": ignore_qc,
-        "skip_download": skip_download,
-        "assemblylevel": assemblylevel, "skip_tree": skip_tree,
-        "exception": exception,
-        "minsize": minsize, "maxsize": maxsize, "designprobe": designprobe,
-        "mfold": mfold, "mpprimer": mpprimer,
-        "mfeprimer_threshold": mfeprimer_threshold,
-        "work_offline": work_offline, "customdb": customdb,
-        "blastseqs": blastseqs,
-        "change_wd": change_wd, "blastdbv5": blastdbv5,
-        "intermediate": intermediate, "nolist": nolist}
+        "skip_download": skip_download, "assemblylevel": assemblylevel,
+        "skip_tree": skip_tree, "exception": exception,
+        "minsize": minsize, "maxsize": maxsize, "probe": probe,
+        "mfold": mfold, "mpprimer": mpprimer, "mfethreshold": mfethreshold,
+        "offline": offline, "customdb": customdb, "blastseqs": blastseqs,
+        "change_wd": path, "intermediate": intermediate, "nolist": nolist,
+        "virus": virus, "genbank": genbank, "evalue": evalue,
+        "nuc_identity": nuc_identity, "runmode": runmode, "strains": strains}
     return data
 
 
 def get_settings(form):
     (
-        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
-        minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist
+        minsize, maxsize, mpprimer,
+        exception, path, intermediate,
+        qc_gene, mfold, skip_download,
+        assemblylevel, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold,
+        customdb, blastseqs, probe,
+        virus, genbank, evalue,
+        nuc_identity, runmode, strains
     ) = (
-        form.qc_gene.data, form.ignore_qc.data, form.skip_download.data,
-        form.assemblylevel.data, form.skip_tree.data, form.exception.data,
-        form.minsize.data, form.maxsize.data, form.designprobe.data,
-        form.mfold.data, form.mpprimer.data, form.mfeprimer_threshold.data,
-        form.work_offline.data, form.customdb.data, form.blastseqs.data,
-        form.change_wd.data, form.blastdbv5.data, form.intermediate.data,
-        form.nolist.data
+        form.minsize.data, form.maxsize.data, form.mpprimer.data,
+        form.exception.data, form.change_wd.data, form.intermediate.data,
+        form.qc_gene.data, form.mfold.data, form.skip_download.data,
+        form.assemblylevel.data, form.skip_tree.data, form.nolist.data,
+        form.offline.data, form.ignore_qc.data, form.mfethreshold.data,
+        form.customdb.data, form.blastseqs.data, form.probe.data,
+        form.virus.data, form.genbank.data, form.evalue.data,
+        form.nuc_identity.data, form.runmode.data, form.strains.data
         )
     if offline:
         skip_download = True
@@ -331,12 +365,15 @@ def get_settings(form):
 
     if customdb == "":
         customdb = None
+    if strains == "":
+        strains = []
     if 'all' in assemblylevel:
         assemblylevel = ['all']
     return (
-        qc_gene, ignore_qc, skip_download, assemblylevel, skip_tree, exception,
-        minsize, maxsize, designprobe, mfold, mpprimer, mfeprimer_threshold,
-        offline, customdb, blastseqs, path, blastdbv5, intermediate, nolist)
+        minsize, maxsize, mpprimer, exception, path, intermediate,
+        qc_gene, mfold, skip_download, assemblylevel, skip_tree, nolist,
+        offline, ignore_qc, mfethreshold, customdb, blastseqs, probe,
+        virus, genbank, evalue, nuc_identity, runmode, strains)
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -542,25 +579,6 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def get_bacteria_taxids():
-    if os.path.isfile(tmp_db_path):
-        with open(tmp_db_path) as f:
-            for line in f:
-                tmp_db = json.loads(line)
-    from Bio import Entrez
-    Entrez.tool = "SpeciesPrimer pipeline"
-    Entrez.email = tmp_db['email']
-    searchtaxid = Entrez.esearch(
-            db="taxonomy", term="txid2[orgn]", retmax="500000")
-    taxidresult = Entrez.read(searchtaxid)
-    taxids = taxidresult["IdList"]
-    taxids.sort(key=int)
-    filename = os.path.join(dict_path, "2.txids")
-    with open(filename, "w") as f:
-        for txid in taxids:
-            f.write(txid + "\n")
-
-
 @app.route('/blastdb', methods=['GET', 'POST'])
 def blastdb():
     form = DownloadDB()
@@ -575,8 +593,7 @@ def blastdb():
             update_dict = {'BLAST_DB': {'delete': delete, 'db': db}}
             update_tmp_db(update_dict)
             return redirect(url_for('dbdownload'))
-        if form.update_txids.data is True:
-            get_bacteria_taxids()
+
     return render_template(
             'blastdb.html', title='Download nt database', form=form)
 

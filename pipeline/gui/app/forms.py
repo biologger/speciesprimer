@@ -56,7 +56,7 @@ class SettingsForm(FlaskForm):
             "Skip the core gene alignment and tree for visualization "
             "and troubleshooting"),
         default=False)
-    work_offline = BooleanField(
+    offline = BooleanField(
             "Work offline with local genome assemblies", default=False)
     skip_download = BooleanField(
             "Skip the download of Genomes from NCBI", default=False)
@@ -65,6 +65,7 @@ class SettingsForm(FlaskForm):
             ('all', "All"),
             ('complete', 'Complete'), ('chromosome', 'Chromosome'),
             ('scaffold', 'Scaffold'), ('contig', 'Contig')],
+        default=['all'],
         validators=[DataRequired()])
     customdb = StringField(
             "Specify the path to a custom BLAST database", default=None)
@@ -86,25 +87,39 @@ class SettingsForm(FlaskForm):
             choices=[
                 ('rRNA', "16S rRNA"), ('tuf', "tuf"),
                 ('recA', "recA"), ('dnaK', "dnaK"), ('pheS', "pheS")],
+            default=['rRNA'],
             validators=[DataRequired()])
     exception = FieldList(StringField(""), min_entries=1)
     minsize = IntegerField("Minimal Amplicon size", default=70)
     maxsize = IntegerField("Maximal Amplicon size", default=200)
-    designprobe = BooleanField("Pick internal hybridization oligo")
+    probe = BooleanField("Pick internal hybridization oligo")
     mfold = FloatField(
             "ΔG threshold for secondary structures in PCR products"
             " at 60°C calculated by mfold", default=-3.0)
     mpprimer = FloatField(
             "ΔG  threshold for 3'-end primer dimer binding", default=-3.5)
-    mfeprimer_threshold = SelectField(
+    mfethreshold = SelectField(
         "MFEprimer threshold for nontarget sequence PPC", coerce=int,
         choices=[
             (80, "80"), (85, "85"), (90, "90"), (95, "95"), (100, "100")],
         default=90)
     ignore_qc = BooleanField(
             "Include genomes that did not pass quality control")
-    blastdbv5 = BooleanField("BLAST DB Version 5")
     intermediate = BooleanField("Do not delete intermediate files")
+
+    virus = BooleanField("Do you want to design primers for a virus?")
+    genbank = BooleanField("Download genome assemblies from GenBank?")
+    evalue = FloatField(
+            "E-value threshold for BLAST search, all results with a lower "
+            "value pass.", default=500)
+    nuc_identity = IntegerField(
+            "Nucleotide identity threshold for BLAST search, all results with "
+            "a lower value pass.", default=0)
+    runmode = SelectMultipleField(
+            "Select runmode", default=['species'],
+            choices=[('species', 'species'), ('strain', 'strain')],
+            validators=[DataRequired()])
+    strains = FieldList(StringField(""), min_entries=1)
     change_wd = StringField(
             "Change path of the working directory", default="/primerdesign")
     submit = SubmitField("Submit settings")
@@ -137,7 +152,6 @@ class DownloadDB(FlaskForm):
     update_blastdb = SubmitField("Start download nt")
     delete = BooleanField(
             "Delete archive files after extraction", default=False)
-    update_txids = SubmitField("Update")
     whichdb = SelectField(
             "Select BLAST DB",
             choices=[
