@@ -13,7 +13,7 @@
 
 <form action="" method="post" novalidate>
   {{ form.hidden_tag() }}
-  {{ form.reset() }}
+  <input type="reset">
   <div id="target">
       <h3>Target:</h3>
       <p>
@@ -147,11 +147,11 @@
   <div id="generalsettings">
     <h3>General settings:</h3>
     <p>
-      <strong>{{ form.runmode.label }}</strong>  (--runmode)
+      <strong>Species:</strong>
+      <br>Identify species specific core gene sequences in the pan-genome and design specific primers. (Default)
       <br>
-      speciesprimer:  Identify species specific core gene sequences in the pan-genome and design specific primers.
-      <br>
-      strainprimer: Identify strain specific sequences in the pan-genome and design specific primers.
+      <strong>Strain:</strong>
+      <br>Identify strain specific sequences in the pan-genome and design specific primers. (Beta)
       <br>
       <br>
       Select multiple answers using Ctrl
@@ -193,7 +193,7 @@
     <p>
       <strong>{{ form.blastseqs.label }}</strong> (--blastseqs)
       <br>
-      lower values are recommended for computers with less than 16 GB of RAM.<br>
+      Lower values are recommended for computers with less than 16 GB of RAM.<br>
       higher values for fast computers with at least 32 GB RAM (can slightly increase the BLAST speed).
       See also: <a href="https://www.ncbi.nlm.nih.gov/books/NBK279668/" target="_blank">Section: Concatenation of queries</a>
       <br>
@@ -214,7 +214,9 @@
     <p>
       <strong>{{ form.submit.label }}</strong>
       <br>
-      {{ form.submit() }} {{ form.reset() }}
+      {{ form.submit() }}
+       <input type="reset">
+
     </p>
     </form>
 {% endblock %}

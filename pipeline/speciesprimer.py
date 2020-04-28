@@ -4198,19 +4198,13 @@ def run_pipeline_for_target(target, config):
 
         if "strain" in config.runmode:
             import strainprimer
-
             strainprimer.main(config)
-
-            msg = "Start strain specific primer design"
+            msg = "Start searching for strain specific primers"
             print(msg)
             G.logger(msg)
-#            from strainprimer import main
-#            from multiprocessing import Process
-#            ps = Process(target=main, args=(config,))
-#            ps.start()
-#            ps.join()
+
         if "species" in config.runmode:
-            msg = "Start species specific primer design"
+            msg = "Start searching for species specific primers"
             print(msg)
             G.logger(msg)
             CoreGenes(config).run_CoreGenes()

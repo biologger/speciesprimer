@@ -7,7 +7,7 @@ from wtforms import StringField, BooleanField, SubmitField
 from wtforms.fields import FieldList, SelectMultipleField, SelectField
 from wtforms.fields import IntegerField, FloatField
 from wtforms.fields.html5 import EmailField
-from wtforms.validators import DataRequired, Email, Optional, Length
+from wtforms.validators import DataRequired, Email, Length
 
 
 class LoginForm(FlaskForm):
@@ -92,7 +92,7 @@ class SettingsForm(FlaskForm):
     exception = FieldList(StringField(""), min_entries=1)
     minsize = IntegerField("Minimal Amplicon size", default=70)
     maxsize = IntegerField("Maximal Amplicon size", default=200)
-    probe = BooleanField("Pick internal hybridization oligo")
+    probe = BooleanField("Pick internal hybridization oligo", default=False)
     mfold = FloatField(
             "ΔG threshold for secondary structures in PCR products"
             " at 60°C calculated by mfold", default=-3.0)
@@ -104,11 +104,14 @@ class SettingsForm(FlaskForm):
             (80, "80"), (85, "85"), (90, "90"), (95, "95"), (100, "100")],
         default=90)
     ignore_qc = BooleanField(
-            "Include genomes that did not pass quality control")
-    intermediate = BooleanField("Do not delete intermediate files")
+            "Include genomes that did not pass quality control", default=False)
+    intermediate = BooleanField(
+            "Do not delete intermediate files", default=False)
 
-    virus = BooleanField("Do you want to design primers for a virus?")
-    genbank = BooleanField("Download genome assemblies from GenBank?")
+    virus = BooleanField(
+            "Do you want to design primers for a virus?", default=False)
+    genbank = BooleanField(
+            "Download genome assemblies from GenBank?", default=False)
     evalue = FloatField(
             "E-value threshold for BLAST search, all results with a lower "
             "value pass.", default=500)
@@ -123,7 +126,6 @@ class SettingsForm(FlaskForm):
     change_wd = StringField(
             "Change path of the working directory", default="/primerdesign")
     submit = SubmitField("Submit settings")
-    reset = SubmitField("Reset page")
 
 
 class ChangeSettingsForm(FlaskForm):
@@ -151,13 +153,13 @@ class DownloadDB(FlaskForm):
     update_refprok = SubmitField("Start download ref_prok_rep_genomes")
     update_blastdb = SubmitField("Start download nt")
     delete = BooleanField(
-            "Delete archive files after extraction", default=False)
+            "Delete archive files after extraction", default=True)
     whichdb = SelectField(
             "Select BLAST DB",
             choices=[
                 ("nt", "nt"),
                 ("ref_prok_rep_genomes", "ref_prok_rep_genomes")],
-            default="nt")
+            default="ref_prok_rep_genomes")
     get_blastdb = SubmitField("Start download")
 
 

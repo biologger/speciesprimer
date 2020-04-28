@@ -256,45 +256,6 @@ def update_db(sub_dict, target, data):
     return sub_dict
 
 
-def reset_settings(form):
-
-    print(form.exception.entries)
-    
-    for ent in form.exception.entries:
-        print(ent.data)
-
-#    form.strains.data = []
-    print(form.exception.data)
-    print(form.intermediate.data)
-
-    print(dir(form.exception))
-
-    form.exception.data = [""]
-    form.intermediate.data = False
-
-    (
-        form.minsize.data, form.maxsize.data, form.mpprimer.data,
-        form.exception.data, form.intermediate.data #,
-#        form.qc_gene.data, form.mfold.data, form.skip_download.data,
-#        form.assemblylevel.data, form.skip_tree.data, form.nolist.data,
-#        form.offline.data, form.ignore_qc.data, form.mfethreshold.data,
-#        form.customdb.data, form.blastseqs.data, form.probe.data,
-#        form.virus.data, form.genbank.data, form.evalue.data #,
-#        form.nuc_identity.data, form.runmode.data, form.strains.data
-    ) = (
-        70, 200, -3.5,
-        [''], False #,
-#        ["rRNA"], -3.0, False,
-#        ["all"], False, False,
-#        False, False, 90,
-#        None, 1000, False,
-#        False, False, 500 # ,
-#        0, [], []
-        )
-
-    return form
-
-
 def load_settings(tmp_db):
     for key in tmp_db['new_run']['targets']:
         target = key
@@ -365,7 +326,7 @@ def get_settings(form):
 
     if customdb == "":
         customdb = None
-    if strains == "":
+    if strains == [""]:
         strains = []
     if 'all' in assemblylevel:
         assemblylevel = ['all']
@@ -379,6 +340,7 @@ def get_settings(form):
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     target_choice_list, tmp_db = check_targets()
+
     if len(target_choice_list) == 0:
         flash("Press Start Primerdesign to start primer design")
         return redirect(url_for('controlrun'))
@@ -404,12 +366,6 @@ def settings():
         form.targets.choices = target_choice_list
 
     if form.validate_on_submit():
-        if form.reset.data is True:
-            reset_form = reset_settings(form)
-            return render_template(
-                            'settings.html', title='Settings for primerdesign',
-                            form=reset_form)
-
         settings_data = get_settings(form)
         if tmp_db['new_run']['same_settings']:
             for target in tmp_db['new_run']['targets']:  # for same settings
