@@ -2131,12 +2131,9 @@ class BlastParser:
                     "Due to changed settings primer design "
                     "and quality control will start from scratch")
                 info2 = "Differences in primer3 input:"
-                G.logger(info1)
-                G.logger(info2)
-                G.logger(diff)
-                print(info1)
-                print(info2)
-                print(diff)
+                for info in [info1, info2, diff]:
+                    G.logger(info)
+                    print(info)
                 primer_dir = os.path.join(self.results_dir, "primer")
                 if os.path.isdir(primer_dir):
                     G.logger("Delete primer directory")
@@ -2189,7 +2186,7 @@ class BlastParser:
                 " was detected. Please check"
                 " if the file was removed and start the run again")
             print("\n" + error_msg + "\n")
-            G.logger("> " + error_msg)
+            logging.error("> " + error_msg, exc_info=True)
             errors.append([self.target, error_msg])
             result_handle.close()
             os.remove(filename)
