@@ -293,26 +293,43 @@ def load_settings(tmp_db):
     return data
 
 
+def parse_string_to_list(inputdata, capitalize=False):
+    outlist = []
+    for item in inputdata:
+        subitem = item.split(",")
+        for i in subitem:
+            if capitalize:
+                i = i.strip().capitalize()
+            else:
+                i = i.strip()
+            outlist.append(i)
+    return outlist
+
+
 def get_settings(form):
     (
         minsize, maxsize, mpprimer,
-        exception, path, intermediate,
+        path, intermediate,
         qc_gene, mfold, skip_download,
         assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold,
         customdb, blastseqs, probe,
         virus, genbank, evalue,
-        nuc_identity, runmode, strains
+        nuc_identity, runmode
     ) = (
         form.minsize.data, form.maxsize.data, form.mpprimer.data,
-        form.exception.data, form.change_wd.data, form.intermediate.data,
+        form.change_wd.data, form.intermediate.data,
         form.qc_gene.data, form.mfold.data, form.skip_download.data,
         form.assemblylevel.data, form.skip_tree.data, form.nolist.data,
         form.offline.data, form.ignore_qc.data, form.mfethreshold.data,
         form.customdb.data, form.blastseqs.data, form.probe.data,
         form.virus.data, form.genbank.data, form.evalue.data,
-        form.nuc_identity.data, form.runmode.data, form.strains.data
+        form.nuc_identity.data, form.runmode.data
         )
+
+    strains = parse_string_to_list(form.strains.data, capitalize=False)
+    exception = parse_string_to_list(form.exception.data, capitalize=True)
+
     if offline:
         skip_download = True
         assemblylevel = ['offline']
