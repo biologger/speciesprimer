@@ -8,8 +8,18 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 [![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
 
-
-## Development branch
+New in SpeciesPrimer v2.2
+* Automatic download of genome assemblies from genbank
+* New filter options for specificity BLAST step
+	* Nucleotide identity
+	* E-value
+* New functions (Beta)
+	* Strainprimer: strain specific primer design
+	* Primer design for viruses
+* Removed blastdbv5 option
+	* v5 BLAST DB is the new standard
+	* Taxid filtering is not supported anymore (use customdb instead)
+* Bugfixes
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
@@ -17,6 +27,7 @@
 * [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
 	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
 	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
+* [Recent changes](https://github.com/biologger/speciesprimer/tree/master#recent-changes)
 * [Citation](https://github.com/biologger/speciesprimer/tree/master#citation)
 
 ## Docs
@@ -142,18 +153,23 @@ Python modules and software used for the GUI:
 |Section|Command line option [Input]|Description|Default|
 |--|--|--|--|
 |General| target [str]|Name of the target species|None (required)|
+|	|runmode|Design species and/or strain specific primers|species|
+|	|strains [str]|Select strains for strain specific primer design|None|
+|	|virus|Design primers for viruses|False|
 |	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|None|
 |	|path [str]|Absolute path of the working directory|Current working directory|
 |	|offline|Work offline with local genome assemblies|False|
 |	|skip\_download|Skips download of genome assemblies from NCBI RefSeq FTP server|False|
 |	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server|['all']|
+|	|genbank| Download also genome assemblies from the NCBI Genbank FTP server|False|
 |	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 |Limits all BLAST searches to taxid:2 (bacteria). Works only with version 5 BLAST databases. May increase speed.|False|
-|	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
+|	|nuc_identity [int] |Nucleotide identity threshold for BLAST search, all results with a lower value pass (specificty check) |0|
+|	|evalue [float]|E-value threshold for BLAST search, all results with a lower value pass (specificty check) |500|
 |	|intermediate|Select this option to keep intermediate files.|False|
 |	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
 |	|configfile [str]|Path to configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files|None|
+|	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
@@ -162,6 +178,18 @@ Python modules and software used for the GUI:
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
+
+## Recent changes
+
+#### SpeciesPrimer v2.1
+* Configfile option for pipeline setup (v2.1.1)
+* Custom Blast DB support
+* Email option for command line
+* Increased speed
+* Species synonyms are added to exceptions
+* Bugfixes and KeyboardInterrupt rollback
+* Simpler directory structure
+
 
 ## Citation
 If you use this software please cite:

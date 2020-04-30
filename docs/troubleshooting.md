@@ -1,20 +1,30 @@
 ## Troubleshooting
 
-#### nt BLAST DB  / nt BLAST DB version 5
+In case you do not find help for your problem here, see also the [issue section](https://github.com/biologger/speciesprimer/issues) on GitHub. Maybe there is already a possible solution or you can open a new issue.
 
-Because a new version of BLAST databases was released recently [(BLAST DB V5)](https://ftp.ncbi.nlm.nih.gov/blast/db/v5/blastdbv5.pdf), there are two versions of the nt database available. Therefore, if you have the BLAST DB nt version 5 then you should activate this option in the pipeline settings.
+#### Report bugs and problems
 
-If the blastdbv5 option is selected, the pipeline uses the __nt_v5.nal__ (alias) file to identify the different parts of the database. Otherwise, it looks for the __nt.nal__ file. For the blastn commands this changes the database command as follows.
+Please provide at least the error message and traceback
 
-		$blastn -db nt_v5 -query ... 	# new database
-		
-		# or
-		
-		$blastn -db nt -query ... 		# old database
+Please provide additional information that may be helpful to identify the problem whenever possible. For example:
 
-However, if you do want to have the "old" behaviour you can copy the __nt_v5.nal__ file in the blastdb directory and rename it to __nt.nal__. Then the BLAST searches will use the BLAST nt v5 without using the taxonomy awareness features.
+* PC specification
+	* OS (Virtual Machine or not)
+	* memory (RAM)
 
--------------------------------------------------------------------------------------------------------------
+* Version of SpeciesPrimer
+
+		speciesprimer.py -V
+
+* Run configuration
+
+		cat /primerdesign/Genus_species/config/config.json
+
+* Docker & SpeciesPrimer configuration, e.g.
+	* changed species_list, primer3 configuration
+	* BLAST DB, mapped ports for Docker
+
+
 #### GUI trouble
 
 * If pages are not loaded and an Error message appears.
@@ -26,8 +36,9 @@ However, if you do want to have the "old" behaviour you can copy the __nt_v5.nal
 		$ sudo docker ps
 
 Something like this should show up
-CONTAINER ID	IMAGE			COMMAND		CREATED		STATUS		PORTS						NAMES
-ae681870458a	biologger/speciesprimer   "/boot.sh"    2 weeks ago     Up 5 hours      0.0.0.0:5000->5000/tcp, 0.0.0.0:9001->9001/tcp  specprime2.1
+
+		CONTAINER ID	IMAGE			COMMAND		CREATED		STATUS		PORTS						NAMES
+		ae681870458a	biologger/speciesprimer   "/boot.sh"    2 weeks ago     Up 5 hours      0.0.0.0:5000->5000/tcp, 0.0.0.0:9001->9001/tcp  speciesprimer2.1
 
 2. Try to navigate to the login page and enter (again) your e-mail address.
 
@@ -43,7 +54,7 @@ If you want to help...
 
 	__example__:
 
-		$ sudo docker attach specprime2.1
+		$ sudo docker attach speciesprimer2.1
 
 * Repeat the action you did before the error page was shown and provide the error message in the attached terminal.
 
@@ -97,7 +108,7 @@ Now you are the owner and can move and delete the files and directories.
 ### Troubleshooting pipeline runs
 ------------------------------------------
 #### Primer quality control
-If the primer quality control gives many index errors the creation of the databases did probablly not work. Then the files ending with sqlite3.db are all of the size 2.0 kb, which means empty. The MFEprimer IndexDb.sh script uses the python2 psutil module. Try to install the psutil module, delete the primer_QC directory and try again. 
+If the primer quality control gives many index errors the creation of the databases did probablly not work. Then the files ending with sqlite3.db are all of the size 2.0 kb, which means empty. The MFEprimer IndexDb.sh script uses the python2 psutil module. Try to install the psutil module, delete the primer_QC directory and try again.
 
 ---------------------------------------------------------------------------------------------------
 #### "fatal error while working on {genus_species} check logfile "
@@ -114,19 +125,19 @@ The log file can be found in the primerdesign directory. It is named speciesprim
 
 ------------------------------------------------------------------------------------------------
 #### Naming of user provided genome assemblies
-* Do not use dots in the name (use filename.fna instead of file.name.fna) 
+* Do not use dots in the name (use filename.fna instead of file.name.fna)
 
 ----------------------------------------------------------------------------------
 #### Errors during download of genome assemblies
 
-		<urlopen error ftp error: TimeotError(110, 'Connection timed out')> 
+		<urlopen error ftp error: TimeotError(110, 'Connection timed out')>
 
-Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  __{genus_species}/config/config.json__ file. The pipeline will check the files already downloaded and will not try to download them again. 
+Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  __{genus_species}/config/config.json__ file. The pipeline will check the files already downloaded and will not try to download them again.
 
 ---------------------------------------------------------------------------
 #### Restart / continue stopped pipeline runs
 
-* With the graphic user interface navigate to the [primerdesign page](http://localhost:5000/primerdesign) and select the "Search" button. 
+* With the graphic user interface navigate to the [primerdesign page](http://localhost:5000/primerdesign) and select the "Search" button.
 
 * Type the path to the primerdesign directory
 
@@ -136,17 +147,17 @@ Sometimes it can happen (especially on Virtual Machines) that the internet conne
 
 * Hit the "Start Primerdesign" button to start
 
-The pipeline searches in the config directory for config.json files and continues the run 
+The pipeline searches in the config directory for config.json files and continues the run
 
  __Example:__
 
- 
+
 * Path to search for configuration files: __/primerdesign__
 * Search only configuration files for the selected species: __Lactobacillus curvatus__
 * --> SpeciesPrimer will search for config files in: __/primerdesign/Lactobacillus_curvatus/config__
 
 
-__Example:__ 
+__Example:__
 
 Restart the pipeline with the same configuration (commandline)
 
@@ -159,16 +170,16 @@ Restart the pipeline with the same configuration (commandline)
 		$ (Enter)
 		# Type the species name for which you would like to repeat the run
 		$ Lactobacillus curvatus
-		
+
 #### Error during quality control of genome assemblies
 
 		Error: No genomes survived QC
-		
+
 		# or
-		
+
 		Error: Less than two genomes survived QC
 
-You can check the results of the quality control in the __{genus_species}\_qc_sequences.csv__ file in the __"primerdesign/Summary"__ directory	
+You can check the results of the quality control in the __{genus_species}\_qc_sequences.csv__ file in the __"primerdesign/Summary"__ directory
 
 __Example:__
 
@@ -193,10 +204,10 @@ It could be that the nt database contains a sequence with a wrong species assign
 	* check the “{genus_species}\_qc\_sequences\_details.csv” file
 	* check the Hit DB_id (NCBI accession of the sequence of the BLAST hit)
 	* Go to NCBI and check e.g. by BLAST if the sequence is assigned to the correct species
-    
+
 
 3. Restart the run
-	* Go to the excludedassemblies directory and copy the removed assemblies you want to include back to the target species directory	
+	* Go to the excludedassemblies directory and copy the removed assemblies you want to include back to the target species directory
 	* Delete "excluded_list.txt" or remove the entries of the assemblies you want to keep.
 	* Add the GI of sequences in the nt database with wrong taxonomic classification to the NO_BLAST.gi file (see below)
 	* Alternatively, change the ignore_qc option to true (change settings (GUI) or in the config.json file)
@@ -208,7 +219,7 @@ It could be that the nt database contains a sequence with a wrong species assign
 
 				# remove the entries of the assemblies you want to keep.
 				$ nano /primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
-            	
+
 		* __Host__:            
 
 				$ gedit $HOME/primerdesign/excludedassemblies/Lactobacillus_curvatus/excluded_list.txt
@@ -222,14 +233,14 @@ In the summary directory and in the primerdesign/{species} directory, there is  
 * Check the phylogeny tree made from the core_gene_alignment file using SeaView or another graphical tree viewer. If there are genome assemblies which build distinct clusters maybe try to repeat the analysis without them.
 
 -----------------------------------------------------------------
-#### Thousands of primer are reported and primer QC takes forever 
-Probably you had only a few input genomes (2 are the minimum), however to identify relevant core genes it is better to use at least 10 input genomes. If the genome assemblies are very similar more conserved sequences are identified. 
+#### Thousands of primer are reported and primer QC takes forever
+Probably you had only a few input genomes (2 are the minimum), however to identify relevant core genes it is better to use at least 10 input genomes. If the genome assemblies are very similar more conserved sequences are identified.
 
 * Try to increase the number of input genomes
 * Select more stringent primer3 settings
 * Check if you have a proper selection of non-target species in the species list (some species closely related to the target and many others). (If not, to many sequences are identified as species specific)
 
---------------------------------------------------------------------------------	
+--------------------------------------------------------------------------------
 #### Exclude gene identifier (GI) from BLAST results
 
 __Example__
@@ -242,7 +253,29 @@ During parsing of BLAST results or the BLAST summary file the GIs of the nontarg
 * navigate to SpeciesPrimer settings [http://localhost:5000/pipelineconfig](http://localhost:5000/pipelineconfig)
 * Download the current NO_BLAST.gi file
 * Copy the Hit GI in the NO_BLAST.gi file and upload it
-	
-#### Taxonomic vagueness
-If many sequences in the nt database are historically or because of some other reasons wrongly assigned you can add the species name as an exception. The pipeline handles this species like the actual target species. 
 
+-------------------------------------------------------------------------------------------------------------
+#### Taxonomic vagueness
+If many sequences in the nt database are historically or because of some other reasons wrongly assigned you can add the species name as an exception. The pipeline handles this species like the actual target species.
+
+
+-------------------------------------------------------------------------------------------------------------
+#### nt BLAST DB  / nt BLAST DB version 5
+
+The version 5 of BLAST databases is now the standard version downloaded from the NCBI FTP server.
+The BLAST DBs do not longer have a \_v5 in the name.
+
+However, if you do want to work with and old nt database you can copy the __nt_v5.nal__ file in the blastdb directory and rename it to __nt.nal__.
+
+-------------------------------------------------------------------------------------------------------------
+#### Problems with BLAST results
+
+If a message like the one below is displayed and rerunning the pipeline does not solve the problem.
+
+		A problem with the BLAST results file
+		/primerdesign/Lactobacillus_curvatus/Pangenome/results/primer/primerblast/primer_1_results.xml
+		was detected. Please check if the file was removed and start the run again"
+
+The problem could be that the blastn process is stopped during writing of the results file.
+
+Try to select a lower blastseqs value (e.g. 500 instead of 1000) delete the entire __blast__ or __primerblast__ directory and restart the run.

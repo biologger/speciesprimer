@@ -2181,10 +2181,10 @@ class BlastParser:
             blast_records = NCBIXML.parse(result_handle)
             record_list = list(blast_records)
         except Exception:
-            error_msg = (
-                "A problem with the BLAST results file " + filename +
-                " was detected. Please check"
-                " if the file was removed and start the run again")
+            error_msg = " ".join([
+                "A problem with the BLAST results file",
+                filename, "was detected.",
+                "Please check if the file was removed and start the run again"])
             print("\n" + error_msg + "\n")
             logging.error("> " + error_msg, exc_info=True)
             errors.append([self.target, error_msg])
