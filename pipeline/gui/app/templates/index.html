@@ -121,6 +121,24 @@ If you have bug reports, issues or questions please open an issue on GitHub or w
 </tr>
 <tr>
 <td></td>
+<td>runmode</td>
+<td>Design species and/or strain specific primers</td>
+<td>species</td>
+</tr>
+<tr>
+<td></td>
+<td>strains [str]</td>
+<td>Select strains for strain specific primer design</td>
+<td>None</td>
+</tr>
+<tr>
+<td></td>
+<td>virus</td>
+<td>Design primers for viruses</td>
+<td>False</td>
+</tr>
+<tr>
+<td></td>
 <td>exception [str]</td>
 <td>Name of a non-target bacterial species for which primer binding is tolerated</td>
 <td>None</td>
@@ -151,6 +169,12 @@ If you have bug reports, issues or questions please open an issue on GitHub or w
 </tr>
 <tr>
 <td></td>
+<td>genbank</td>
+<td>Download also genome assemblies from the NCBI Genbank FTP server</td>
+<td>False</td>
+</tr>
+<tr>
+<td></td>
 <td>customdb [str]</td>
 <td>Use the NCBI ref_prok_rep_genomes database or any other BLAST DB</td>
 <td>None</td>
@@ -163,15 +187,15 @@ If you have bug reports, issues or questions please open an issue on GitHub or w
 </tr>
 <tr>
 <td></td>
-<td>blastdbv5</td>
-<td>Uses the nt_v5 database or a v5 custom DB and limits all BLAST searches to taxid:2 (bacteria). May increase speed.</td>
-<td>False</td>
+<td>nuc_identity [int]</td>
+<td>Nucleotide identity threshold for BLAST search, all results with a lower value pass (specificty check)</td>
+<td>0</td>
 </tr>
 <tr>
 <td></td>
-<td>*email [str]</td>
-<td>Provide your email in the command line to access NCBI. No input required during the run.</td>
-<td>None</td>
+<td>evalue [float]</td>
+<td>E-value threshold for BLAST search, all results with a lower value pass (specificty check)</td>
+<td>500</td>
 </tr>
 <tr>
 <td></td>
@@ -187,8 +211,14 @@ If you have bug reports, issues or questions please open an issue on GitHub or w
 </tr>
 <tr>
 <td></td>
-<td>*configfile [str]</td>
+<td>* configfile [str]</td>
 <td>Path to configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files</td>
+<td>None</td>
+</tr>
+<tr>
+<td></td>
+<td>email [str]</td>
+<td>Provide your email in the command line to access NCBI. No input required during the run.</td>
 <td>None</td>
 </tr>
 <tr>
