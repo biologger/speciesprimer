@@ -1,12 +1,12 @@
 ## Pipeline setup
 
-### Download the pre-formatted nucleotide collection (nt) BLAST database from NCBI
+### Download a BLAST database from NCBI
 
-If you do not yet have a local copy of the nucleotide collection (nt) BLAST database:
+If you do not yet have a local copy of a BLAST database:
 
 In your internetbrowser [http://localhost:5000](http://localhost:5000) Navigate to the BLAST DB link.
 
-To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.
+To download the database just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt or the ref\_prok\_rep_genomes BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.
 
 #### Troubleshooting:
 The script changes to the "/blastdb" directory in the container and runs the command below
@@ -82,19 +82,6 @@ __Example:__
 	  Pantoea agglomerans
 	  Pediococcus acidilactici
 	  ...
-
-------------------------
-
-### Optional:
-
-### Update the taxid list for the BLAST search with the nt BLAST database Version 5
-The taxid list contains all NCBI taxonomic ids for bacteria (NCBI:txid2). From time to time NCBI may add new taxids if new species are added.
-
-As an alternative if the __Entrez EDirect Utility__ and __the BLAST+ command line application__ are installed on the host computer, the __get_species_taxids.sh__ script from the BLAST+ program can be used to create this list.
-
-__Example__
-
-		$ get_species_taxids.sh -t 2 > /pipeline/dictionaries/2.txids
 
 ------------------------------------------------------
 ### Abbreviations of genus names

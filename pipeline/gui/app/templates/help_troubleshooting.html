@@ -10,15 +10,28 @@
   </head>
   <body>
     <article class="markdown-body"><h2 id="troubleshooting"><a class="header-link" href="#troubleshooting"></a>Troubleshooting</h2>
-<h4 id="nt-blast-db-/-nt-blast-db-version-5"><a class="header-link" href="#nt-blast-db-/-nt-blast-db-version-5"></a>nt BLAST DB  / nt BLAST DB version 5</h4>
-<p>Because a new version of BLAST databases was released recently <a href="https://ftp.ncbi.nlm.nih.gov/blast/db/v5/blastdbv5.pdf">(BLAST DB V5)</a>, there are two versions of the nt database available. Therefore, if you have the BLAST DB nt version 5 then you should activate this option in the pipeline settings.</p>
-<p>If the blastdbv5 option is selected, the pipeline uses the <strong>nt_v5.nal</strong> (alias) file to identify the different parts of the database. Otherwise, it looks for the <strong>nt.nal</strong> file. For the blastn commands this changes the database command as follows.</p>
-<pre class="hljs"><code>    <span class="hljs-variable">$blastn</span> -<span class="hljs-keyword">db</span> nt_v5 -<span class="hljs-keyword">query</span> ...     # new database
-
-    # or
-
-    <span class="hljs-variable">$blastn</span> -<span class="hljs-keyword">db</span> nt -<span class="hljs-keyword">query</span> ...         # old database</code></pre><p>However, if you do want to have the &quot;old&quot; behaviour you can copy the <strong>nt_v5.nal</strong> file in the blastdb directory and rename it to <strong>nt.nal</strong>. Then the BLAST searches will use the BLAST nt v5 without using the taxonomy awareness features.</p>
-<hr>
+<p>In case you do not find help for your problem here, see also the <a href="https://github.com/biologger/speciesprimer/issues">issue section</a> on GitHub. Maybe there is already a possible solution or you can open a new issue.</p>
+<h4 id="report-bugs-and-problems"><a class="header-link" href="#report-bugs-and-problems"></a>Report bugs and problems</h4>
+<p>Please provide at least the error message and traceback</p>
+<p>Please provide additional information that may be helpful to identify the problem whenever possible. For example:</p>
+<ul class="list">
+<li><p>PC specification</p>
+<ul class="list">
+<li>OS (Virtual Machine or not)</li>
+<li>memory (RAM)</li>
+</ul>
+</li>
+<li><p>Version of SpeciesPrimer</p>
+<pre class="hljs"><code>  speciesprimer<span class="hljs-selector-class">.py</span> -V</code></pre></li>
+<li><p>Run configuration</p>
+<pre class="hljs"><code>  cat /primerdesign/Genus_species/<span class="hljs-built_in">config</span>/<span class="hljs-built_in">config</span>.json</code></pre></li>
+<li><p>Docker &amp; SpeciesPrimer configuration, e.g.</p>
+<ul class="list">
+<li>changed species_list, primer3 configuration</li>
+<li>BLAST DB, mapped ports for Docker</li>
+</ul>
+</li>
+</ul>
 <h4 id="gui-trouble"><a class="header-link" href="#gui-trouble"></a>GUI trouble</h4>
 <ul class="list">
 <li><p>If pages are not loaded and an Error message appears.</p>
@@ -27,10 +40,9 @@
 <p> <strong>HOST:</strong></p>
 <pre class="hljs"><code> <span class="hljs-variable">$ </span>sudo docker ps</code></pre></li>
 </ul>
-<p>Something like this should show up
-CONTAINER ID    IMAGE            COMMAND        CREATED        STATUS        PORTS                        NAMES
-ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago     Up 5 hours      0.0.0.0:5000-&gt;5000/tcp, 0.0.0.0:9001-&gt;9001/tcp  specprime2.1</p>
-<ol start="2">
+<p>Something like this should show up</p>
+<pre class="hljs"><code>    CONTAINER ID    IMAGE            COMMAND        CREATED        STATUS        PORTS                        NAMES
+    ae681870458a    biologger/speciesprimer   <span class="hljs-string">"/boot.sh"</span>    <span class="hljs-number">2</span> weeks ago     <span class="hljs-meta">Up</span> <span class="hljs-number">5</span> hours      <span class="hljs-number">0.0</span><span class="hljs-meta">.0</span><span class="hljs-meta">.0</span>:<span class="hljs-number">5000</span>-&gt;<span class="hljs-number">5000</span>/tcp, <span class="hljs-number">0.0</span><span class="hljs-meta">.0</span><span class="hljs-meta">.0</span>:<span class="hljs-number">9001</span>-&gt;<span class="hljs-number">9001</span>/tcp  speciesprimer2<span class="hljs-meta">.1</span></code></pre><ol start="2">
 <li><p>Try to navigate to the login page and enter (again) your e-mail address.</p>
 </li>
 <li><p>If this does not help...There could be a problem with the code. Please write to <a href="mailto:biologger@protonmail.com">biologger@protonmail.com</a> or on GitHub <a href="https://github.com/biologger/speciesprimer">https://github.com/biologger/speciesprimer</a></p>
@@ -41,7 +53,7 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 <li><p>Open a new terminal and type:</p>
 <p>  <strong>HOST:</strong></p>
 <pre class="hljs"><code>  $ sudo docker attach {containerid/<span class="hljs-built_in">name</span>}</code></pre><p>  <strong>example</strong>:</p>
-<pre class="hljs"><code>  $ sudo docker <span class="hljs-section">attach</span> specprime2<span class="hljs-number">.1</span></code></pre></li>
+<pre class="hljs"><code>  $ sudo docker <span class="hljs-section">attach</span> speciesprimer2<span class="hljs-number">.1</span></code></pre></li>
 <li><p>Repeat the action you did before the error page was shown and provide the error message in the attached terminal.</p>
 <p>  <strong>example</strong>:</p>
 <pre class="hljs"><code>  [2019-11-21 14:55:53,018] <span class="hljs-keyword">ERROR</span> <span class="hljs-keyword">in</span> <span class="hljs-keyword">app</span>: Exception <span class="hljs-keyword">on</span> /change_settings [<span class="hljs-keyword">POST</span>]
@@ -85,7 +97,7 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 <h3 id="troubleshooting-pipeline-runs"><a class="header-link" href="#troubleshooting-pipeline-runs"></a>Troubleshooting pipeline runs</h3>
 <hr>
 <h4 id="primer-quality-control"><a class="header-link" href="#primer-quality-control"></a>Primer quality control</h4>
-<p>If the primer quality control gives many index errors the creation of the databases did probablly not work. Then the files ending with sqlite3.db are all of the size 2.0 kb, which means empty. The MFEprimer IndexDb.sh script uses the python2 psutil module. Try to install the psutil module, delete the primer_QC directory and try again. </p>
+<p>If the primer quality control gives many index errors the creation of the databases did probablly not work. Then the files ending with sqlite3.db are all of the size 2.0 kb, which means empty. The MFEprimer IndexDb.sh script uses the python2 psutil module. Try to install the psutil module, delete the primer_QC directory and try again.</p>
 <hr>
 <h4 id=""fatal-error-while-working-on-{genus_species}-check-logfile-""><a class="header-link" href="#"fatal-error-while-working-on-{genus_species}-check-logfile-""></a>&quot;fatal error while working on {genus_species} check logfile &quot;</h4>
 <p>This error is shown if the speciesprimer.py script was started via the terminal.</p>
@@ -98,15 +110,15 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 <hr>
 <h4 id="naming-of-user-provided-genome-assemblies"><a class="header-link" href="#naming-of-user-provided-genome-assemblies"></a>Naming of user provided genome assemblies</h4>
 <ul class="list">
-<li>Do not use dots in the name (use filename.fna instead of file.name.fna) </li>
+<li>Do not use dots in the name (use filename.fna instead of file.name.fna)</li>
 </ul>
 <hr>
 <h4 id="errors-during-download-of-genome-assemblies"><a class="header-link" href="#errors-during-download-of-genome-assemblies"></a>Errors during download of genome assemblies</h4>
-<pre class="hljs"><code>    &lt;urlopen <span class="hljs-literal">error</span> ftp <span class="hljs-literal">error</span>: TimeotError(<span class="hljs-number">110</span>, <span class="hljs-symbol">'Connection</span> timed <span class="hljs-keyword">out</span>')&gt; </code></pre><p>Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  <strong>{genus_species}/config/config.json</strong> file. The pipeline will check the files already downloaded and will not try to download them again. </p>
+<pre class="hljs"><code>    &lt;urlopen <span class="hljs-literal">error</span> ftp <span class="hljs-literal">error</span>: TimeotError(<span class="hljs-number">110</span>, <span class="hljs-symbol">'Connection</span> timed <span class="hljs-keyword">out</span>')&gt;</code></pre><p>Sometimes it can happen (especially on Virtual Machines) that the internet connection is interrupted for some seconds. Just restart the pipeline and it should work again. The configuration selected for the pipeline run has been saved in the  <strong>{genus_species}/config/config.json</strong> file. The pipeline will check the files already downloaded and will not try to download them again.</p>
 <hr>
 <h4 id="restart-/-continue-stopped-pipeline-runs"><a class="header-link" href="#restart-/-continue-stopped-pipeline-runs"></a>Restart / continue stopped pipeline runs</h4>
 <ul class="list">
-<li><p>With the graphic user interface navigate to the <a href="http://localhost:5000/primerdesign">primerdesign page</a> and select the &quot;Search&quot; button. </p>
+<li><p>With the graphic user interface navigate to the <a href="http://localhost:5000/primerdesign">primerdesign page</a> and select the &quot;Search&quot; button.</p>
 </li>
 <li><p>Type the path to the primerdesign directory</p>
 </li>
@@ -117,14 +129,14 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 <li><p>Hit the &quot;Start Primerdesign&quot; button to start</p>
 </li>
 </ul>
-<p>The pipeline searches in the config directory for config.json files and continues the run </p>
+<p>The pipeline searches in the config directory for config.json files and continues the run</p>
 <p> <strong>Example:</strong></p>
 <ul class="list">
 <li>Path to search for configuration files: <strong>/primerdesign</strong></li>
 <li>Search only configuration files for the selected species: <strong>Lactobacillus curvatus</strong></li>
 <li>--&gt; SpeciesPrimer will search for config files in: <strong>/primerdesign/Lactobacillus_curvatus/config</strong></li>
 </ul>
-<p><strong>Example:</strong> </p>
+<p><strong>Example:</strong></p>
 <p>Restart the pipeline with the same configuration (commandline)</p>
 <pre class="hljs"><code>    <span class="hljs-variable">$ </span>speciesprimer.py
     <span class="hljs-comment"># select start</span>
@@ -139,7 +151,7 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 
 <span class="cmake">    <span class="hljs-comment"># or</span>
 
-    Error: <span class="hljs-keyword">Less</span> than two genomes survived QC</span></code></pre><p>You can check the results of the quality control in the <strong>{genus_species}_qc_sequences.csv</strong> file in the <strong>&quot;primerdesign/Summary&quot;</strong> directory    </p>
+    Error: <span class="hljs-keyword">Less</span> than two genomes survived QC</span></code></pre><p>You can check the results of the quality control in the <strong>{genus_species}_qc_sequences.csv</strong> file in the <strong>&quot;primerdesign/Summary&quot;</strong> directory</p>
 <p><strong>Example:</strong></p>
 <ul class="list">
 <li><p><strong>primerdesign/Summary/Lactobacillus_curvatus/Lb_curva_qc_sequences.csv</strong></p>
@@ -198,7 +210,7 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 <ol start="3">
 <li><p>Restart the run</p>
 <ul class="list">
-<li>Go to the excludedassemblies directory and copy the removed assemblies you want to include back to the target species directory    </li>
+<li>Go to the excludedassemblies directory and copy the removed assemblies you want to include back to the target species directory</li>
 <li>Delete &quot;excluded_list.txt&quot; or remove the entries of the assemblies you want to keep.</li>
 <li>Add the GI of sequences in the nt database with wrong taxonomic classification to the NO_BLAST.gi file (see below)</li>
 <li>Alternatively, change the ignore_qc option to true (change settings (GUI) or in the config.json file)</li>
@@ -225,7 +237,7 @@ ae681870458a    biologger/speciesprimer   &quot;/boot.sh&quot;    2 weeks ago   
 </ul>
 <hr>
 <h4 id="thousands-of-primer-are-reported-and-primer-qc-takes-forever"><a class="header-link" href="#thousands-of-primer-are-reported-and-primer-qc-takes-forever"></a>Thousands of primer are reported and primer QC takes forever</h4>
-<p>Probably you had only a few input genomes (2 are the minimum), however to identify relevant core genes it is better to use at least 10 input genomes. If the genome assemblies are very similar more conserved sequences are identified. </p>
+<p>Probably you had only a few input genomes (2 are the minimum), however to identify relevant core genes it is better to use at least 10 input genomes. If the genome assemblies are very similar more conserved sequences are identified.</p>
 <ul class="list">
 <li>Try to increase the number of input genomes</li>
 <li>Select more stringent primer3 settings</li>
@@ -242,8 +254,21 @@ If we see there a GI and a species name different from Lactobacillus curvatus wi
 <li>Download the current NO_BLAST.gi file</li>
 <li>Copy the Hit GI in the NO_BLAST.gi file and upload it</li>
 </ul>
+<hr>
 <h4 id="taxonomic-vagueness"><a class="header-link" href="#taxonomic-vagueness"></a>Taxonomic vagueness</h4>
-<p>If many sequences in the nt database are historically or because of some other reasons wrongly assigned you can add the species name as an exception. The pipeline handles this species like the actual target species. </p>
+<p>If many sequences in the nt database are historically or because of some other reasons wrongly assigned you can add the species name as an exception. The pipeline handles this species like the actual target species.</p>
+<hr>
+<h4 id="nt-blast-db-/-nt-blast-db-version-5"><a class="header-link" href="#nt-blast-db-/-nt-blast-db-version-5"></a>nt BLAST DB  / nt BLAST DB version 5</h4>
+<p>The version 5 of BLAST databases is now the standard version downloaded from the NCBI FTP server.
+The BLAST DBs do not longer have a _v5 in the name.</p>
+<p>However, if you do want to work with and old nt database you can copy the <strong>nt_v5.nal</strong> file in the blastdb directory and rename it to <strong>nt.nal</strong>.</p>
+<hr>
+<h4 id="problems-with-blast-results"><a class="header-link" href="#problems-with-blast-results"></a>Problems with BLAST results</h4>
+<p>If a message like the one below is displayed and rerunning the pipeline does not solve the problem.</p>
+<pre class="hljs"><code>    A problem with the BLAST results file
+    /primerdesign/Lactobacillus_curvatus/Pangenome/results/primer/primerblast/primer_1_results.xml
+    was detected. Please<span class="hljs-built_in"> check </span>if the file was removed<span class="hljs-built_in"> and </span>start the run again<span class="hljs-string">"</span></code></pre><p>The problem could be that the blastn process is stopped during writing of the results file.</p>
+<p>Try to select a lower blastseqs value (e.g. 500 instead of 1000) delete the entire <strong>blast</strong> or <strong>primerblast</strong> directory and restart the run.</p>
     </article>
   </body>
 </html>

@@ -31,13 +31,14 @@ New in SpeciesPrimer v2.2
 * [Citation](https://github.com/biologger/speciesprimer/tree/master#citation)
 
 ## Docs
+* [Table of contents](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/tableofcontents.md)
 * [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/tutorial.md)
-* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/speciesprimerv2.2/docs/cmdlineonly.md)
 * [Pipeline setup](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/pipelinesetup.md)
 * [Primerdesign](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/primerdesign.md)
 * [Troubleshooting](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/troubleshooting.md)
 * [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/customdbtutorial.md)
-* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockertroubleshooting.md)
+* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/speciesprimerv2.2/docs/cmdlineonly.md)
+* [Troubleshooting Docker](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockertroubleshooting.md)
 * [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockerproxy.md)
 
 ## Minimum system requirements

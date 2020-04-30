@@ -15,7 +15,7 @@
 |docker attach \{container\} | attach to a container terminal |
 |docker exec -it \{container\} bash | open a new terminal in a running container |
 
-#### Conflict with the container name or with the ports
+#### Conflict with container name or port
 	"docker: Error response from daemon: Conflict. The container name "/speciesprimer_pipeline" is already in use by container 	"e9d0de003ce8eff06b34f8f46e4934797052e16dcdbd7e60214d05ea3828a70", You have to remove (or rename) that container to be able to reuse that name"
 
 or
@@ -24,20 +24,20 @@ or
 
 1. Display your containers
 	* __HOST:__
- 
+
 			$ sudo docker ps -a
 
 2. Stop the container with the container ID or the container name
-	* 
- 			
+	*
+
 			$ sudo docker stop {ContainerID/containername}
 
 3. Delete the container
-	* 
- 			
+	*
+
 			$ sudo docker rm {ContainerID/containername}
- 		
- 
+
+
 
 Now you can try again to create a container with the sudo docker run command
 
@@ -58,7 +58,7 @@ __Example:__
 		-v /home/biologger/primerdesign:/primerdesign \
 		-p 5000:5000 -p 9001:9001 \
 		--name speciesprimer_pipeline -it biologger/speciesprimer
-		
+
 
 ## Docker setup
 
@@ -69,37 +69,37 @@ see the docs for installation instructions <https://docs.docker.com/>
 ### Download images from docker hub
 
 1. Open a terminal:
-		
+
 	* __HOST:__
-  
+
 			$ sudo docker pull biologger/speciesprimer
 
 2. Now you have the image, you can display the image with
 
 	* __HOST:__
-  
+
 			$ sudo docker images
 
 3. If there is more than one image from the repository __biologger/speciesprimer__, you can remove the image with the <none\> Tag
 
  	* __HOST:__
- 
+
 			$ sudo docker rmi {image_id}
- 		
+
 ### Choose directories
 
 1. Decide which directories (on the host) should be used by the container
 
-* If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path\_to\_host\_blastdb_dir:/blastdb) 
+* If the pre-formatted nucleotide (nt) database from NCBI is already downloaded and unpacked on your computer, just add the path to the directory in the docker run command (-v path\_to\_host\_blastdb_dir:/blastdb)
 
 * Create a directory for primerdesign and one for the BLAST database
 
 * __Example:__
 
 	* Create two new directories in the home directory
- 
+
  	* __HOST:__
-	
+
  			# one for the primer design files
 			$ mkdir /home/biologger/primerdesign
   			# one for the nucleotide blast database
@@ -135,7 +135,7 @@ In the terminal you see that the server in the container was started.
 Afterwards you can open the address [http://localhost:5000] or what port you have choosen for {hostport1} in your webbrowser.
 
 #### docker stop		
-You can shutdown the container by opening a terminal and the command 
+You can shutdown the container by opening a terminal and the command
 
         $ sudo docker stop {containername/id}
 
@@ -147,7 +147,7 @@ __Example:__
 
 #### docker start        
 The next time you do not have to repeat the docker run command (this would create a new container, without your modified settings)
-Instead you simply start the container with the command 
+Instead you simply start the container with the command
 
         $ sudo docker start {containername/id}
 
@@ -156,7 +156,7 @@ __Example:__
 * __HOST:__
 
         $ sudo docker start speciesprimer_pipeline
-        
+
 Afterwards you can open the address [http://localhost:5000] or what port you have choosen for {hostport1} in your webbrowser.
 
 #### docker attach
@@ -169,12 +169,12 @@ __Example:__
 * __HOST:__
 
         $ sudo docker attach speciesprimer_pipeline
-        
+
 #### docker exec
 If you w to access the container with the terminal you can use (the -it option is for the interactive terminal)
 
         $ sudo docker exec -it {containername/id} bash
-        
+
 __Example:__
 
 * __HOST:__
@@ -189,54 +189,54 @@ __Example:__
 * __CONTAINER:__
 
         $ exit
-        
+
 
 ### Test the container
 
-If not already started 
+If not already started
 
-$ sudo docker start {containername/id} 
+$ sudo docker start {containername/id}
 
 $ sudo docker exec -it {containername/id} bash
 
 If you see __root@{containerID}:/primerdesign#__ in the terminal, you have now access to the terminal of the container.
 
-Test if you have mounted the volumes correctly 
+Test if you have mounted the volumes correctly
 
 * __CONTAINER:__
-  
+
 		$ echo test > test.txt
 
 	* Check if you find test.txt
-  
-			$ ls -l	
-  	 
+
+			$ ls -l
+
 * __HOST:__
 
 	* Check if you find test.txt on the host
-  
+
 			$ ls -l /home/{linux_username}/primerdesign
 
 If you want to delete this test.txt file there are two options
 
-1. Do it in the container 
+1. Do it in the container
 	* __CONTAINER:__
- 
+
 			$ rm test.txt
 
 2. Do it on the host
  	* Change the owner of the files in the primerdesign directory on the host (recursively).
 
  	* __HOST:__
- 
+
 			$ sudo chown -R {linux_username} {path_to_primerdesign_dir}
- 
+
 	 * Now you can move and delete the files and directories.
 
 	__Example__:
 
 	* __HOST:__
- 
+
 			$ sudo chown -R biologger /home/biologger/primerdesign
 
 ### Time settings
@@ -246,16 +246,14 @@ Run a container with your local time settings
 		-v $HOME/blastdb:/blastdb -v $HOME/primerdesign:/primerdesign \
 		--name speciesprimertime -p 5000:5000 -p 9001:9001 -it biologger/speciesprimer
 
-Or in an existing container 
+Or in an existing container
 
  	* __HOST:__
 
-			$ sudo docker start {containername/id} 
+			$ sudo docker start {containername/id}
 
 			$ sudo docker exec -it {containername/id} bash
 
 	* __CONTAINER:__
 
 			$ dpkg-reconfigure tzdata
-
-

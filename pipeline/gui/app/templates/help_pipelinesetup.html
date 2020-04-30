@@ -10,10 +10,10 @@
   </head>
   <body>
     <article class="markdown-body"><h2 id="pipeline-setup"><a class="header-link" href="#pipeline-setup"></a>Pipeline setup</h2>
-<h3 id="download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"><a class="header-link" href="#download-the-pre-formatted-nucleotide-collection-(nt)-blast-database-from-ncbi"></a>Download the pre-formatted nucleotide collection (nt) BLAST database from NCBI</h3>
-<p>If you do not yet have a local copy of the nucleotide collection (nt) BLAST database:</p>
+<h3 id="download-a-blast-database-from-ncbi"><a class="header-link" href="#download-a-blast-database-from-ncbi"></a>Download a BLAST database from NCBI</h3>
+<p>If you do not yet have a local copy of a BLAST database:</p>
 <p>In your internetbrowser <a href="http://localhost:5000">http://localhost:5000</a> Navigate to the BLAST DB link.</p>
-<p>To download the database with the update_blastdb perl script just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
+<p>To download the database just click on the Start download button below. On the next page Click Start Blast DB download. This will download the pre-formatted nt or the ref_prok_rep_genomes BLAST database from NCBI to your blastdb directory (specified with the docker run command). You can follow the progress by clicking stream log in new tab.</p>
 <h4 id="troubleshooting:"><a class="header-link" href="#troubleshooting:"></a>Troubleshooting:</h4>
 <p>The script changes to the &quot;/blastdb&quot; directory in the container and runs the command below
 (the default version of BLAST DBs for BLAST+ is 5)</p>
@@ -71,12 +71,6 @@ Keep a copy of your adapted files on your host computer in case you want to use 
 </li>
 </ul>
 <hr>
-<h3 id="optional:"><a class="header-link" href="#optional:"></a>Optional:</h3>
-<h3 id="update-the-taxid-list-for-the-blast-search-with-the-nt-blast-database-version-5"><a class="header-link" href="#update-the-taxid-list-for-the-blast-search-with-the-nt-blast-database-version-5"></a>Update the taxid list for the BLAST search with the nt BLAST database Version 5</h3>
-<p>The taxid list contains all NCBI taxonomic ids for bacteria (NCBI:txid2). From time to time NCBI may add new taxids if new species are added.</p>
-<p>As an alternative if the <strong>Entrez EDirect Utility</strong> and <strong>the BLAST+ command line application</strong> are installed on the host computer, the <strong>get_species_taxids.sh</strong> script from the BLAST+ program can be used to create this list.</p>
-<p><strong>Example</strong></p>
-<pre class="hljs"><code>    <span class="hljs-variable">$ </span>get_species_taxids.sh -t <span class="hljs-number">2</span> &gt; <span class="hljs-regexp">/pipeline/dictionaries</span><span class="hljs-regexp">/2.txids</span></code></pre><hr>
 <h3 id="abbreviations-of-genus-names"><a class="header-link" href="#abbreviations-of-genus-names"></a>Abbreviations of genus names</h3>
 <p>If you wish to use abbreviations of genus names for the pipeline output files,
 add the genus name and the desired abbreviation to the &quot;<strong>genus_abbrev.csv</strong>&quot; file.</p>
