@@ -512,7 +512,7 @@ class DataCollection():
         def start_prokka(filename, fna):
             date = time.strftime("%Y%m%d")
             if self.config.virus:
-                genus = self.target.split("_")[-1]
+                genus = 'Genus'
                 kingdom = "Viruses"
             else:
                 genus = self.target.split("_")[0]
@@ -1207,7 +1207,7 @@ class QualityControl:
                         if re.search(search_str, file_name):
                             x = '_'.join(file_name.split("_")[0:-1])
                             if x == item:
-                                info = "remove" + str(file_name)
+                                info = "remove " + str(file_name)
                                 G.logger(info)
                                 os.remove(os.path.join(root, file_name))
         remove_directories()
@@ -1299,6 +1299,9 @@ class PangenomeAnalysis:
                 roary_cmd.remove("-e")
             if "-n" in roary_cmd:
                 roary_cmd.remove("-n")
+        if self.config.virus:
+           roary_cmd.insert(-1, "-t")
+           roary_cmd.insert(-1, str(1))
         try:
             G.run_shell(
                 " ".join(roary_cmd), printcmd=True, logcmd=True, log=True)
@@ -4195,10 +4198,10 @@ def run_pipeline_for_target(target, config):
 
         if "strain" in config.runmode:
             import strainprimer
-            strainprimer.main(config)
             msg = "Start searching for strain specific primers"
             print(msg)
             G.logger(msg)
+            strainprimer.main(config)
 
         if "species" in config.runmode:
             msg = "Start searching for species specific primers"

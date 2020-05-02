@@ -239,7 +239,8 @@ class Input:
                     self.config_dict[target].update({"exception": exception})
                 print("exception", exception)
 
-    def get_single(self, target, index, listlen):
+
+    def get_strains(self, target, index, listlen):
         if "strains" not in self.config_dict[target].keys():
             strains = []
             if "strain" in self.config_dict[target]["runmode"]:
@@ -398,7 +399,7 @@ class Input:
             self.get_customdb(target, i, listlen)
             for item in setlist:
                 self.get_userinput(target, i, listlen, item)
-            self.get_single(target, i, listlen)
+            self.get_strains(target, i, listlen)
 
         for target in self.target_list:
             self.write_config_file(target)
