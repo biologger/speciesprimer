@@ -231,7 +231,7 @@ class DataCollection():
                 term="txid" + str(taxid) + "[Orgn]",
                 retmax=maxrecords)
 
-            assembly_record = Entrez.read(assembly_search)
+            assembly_record = Entrez.read(assembly_search, validate=False)
             uidlist = assembly_record["IdList"]
             assembly_efetch = Entrez.efetch(
                 db="assembly",
@@ -239,7 +239,7 @@ class DataCollection():
                 rettype="docsum",
                 retmode="xml")
 
-            assembly_records = Entrez.read(assembly_efetch)
+            assembly_records = Entrez.read(assembly_efetch, validate=False)
 
             with open("genomicdata.json", "w") as f:
                 f.write(json.dumps(assembly_records))

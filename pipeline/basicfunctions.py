@@ -344,7 +344,7 @@ class HelperFunctions:
         try:
             Entrez.email = email
             searchtaxid = Entrez.esearch(db="taxonomy", term=target)
-            taxidresult = Entrez.read(searchtaxid)
+            taxidresult = Entrez.read(searchtaxid, validate=False)
             taxid = taxidresult["IdList"]
             if len(taxid) == 1:
                 return taxid[0]
@@ -368,7 +368,7 @@ class HelperFunctions:
         Entrez.email = email
         try:
             searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
-            synresult = Entrez.read(searchsyn)
+            synresult = Entrez.read(searchsyn, validate=False)
             scienctificname = synresult[0]['ScientificName']
             synonym = synresult[0]['OtherNames']['Synonym']
             includes = synresult[0]['OtherNames']['Includes']
