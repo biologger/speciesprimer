@@ -244,9 +244,15 @@ def extract_archives(dbfile, conf):
         if len(extract_archive) > 0:
             for archive in extract_archive:
                 logger("Extract archive " + dbfile)
-                tar = tarfile.open(dbfile)
-                tar.extractall()
-                tar.close()
+                with tarfile.TarFile(dbfile, 'r', errorlevel=1) as tar:
+                    for file_ in tar:
+                        try:
+                            tar.extract(file_)
+                        except IOError as e:
+                            os.remove(file_.name)
+                            tar.extract(file_)
+                        finally:
+                            os.chmod(file_.name, file_.mode)
                 check_extract = []
                 for end in conf.extract_end:
                     if dbfile.split(".tar.gz")[0] + end in os.listdir("."):
