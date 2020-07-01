@@ -118,10 +118,9 @@ strains = (
 intermediate = (
     "Do you want to keep intermediate files?\ndefault=(n)\n> ")
 nolist = (
-    "Do you want to perform specificity check without the "
-    "(non-target) species list (for all sequences in the DB)?"
-    "\nNot recommended for nt DB! May be used with a custom DB"
-    "\ndefault=(n)\n> ")
+    "Do you want to perform specificity check without the (non-target) species "
+    "list (for all sequences in the DB)?\nNot recommended for nt DB! May be "
+    "used with a custom DB\n(y)es/(n)o, default=(n)\n> ")
 forall = (
     "Use this value for all targets?\n(y)es/(n)o, default=(y)\n> ")
 targets = (
