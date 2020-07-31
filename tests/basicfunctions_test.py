@@ -239,8 +239,11 @@ def test_run_parallel_exceptions():
 def test_subspecies_handler():
     outcome = [
             "lactis_subsp_lactis", "lactis subsp. lactis",
-            "enterica", "enterica"]
-    targets = ["Lactococcus_lactis_subsp_lactis", "Salmonella_enterica"]
+            "enterica", "enterica",
+            "syringae_pv_syringae", "syringae pv. syringae"]
+    targets = [
+        "Lactococcus_lactis_subsp_lactis", "Salmonella_enterica",
+        "Pseudomonas_syringae_pv_syringae"]
     modes = ["underscore", "space"]
     outnum = 0
     for target in targets:

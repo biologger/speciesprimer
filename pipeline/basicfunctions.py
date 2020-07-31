@@ -286,6 +286,15 @@ class HelperFunctions:
                 species = (
                     target.split("_")[1] + " subsp. "
                     + target.split("_")[3])
+        elif "_pv_" in target:
+            if mode == "underscore":
+                species = (
+                    target.split("_")[1] + "_pv_"
+                    + target.split("_")[3])
+            if mode == "space":
+                species = (
+                    target.split("_")[1] + " pv. "
+                    + target.split("_")[3])
         else:
             species = target.split("_")[1]
         return species

@@ -2035,6 +2035,8 @@ class BlastParser:
             if len(name) >= 3:
                 if "subsp" in str(" ".join(name)):
                     identity = str(" ".join(name[0:4]))
+                elif "pv" in str(" ".join(name)):
+                    identity = str(" ".join(name[0:4]))
                 else:
                     identity = str(" ".join(name[0:2]))
             else:
@@ -2260,6 +2262,9 @@ class BlastParser:
                     if "subsp" in self.target:
                         targetspecies = (
                             "subsp.".join(targetspecies.split("subsp")))
+                    if "pv" in self.target:
+                        targetspecies = (
+                            "pv.".join(targetspecies.split("pv")))
 
                     if not (
                         str(aln_data[0]) == str(targetspecies) or
