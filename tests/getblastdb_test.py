@@ -36,6 +36,8 @@ testfiles_dir = os.path.join(BASE_PATH, "testfiles")
 ref_data = os.path.join(BASE_PATH, "testfiles", "ref")
 reference_dict = os.path.join(ref_data, "reference_config.json")
 
+mockends = [".nhr", ".nin", ".nnd", ".nni", ".nsq", ".nog"]
+
 @pytest.fixture
 def delete_config():
     db = "ref_prok_rep_genomes"
@@ -63,11 +65,6 @@ def create_mock_archives():
     for i in range(0, 6):
         num = "{:02d}".format(i)
         filestart = "ref_prok_rep_genomes." + num
-        mockends = [
-            ".nhr", ".nni",
-            ".nsi", ".nin",
-            ".nog", ".nsq",
-            ".nnd", ".nsd"]
         archive = "ref_prok_rep_genomes." + num + ".tar.gz"
         os.chdir(tmpdir)
         with tarfile.open(archive, "w:gz") as tar:
@@ -166,11 +163,6 @@ def check_all_files():
     for i in range(0, 6):
         num = "{:02d}".format(i)
         filestart = "ref_prok_rep_genomes." + num
-        mockends = [
-            ".nhr", ".nni",
-            ".nsi", ".nin",
-            ".nog", ".nsq",
-            ".nnd", ".nsd"]
         for ending in mockends:
             filepath = filestart + ending
             assert os.path.isfile(filepath) is True
@@ -179,11 +171,6 @@ def check_all_files():
 def check_part_five(outcome=True):
     num = "05"
     filestart = "ref_prok_rep_genomes." + num
-    mockends = [
-        ".nhr", ".nni",
-        ".nsi", ".nin",
-        ".nog", ".nsq",
-        ".nnd", ".nsd"]
     for ending in mockends:
         filepath = filestart + ending
         assert os.path.isfile(filepath) == outcome
@@ -255,6 +242,7 @@ def test_run():
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)
 
+
 def test_getmd5files(delete_config):
     create_mock_archives()
     getblastdb.get_md5files(delete_config)
@@ -265,6 +253,7 @@ def test_getmd5files(delete_config):
     os.chdir("..")
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
+
 
 def test_skipdownload(delete_config):
     create_mock_archives()
@@ -522,11 +511,6 @@ def test_badrequest(monkeypatch):
         getblastdb.get_DB(mode="auto")
     num = "03"
     filestart = "ref_prok_rep_genomes." + num
-    mockends = [
-        ".nhr", ".nni",
-        ".nsi", ".nin",
-        ".nog", ".nsq",
-        ".nnd", ".nsd"]
     for ending in mockends:
         filepath = filestart + ending
         assert os.path.isfile(filepath) is False

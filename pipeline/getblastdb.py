@@ -43,7 +43,7 @@ class config:
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
-            "extend": [".nsd", ".nsi"]}}
+            "extend": []}}
 
     def __init__(self, db, db_dir, delete, test):
         self.db = db
@@ -244,7 +244,7 @@ def extract_archives(dbfile, conf):
         if len(extract_archive) > 0:
             for archive in extract_archive:
                 logger("Extract archive " + dbfile)
-                with tarfile.TarFile(dbfile, 'r', errorlevel=1) as tar:
+                with tarfile.open(dbfile, 'r', errorlevel=1) as tar:
                     for file_ in tar:
                         try:
                             tar.extract(file_)
