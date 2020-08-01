@@ -261,6 +261,26 @@ class Input:
             print("strains", strains)
 
 
+    def get_subgroup(self, target, index, listlen):
+        if "subgroup" not in self.config_dict[target].keys():
+            subgroup = []
+            if "group" in self.config_dict[target]["runmode"]:
+                print("\n" + target + ":")
+                insingle = input(
+                    "Start of filename(s) of annotated fna file, e.g. "
+                    "GCF_XYZXYZXYZv1, will only search for primer "
+                    "(group specific primers) for "
+                    "specified genome(s). (comma separated), default=[]")
+
+                if isinstance(insingle, str) and len(insingle) > 0:
+                    inputsingle = list(insingle.split(","))
+                    for i, item in enumerate(inputsingle):
+                        x = item.strip()
+                        subgroup.insert(i, x)
+
+            self.config_dict[target].update({"subgroup": subgroup})
+            print("subgroup", subgroup)
+
     def value_for_all(self, key, value, listlen):
         if listlen > 1:
             forall = input(
@@ -400,6 +420,7 @@ class Input:
             for item in setlist:
                 self.get_userinput(target, i, listlen, item)
             self.get_strains(target, i, listlen)
+            self.get_subgroup(target, i, listlen)
 
         for target in self.target_list:
             self.write_config_file(target)
@@ -436,7 +457,8 @@ class Output:
             "evalue": 500,
             "nuc_identity": 0,
             "runmode": ["species"],
-            "strains": []}
+            "strains": [],
+            "subgroup": []}
 
     def get_path(self):
         inpath = input(

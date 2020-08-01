@@ -46,7 +46,8 @@ confargs = {
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 500, "nuc_identity": 0, "runmode": ["species"], "strains": []}
+    "evalue": 500, "nuc_identity": 0, "runmode": ["species"],
+    "strains": [], "subgroup": []}
 
 
 class AttrDict(dict):
@@ -68,7 +69,8 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
 
     config.save_config()
 
@@ -89,7 +91,8 @@ def generate_tmp_config(key, value, key2, value2):
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
 
     return config
 

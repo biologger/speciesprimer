@@ -104,7 +104,7 @@ evalue = (
     "E-value threshold for BLAST search, all results with a lower value "
     "pass. default=500\n>")
 
-runmode = "Select runmode. options: [species, strain], default=species\n>"
+runmode = "Select runmode. options: [species, strain, group], default=species\n>"
 
 strains = (
     "Start of filename(s) of annotated fna file, e.g. "
@@ -112,8 +112,11 @@ strains = (
     "(strain specific primers) for "
     "specified genome(s). (comma separated), default=[]")
 
-#blastdbv5 = (
-#    "Do you have the Version 5 of the BLAST DB? \ndefault=(n)\n> ")
+subgroup = (
+    "Start of filename(s) of annotated fna file, e.g. "
+    "GCF_XYZXYZXYZv1, will only search for primer "
+    "(group specific primers) for "
+    "specified genome(s). (comma separated), default=[]")
 
 intermediate = (
     "Do you want to keep intermediate files?\ndefault=(n)\n> ")
@@ -314,7 +317,7 @@ def get_config_from_file(conf_from_file):
             assemblylevel, skip_tree, nolist,
             offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains
+            evalue, nuc_identity, runmode, strains, subgroup
                 ) = conf_from_file.get_config(target)
 
         config = CLIconf(
@@ -323,7 +326,7 @@ def get_config_from_file(conf_from_file):
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains)
+            evalue, nuc_identity, runmode, strains, subgroup)
 
 
         config.save_config()

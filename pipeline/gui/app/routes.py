@@ -239,7 +239,7 @@ def update_db(sub_dict, target, data):
         offline, ignore_qc, mfethreshold,
         customdb, blastseqs, probe,
         virus, genbank, evalue,
-        nuc_identity, runmode, strains
+        nuc_identity, runmode, strains, subgroup
     ) = data
     sub_dict.update({
             'target': target,
@@ -252,7 +252,7 @@ def update_db(sub_dict, target, data):
             'blastseqs': blastseqs, 'probe': probe,
             'virus': virus, "genbank": genbank, "evalue": evalue,
             "nuc_identity": nuc_identity, "runmode": runmode,
-            "strains": strains})
+            "strains": strains, "subgroup": subgroup})
     return sub_dict
 
 
@@ -268,7 +268,8 @@ def load_settings(tmp_db):
         offline, ignore_qc, mfethreshold,
         customdb, blastseqs, probe,
         virus, genbank, evalue,
-        nuc_identity, runmode, strains
+        nuc_identity, runmode, strains,
+        subgroup
     ) = (
         settings["minsize"], settings["maxsize"], settings["mpprimer"],
         settings["exception"], settings["path"], settings["intermediate"],
@@ -277,7 +278,8 @@ def load_settings(tmp_db):
         settings["offline"], settings["ignore_qc"], settings["mfethreshold"],
         settings["customdb"], settings['blastseqs'], settings['probe'],
         settings["virus"], settings['genbank'], settings['evalue'],
-        settings["nuc_identity"], settings['runmode'], settings['strains']
+        settings["nuc_identity"], settings['runmode'], settings['strains'],
+        settings["subgroup"]
     )
 
     data = {
@@ -289,7 +291,8 @@ def load_settings(tmp_db):
         "offline": offline, "customdb": customdb, "blastseqs": blastseqs,
         "change_wd": path, "intermediate": intermediate, "nolist": nolist,
         "virus": virus, "genbank": genbank, "evalue": evalue,
-        "nuc_identity": nuc_identity, "runmode": runmode, "strains": strains}
+        "nuc_identity": nuc_identity, "runmode": runmode, "strains": strains,
+        "subgroup": subgroup}
     return data
 
 
@@ -328,6 +331,7 @@ def get_settings(form):
         )
 
     strains = parse_string_to_list(form.strains.data, capitalize=False)
+    subgroup = parse_string_to_list(form.subgroup.data, capitalize=False) 
     exception = parse_string_to_list(form.exception.data, capitalize=True)
 
     if offline:
@@ -345,13 +349,15 @@ def get_settings(form):
         customdb = None
     if strains == [""]:
         strains = []
+    if subgroup == [""]:
+        subgroup = []
     if 'all' in assemblylevel:
         assemblylevel = ['all']
     return (
         minsize, maxsize, mpprimer, exception, path, intermediate,
         qc_gene, mfold, skip_download, assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb, blastseqs, probe,
-        virus, genbank, evalue, nuc_identity, runmode, strains)
+        virus, genbank, evalue, nuc_identity, runmode, strains, subgroup)
 
 
 @app.route('/settings', methods=['GET', 'POST'])

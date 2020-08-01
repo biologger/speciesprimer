@@ -153,15 +153,23 @@
       <strong>Strain:</strong>
       <br>Identify strain specific sequences in the pan-genome and design specific primers. (Beta)
       <br>
+      <strong>Group:</strong>
+      <br>Identify subgroup specific sequences in the pan-genome and design specific primers. (Beta)
+      <br>
       <br>
       Select multiple answers using Ctrl
       <br>
-      {{ form.runmode(size=2) }}
+      {{ form.runmode(size=3) }}
     </p>
     <p>
       <strong>{{ form.strains.label }}</strong> (--strains)
       <br>
       {{ form.strains() }}
+    </p>
+    <p>
+      <strong>{{ form.subgroup.label }}</strong> (--subgroup)
+      <br>
+      {{ form.subgroup() }}
     </p>
     <p>
       {{ form.virus() }} <strong>{{ form.virus.label }}</strong> (--virus)

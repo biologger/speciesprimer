@@ -120,9 +120,13 @@ class SettingsForm(FlaskForm):
             "a lower value pass.", default=0)
     runmode = SelectMultipleField(
             "Select runmode", default=['species'],
-            choices=[('species', 'species'), ('strain', 'strain')],
+            choices=[
+                ('species', 'species'), 
+                ('strain', 'strain'), 
+                ('group', 'group')],
             validators=[DataRequired()])
     strains = FieldList(StringField(""), min_entries=1)
+    subgroup = FieldList(StringField(""), min_entries=1)
     change_wd = StringField(
             "Change path of the working directory", default="/primerdesign")
     submit = SubmitField("Submit settings")

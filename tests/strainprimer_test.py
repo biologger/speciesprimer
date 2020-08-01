@@ -51,7 +51,8 @@ confargs = {
     "customdb": dbpath, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 10, "nuc_identity": 0, "runmode": ["strain"], "strains": []}
+    "evalue": 10, "nuc_identity": 0, "runmode": ["strain"], "strains": [],
+    "subgroup": []}
 
 
 class AttrDict(dict):
@@ -73,7 +74,8 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
 
     config.save_config()
 
@@ -278,7 +280,8 @@ def test_single_conf():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
 
     test_skip_pangenome_analysis(config)
     primer = test_Singleton(config)

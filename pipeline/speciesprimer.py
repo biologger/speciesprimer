@@ -87,13 +87,14 @@ class Config:
         nuc_identity = self.config_dict[target]["nuc_identity"]
         runmode = self.config_dict[target]["runmode"]
         strains = self.config_dict[target]["strains"]
+        subgroup = self.config_dict[target]["subgroup"]
 
         return (
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
             assemblylevel, skip_tree, nolist, offline, ignore_qc, mfethreshold,
             customdb, blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains)
+            evalue, nuc_identity, runmode, strains, subgroup)
 
 
 class CLIconf:
@@ -103,7 +104,7 @@ class CLIconf:
             skip_download, assemblylevel,
             nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
             customdb, blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains):
+            evalue, nuc_identity, runmode, strains, subgroup):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -130,6 +131,7 @@ class CLIconf:
         self.nuc_identity = nuc_identity
         self.runmode = runmode
         self.strains = strains
+        self.subgroup = subgroup
         self.save_config()
 
     def save_config(self):
@@ -159,6 +161,8 @@ class CLIconf:
         config_dict.update({"nuc_identity": self.nuc_identity})
         config_dict.update({"runmode": self.runmode})
         config_dict.update({"strains": self.strains})
+        config_dict.update({"subgroup": self.subgroup})
+
 
         dir_path = os.path.join(self.path, self.target)
         config_path = os.path.join(self.path, self.target, "config")
@@ -4082,17 +4086,19 @@ def commandline():
         "The current settings files will be overwritten")
     parser.add_argument(
         "--runmode", "-m", type=str, default=["species"],
-        choices=["species", "strain"], help="Singleton is a new feature "
-        "under development")
+        choices=["species", "strain", "subgroup"], help="Singleton and subgroup"
+        "are new features under development")
     parser.add_argument(
         "--strains", nargs="*", type=str, help="Start of filename of annotated "
         "fna file, GCF_XYZXYZXYZv1, will only search for singletons for this "
         "genome", default = [])
-
+    parser.add_argument(
+        "--subgroup", nargs="*", type=str, help="Start of filename of annotated"
+        " fna file, GCF_XYZXYZXYZv1, will only search for primers for this "
+        "subgroup", default = [])
     parser.add_argument(
         "-g", "--genbank", action="store_true",
-        help="Download genome assemblies from Genbank"
-            )
+        help="Download genome assemblies from Genbank")
     parser.add_argument(
         "--evalue", type=float, default=500.0,
         help="E-value threshold for BLAST search, "
@@ -4152,7 +4158,7 @@ def get_configuration_from_file(target, conf_from_file):
         assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
         blastseqs, probe, virus, genbank,
-        evalue, nuc_identity, runmode, strains
+        evalue, nuc_identity, runmode, strains, subgroup
     ) = conf_from_file.get_config(target)
     if nolist:
         nontargetlist = []
@@ -4165,7 +4171,7 @@ def get_configuration_from_file(target, conf_from_file):
         assemblylevel, nontargetlist, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
         blastseqs, probe, virus, genbank,
-        evalue, nuc_identity, runmode, strains)
+        evalue, nuc_identity, runmode, strains, subgroup)
 
     return config
 
@@ -4207,6 +4213,13 @@ def run_pipeline_for_target(target, config):
             print(msg)
             G.logger(msg)
             strainprimer.main(config)
+            
+        if "group" in config.runmode:
+            import groupprimer
+            msg = "Start searching for subgroup specific primers"
+            print(msg)
+            G.logger(msg)
+            groupprimer.main(config)            
 
         if "species" in config.runmode:
             msg = "Start searching for species specific primers"
@@ -4243,7 +4256,8 @@ def get_configuration_from_args(target, args):
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
         args.blastseqs, args.probe, args.virus, args.genbank,
-        args.evalue, args.nuc_identity, args.runmode, args.strains)
+        args.evalue, args.nuc_identity, args.runmode,
+        args.strains, args.subgroup)
 
     if args.configfile:
         exitstat = H.advanced_pipe_config(args.configfile)

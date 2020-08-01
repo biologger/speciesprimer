@@ -46,7 +46,8 @@ confargs = {
     "customdb": None, "assemblylevel": ["all"], "qc_gene": ["rRNA"],
     "virus": False, "genbank": False, "intermediate": True,
     "nontargetlist": ["Lactobacillus sakei"],
-    "evalue": 500, "nuc_identity": 0, "runmode": ["species"], "strains": []}
+    "evalue": 500, "nuc_identity": 0, "runmode": ["species"], "strains": [],
+    "subgroup": []}
 
 
 class AttrDict(dict):
@@ -104,7 +105,8 @@ def config():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
 
     config.save_config()
 
@@ -123,7 +125,8 @@ def reconfiguration():
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode,
+            args.strains, args.subgroup)
     return config
 
 
@@ -232,6 +235,7 @@ def test_CLIconf(config):
     assert config.nuc_identity == confargs['nuc_identity']
     assert config.runmode == confargs['runmode']
     assert config.strains == confargs['strains']
+    assert config.subgroup == confargs['subgroup']
 
 
 def test_auto_run_config():
@@ -270,7 +274,7 @@ def test_auto_run_config():
                     assemblylevel, skip_tree, nolist,
                     offline, ignore_qc, mfethreshold, customdb,
                     blastseqs, probe, virus, genbank,
-                    evalue, nuc_identity, runmode, strains
+                    evalue, nuc_identity, runmode, strains, subgroup
                 ) = conf_from_file.get_config(target)
 
         assert minsize == confargs['minsize']
@@ -296,6 +300,7 @@ def test_auto_run_config():
         assert nuc_identity == confargs['nuc_identity']
         assert runmode == confargs['runmode']
         assert strains == confargs['strains']
+        assert subgroup == confargs['subgroup']
 
         tmpconfig = CLIconf(
             minsize, maxsize, mpprimer, exception, target, path,
@@ -303,7 +308,7 @@ def test_auto_run_config():
             assemblylevel, nontargetlist, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains)
+            evalue, nuc_identity, runmode, strains, subgroup)
 
         tmpconfig.save_config()
 
