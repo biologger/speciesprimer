@@ -37,9 +37,10 @@ New in SpeciesPrimer v2.2
 * [Primerdesign](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/primerdesign.md)
 * [Troubleshooting](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/troubleshooting.md)
 * [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/customdbtutorial.md)
-* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/speciesprimerv2.2/docs/cmdlineonly.md)
+* [Advanced command line usage](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/cmdlineonly.md)
 * [Troubleshooting Docker](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockertroubleshooting.md)
 * [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockerproxy.md)
+* [Virus example](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/virus.md)
 
 ## Minimum system requirements
 
@@ -109,7 +110,7 @@ New in SpeciesPrimer v2.2
 
 * Starting the script will start an assistant for the configuration of a new run
 
-For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/speciesprimerv2.2/docs/cmdlineonly.md)
+For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/cmdlineonly.md)
 
 #### If you want to use the ref_prok_rep_genomes DB use the customdb option with the path
 

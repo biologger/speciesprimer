@@ -296,7 +296,10 @@ class HelperFunctions:
                     target.split("_")[1] + " pv. "
                     + target.split("_")[3])
         else:
-            species = target.split("_")[1]
+            if len(target.split("_")) > 1:
+                species = target.split("_")[1]
+            else:
+                species = target
         return species
 
     @staticmethod
@@ -337,6 +340,8 @@ class HelperFunctions:
                 geni = genus[0:5]
             name = geni+"_"+spec+"_"+sub
         else:
+            if len(target.split("_")) == 1:
+                return target
             genus = target.split("_")[0]
             species = target.split("_")[1]
             spec = species[0:5]
