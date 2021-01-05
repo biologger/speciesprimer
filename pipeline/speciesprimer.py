@@ -16,6 +16,7 @@ import wget
 import json
 import urllib
 import pandas as pd
+import numpy as np
 import itertools
 from itertools import islice
 from datetime import timedelta
@@ -1557,7 +1558,6 @@ class CoreGeneSequences:
         self.alignments_dir = os.path.join(self.results_dir, "alignments")
         self.consensus_dir = os.path.join(self.results_dir, "consensus")
         self.blast_dir = os.path.join(self.results_dir, "blast")
-        self.conserved_dict = {}
 
     def seq_alignments(self):
 
@@ -1765,7 +1765,6 @@ class CoreGeneSequences:
                         seq = item
                         count += 1
                         conserv_seqs.append([seq_name, seq])
-                        self.conserved_dict.update({seq_name: seq})
 
         if len(conserv_seqs) == 0:
             error_msg = "Error: no conserved target sequences found"
@@ -1796,7 +1795,7 @@ class CoreGeneSequences:
         if conserved_seqs == 1:
             return 1
         name = "conserved"
-        blastsum = os.path.join(self.blast_dir, "nontargethits.json")
+        blastsum = os.path.join(self.blast_dir, "BLAST_results_summary.csv")
         if not os.path.isfile(blastsum):
             use_cores, inputseqs = BlastPrep(
                 self.blast_dir, conserved_seqs, "conserved",
@@ -1804,7 +1803,6 @@ class CoreGeneSequences:
             Blast(
                 self.config, self.blast_dir, "conserved"
             ).run_blast(name, use_cores)
-        return self.conserved_dict
 
 
 class BlastPrep():
@@ -1959,8 +1957,250 @@ class Blast:
                 + str(timedelta(seconds=duration)).split(".")[0])
             os.chdir(self.target_dir)
 
-
 class BlastParser:
+    def __init__(self, configuration, results="seqs"):
+        self.exception = configuration.exception
+        self.config = configuration
+        self.target = configuration.target
+        self.evalue = self.config.evalue
+        self.nuc_identity = self.config.nuc_identity
+        self.target_dir = os.path.join(self.config.path, self.target)
+        self.config_dir = os.path.join(self.target_dir, "config")
+        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        self.results_dir = os.path.join(self.pangenome_dir, "results")
+        self.blast_dir = os.path.join(self.results_dir, "blast")
+        self.nontargetlist = configuration.nontargetlist
+        self.selected = []
+        self.fmt_file = os.path.join(dict_path, "blastfmt6.csv")
+        self.header = list(pd.read_csv(self.fmt_file, header=None)[1].dropna())
+        self.mode = "normal"
+        self.start = time.time()
+        if results == "primer":
+            self.mode = "primer"
+            self.primer_dir = os.path.join(self.results_dir, "primer")
+            self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
+            self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+            self.maxgroupsize = 25000
+
+    def blastresult_files(self, blast_dir):
+        blastresults = []
+        print("Run: blastresults_files(" + self.target + ")")
+        for files in [f for f in os.listdir(blast_dir) if f.endswith("results.csv")]:
+            file_path = os.path.join(blast_dir, files)
+            if file_path not in blastresults:
+                blastresults.append(file_path)
+        return blastresults
+
+    def check_blastdb_errors(self, blastdf, filename):
+        error_msg = None
+        if len(blastdf.index) == 0:
+            error_msg = " ".join([
+                "A problem with the BLAST results file",
+                filename, "was detected.",
+                "Please check if the file was removed and start the run again"])
+            os.remove(filename)
+            print("removed " + filename)
+
+        if len(blastdf[blastdf["Subject Seq-id"].str.contains("gnl|BL_ORD_ID|", regex=False)]) > 0:
+            error_msg = (
+                "Problem with custom DB, Please use the '-parse_seqids'"
+                " option for the makeblastdb command")
+
+        if len(blastdf[blastdf["Subject Title"].str.contains("No definition line", regex=False)]) > 0:
+            error_msg = (
+                "Error: No definition line in Subject Title"
+                "\nData is missing in the custom BLAST DB. At least "
+                "a unique sequence identifier and the species name "
+                "is required for each entry.\nExpected format: "
+                ">seqid species name optional description")
+
+        if error_msg:
+            print("\n" + error_msg + "\n")
+            logging.error("> " + error_msg, exc_info=True)
+            errors.append([self.target, error_msg])
+            raise BlastDBError(error_msg)
+
+    def check_seq_ends(self, rejected, filenum):
+        w_mode = 'a'
+        if os.path.isfile("partialseqs.csv") is True and filenum == 0:
+            w_mode = 'w'
+
+        # Filter non-aligned endings
+        rejected.loc[:, 'overhang'] = (
+                            rejected.loc[:,'Query sequence length'] - rejected.loc[:, 'End of alignment in query'])
+        partials_max = rejected.sort_values('overhang', ascending=True).drop_duplicates(['Query Seq-id'])
+        keep_max = partials_max[partials_max['overhang'] >= self.config.minsize]
+        partials_min = rejected.sort_values('Start of alignment in query', ascending=True).drop_duplicates(['Query Seq-id'])
+        keep_min = partials_min[partials_min["Start of alignment in query"] >= self.config.minsize]
+        keep_min = keep_min.assign(Start=1)
+
+        # Write sequence range data
+        mindata = keep_min[['Query Seq-id', "Start", "Start of alignment in query"]]
+        maxdata = keep_max[['Query Seq-id', 'End of alignment in query', 'Query sequence length']]
+        mindata.columns = ["ID", "Start", "Stop"]
+        maxdata.columns = ["ID", "Start", "Stop"]
+        write_partial = pd.concat([mindata, maxdata])
+        if len(write_partial.index) != 0:
+            write_partial.to_csv("partialseqs.csv", mode=w_mode, index=False, header=False)
+
+    def get_excluded_gis(self):
+        excluded_gis = []
+        gi_file = os.path.join(self.config_dir, "no_blast.gi")
+        if os.path.isfile(gi_file):
+            if os.stat(gi_file).st_size > 0:
+                with open(gi_file, "r") as f:
+                    for line in f:
+                        gi = line.strip()
+                        excluded_gis.append(str(gi))
+        return excluded_gis
+
+    def parse_blastrecords(self, blastdf, filenum, excluded_gis):
+        #align_dict = {key: {} for key in set(blastdf["Query Seq-id"])}
+        exceptions = [H.subspecies_handler(self.target, mode="space")]
+        if self.exception != []:
+            for item in self.exception:
+                exception = ' '.join(item.split("_"))
+                if exception not in exceptions:
+                    exceptions.append(exception)
+
+        target_filter = blastdf["Subject Title"].str.contains("|".join(exceptions))
+        target_hits = blastdf[target_filter]
+        offtarget_hits = blastdf[~target_filter]
+
+        if self.config.nolist is True:
+            # if no target list is defined this is the result
+            accept = target_hits.copy()
+            reject = offtarget_hits.copy()
+        else:
+            offtarget_filter = offtarget_hits["Subject Title"].str.contains("|".join(self.nontargetlist))
+            listed = offtarget_hits[offtarget_filter]
+            unlisted = offtarget_hits[~offtarget_filter]
+            accept = pd.concat([target_hits, unlisted])
+            reject = listed.copy()
+
+        # remove excluded sequences from the results
+
+        reject = reject[~reject["Subject GI"].isin(excluded_gis)]
+
+        # write summary
+        ac_sum = accept.groupby(['Query Seq-id'])["Subject Seq-id"].count()
+        re_sum = reject.groupby(['Query Seq-id'])["Subject Seq-id"].count()
+        summary = pd.concat([ac_sum, re_sum], axis=1).replace(np.nan, 0)
+        summary.columns = ["Target hits", "Off-target hits"]
+        summary.to_csv("BLAST_results_summary_" + str(filenum) + ".csv")
+        specific_seqs = summary[summary["Off-target hits"] == 0].index.to_list()
+        unspecific_seqs = summary[summary["Off-target hits"] != 0].index.to_list()
+        #len(specific_seqs), len(summary.index)
+
+        if self.mode == "normal":
+            # check if sequence ends without off-target matches exist
+            self.check_seq_ends(reject, filenum)
+
+        return specific_seqs, unspecific_seqs
+
+
+    def bp_parse_results(self, blast_dir):
+        specific_ids = []
+        unspecific_ids = []
+        blastresults = self.blastresult_files(blast_dir)
+        excluded_gis = self.get_excluded_gis()
+        print("Excluded GI(s):", excluded_gis)
+        for i, filename in enumerate(blastresults):
+            print(
+                "\nopen BLAST result file " + str(i+1)
+                + "/" + str(len(blastresults)))
+
+            blastdf = pd.read_csv(filename, sep="\t", header=None)
+            blastdf.columns = self.header
+            self.check_blastdb_errors(blastdf, filename)
+            specific_seqs, unspecific_seqs = self.parse_blastrecords(blastdf, i, excluded_gis)
+            specific_ids.extend(specific_seqs)
+            unspecific_ids.extend(unspecific_seqs)
+        return specific_ids, unspecific_ids
+
+    def changed_primer3_input(self, file_path, controlfile_path):
+
+        def find_difference():
+            new = []
+            old = []
+            with open(file_path) as n:
+                for line in n:
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in new:
+                            new.append(line.strip())
+
+            with open(controlfile_path) as o:
+                for line in o:
+                    if "SEQUENCE_ID=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+                    if "PRIMER_PICK_INTERNAL_OLIGO=" in line:
+                        if line.strip() not in old:
+                            old.append(line.strip())
+
+            diff = list(set(new) ^ set(old))
+            return diff
+
+        if os.path.isfile(controlfile_path):
+            diff = find_difference()
+            if len(diff) > 0:
+                info1 = (
+                    "Due to changed settings primer design "
+                    "and quality control will start from scratch")
+                info2 = "Differences in primer3 input:"
+                for info in [info1, info2, diff]:
+                    G.logger(info)
+                    print(info)
+                primer_dir = os.path.join(self.results_dir, "primer")
+                if os.path.isdir(primer_dir):
+                    G.logger("Delete primer directory")
+                    print("Delete primer directory")
+                    shutil.rmtree(primer_dir)
+
+                shutil.copy(file_path, controlfile_path)
+        else:
+            shutil.copy(file_path, controlfile_path)
+
+    def write_primer3_input(self, selected_seqs):
+        G.logger("Run: write_primer3_input(" + self.target + ")")
+        conserved_seqs = os.path.join(self.blast_dir, H.abbrev(self.target) + "_conserved")
+        conserved_seq_dict = SeqIO.to_dict(SeqIO.parse(conserved_seqs, "fasta"))
+        file_path = os.path.join(self.results_dir, "primer3_input")
+        controlfile_path = os.path.join(self.results_dir, ".primer3_input")
+        if self.config.probe is True:
+            probe = "\nPRIMER_PICK_INTERNAL_OLIGO=1"
+        else:
+            probe = ""
+
+        with open(file_path, "w") as f:
+            for item in selected_seqs:
+                f.write(
+                        "SEQUENCE_ID=" + item + "\nSEQUENCE_TEMPLATE="
+                        + str(conserved_seq_dict[item].seq)
+                        + "\nPRIMER_PRODUCT_SIZE_RANGE="
+                        + str(self.config.minsize) + "-"
+                        + str(self.config.maxsize) + probe + "\n=\n")
+
+            partial_file = os.path.join(os.getcwd(), "partialseqs.csv")
+            if os.path.isfile(partial_file):
+                parts = pd.read_csv(partial_file, header=None)
+                seq_id = parts[0].to_list()
+                start = parts[1].to_list()
+                end = parts[2].to_list()
+                for i, idx in enumerate(seq_id):
+                    f.write(
+                        "SEQUENCE_ID=" + idx + "\nSEQUENCE_TEMPLATE="
+                        + str(conserved_seq_dict[idx].seq)[start[i]:end[i]]
+                        + "\nPRIMER_PRODUCT_SIZE_RANGE="
+                        + str(self.config.minsize) + "-"
+                        + str(self.config.maxsize) + probe + "\n=\n")
+
+        self.changed_primer3_input(file_path, controlfile_path)
+
+class BlastParser_old:
     def __init__(self, configuration, results="seqs"):
         self.exception = configuration.exception
         self.config = configuration
@@ -2510,31 +2750,22 @@ class BlastParser:
 
             blastdf = pd.read_csv(filename, sep="\t", header=None)
             blastdf.columns = self.header
-
-            if len(blastdf.index) == 0:
-                error_msg = " ".join([
-                    "A problem with the BLAST results file",
-                    filename, "was detected.",
-                    "Please check if the file was removed and start the run again"])
-                print("\n" + error_msg + "\n")
-                logging.error("> " + error_msg, exc_info=True)
-                errors.append([self.target, error_msg])
-                os.remove(filename)
-                print("removed " + filename)
-                raise BlastDBError(error_msg)
-            else:
-                pass
-
+            check_blastdb_errors(blastdf)
 
     def check_blastdb_errors(blastdf):
+        error_msg = None
+        if len(blastdf.index) == 0:
+            error_msg = " ".join([
+                "A problem with the BLAST results file",
+                filename, "was detected.",
+                "Please check if the file was removed and start the run again"])
+            os.remove(filename)
+            print("removed " + filename)
+
         if blastdf["Subject Seq-id"].str.contains("gnl|BL_ORD_ID|"):
             error_msg = (
                 "Problem with custom DB, Please use the '-parse_seqids'"
                 " option for the makeblastdb command")
-            print("\n" + error_msg + "\n")
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
-            raise BlastDBError(error_msg)
 
         if blastdf["Subject Title"].str.contains("No definition line"):
             error_msg = (
@@ -2543,43 +2774,32 @@ class BlastParser:
                 "a unique sequence identifier and the species name "
                 "is required for each entry.\nExpected format: "
                 ">seqid species name optional description")
+
+        if error_msg:
             print("\n" + error_msg + "\n")
-            G.logger("> " + error_msg)
+            logging.error("> " + error_msg, exc_info=True)
             errors.append([self.target, error_msg])
             raise BlastDBError(error_msg)
 
     def check_seq_ends(rejected):
         rejected["Query overhang"] = rejected['End of alignment in query'] - rejected['Alignment length']
         rejected[rejected['Start of alignment in query'] >= self.config.minsize]
-        
+
         partials_min = rejected.query(
                 'Start of alignment in query >= "@self.config.minsize"')
         partials_max = rejected.query('Query overhang >= "@self.config.minsize"')
-        
-        # set ranges and write file... To do
-        
-        if len(query_start) > 0:
-            if min(query_start) >= self.config.minsize:
-                seq_range = "[1:" + str(min(query_start)) + "]"
-                seq_ends.append([blast_record.query, seq_range])
-        if len(query_end) > 0:
-            if min(query_end) >= self.config.minsize:
-                qletters = str(blast_record.query_letters)
-                seq_range = "[" + str(min(query_end)) + ":" + qletters + "]"
-                seqlen = int(qletters) - min(query_end)
-                if seqlen >= self.config.minsize:
-                    seq_ends.append([blast_record.query, seq_range])
-        if len(seq_ends) > 0:
-            filename = os.path.join(self.blast_dir, "partialseqs.txt")
-            with open(filename, "w") as f:
-                for end in seq_ends:
-                    gi = str(end[0])
-                    s_range = str(end[1])
-                    f.write(gi + " " + s_range + "\n")
 
+        partials_min["range"] = "[1:" + partials_min['Start of alignment in query'] + "]"
+        partials_max["range"] = (
+                "[" + partials_max['End of alignment in query']
+                + ":" + partials_max['Query sequence length'])
+
+        partial_seqs = pd.concat([partials_min, partials_max])
+        filename = os.path.join(self.blast_dir, "partialseqs.txt")
+        if len(partial_seqs.index) != 0:
+            partial_seqs[["Query Seq-id", "range"]].to_csv(filename, sep=" ")
 
     def parse_blastrecords(self, blastdf):
-        check_blastdb_errors(blastdf)
         align_dict = {key: {} for key in set(blastdf["Query Seq-id"])}
         exceptions = [self.target]
         if self.exception != []:
@@ -2613,21 +2833,15 @@ class BlastParser:
             accept = blastdf.query('Subject Taxonomy ID(s) == "@self.taxid"')
             reject = blastdf.query('Subject Taxonomy ID(s) != "@self.taxid"')
 
-            if len(target.split(" ")) == 2:
+            if len(self.target.split(" ")) == 2:
                 sub_sp = reject[reject['Subject Title'].str.contains("|".join(["subsp.", "pv."]))]
-                sub_check = sub_sp[sub_sp['Subject Title'].str.contains(" ".join(target[0:2]))]
+                sub_check = sub_sp[sub_sp['Subject Title'].str.contains(" ".join(self.target[0:2]))]
                 accept = pd.concat([accept, sub_check])
                 reject = pd.concat([accept, reject]).drop_duplicates(keep=False)
 
         if self.mode == "normal":
             # check if sequence ends without off-target matches exist
             self.check_seq_ends(reject)
-
-        else:
-
-
-        # now this is getting interesting
-        # remove entries with "Predicted" or let it be cause we search regex like with str contains
 
     def bp_parse_xml_files(self, blast_dir):
         align_dict = {}
