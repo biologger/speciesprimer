@@ -8,6 +8,7 @@ sgi,Subject GI
 sacc,Subject accession
 sstart,Start of alignment in subject
 send,End of alignment in subject
+slen,Subject sequence length
 evalue,Expect value
 bitscore,Bit score
 length,Alignment length
