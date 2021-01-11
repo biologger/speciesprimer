@@ -23,7 +23,6 @@ from datetime import timedelta
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Blast import NCBIXML
 from Bio import Entrez
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
@@ -715,166 +714,86 @@ class QualityControl:
         self.target = configuration.target
         self.exception = configuration.exception
         self.ex_dir = os.path.join(
-            self.config.path, "excludedassemblies", self.target)
+                        self.config.path, "excludedassemblies", self.target)
         self.target_dir = os.path.join(self.config.path, self.target)
         self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
         self.config_dir = os.path.join(self.target_dir, "config")
+        self.genomic_dir = os.path.join(self.target_dir, "genomic_fna")
         self.gff_dir = os.path.join(self.target_dir, "gff_files")
         self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
         self.fna_dir = os.path.join(self.target_dir, "fna_files")
-        self.qc_gene_search = []
-        self.ffn_list = []
         self.contiglimit = 500
-        self.no_seq = []
-        self.double = []
-        self.contig_ex = []
-        self.problems = []
-        self.passed = []
 
-    def get_excluded_gis(self):
-        excluded_gis = []
-        gi_file = os.path.join(self.config_dir, "no_blast.gi")
-        if os.path.isfile(gi_file):
-            if os.stat(gi_file).st_size > 0:
-                with open(gi_file, "r") as f:
-                    for line in f:
-                        gi = line.strip()
-                        excluded_gis.append(str(gi))
-        return excluded_gis
 
-    def search_qc_gene(self, file_name, qc_gene):
-        with open(os.path.join(self.gff_dir, file_name), "r") as f:
-            for line in f:
-                if self.searchdict[qc_gene] in line:
-                    gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
-                    if gene not in self.qc_gene_search:
-                        self.qc_gene_search.append(gene)
+    def get_qc_data_df(self, acc_list, qc_status):
+        len_n = len(acc_list)
+        target_sp = " ".join([self.target.split("_")[0], H.subspecies_handler(self.target, mode="space")])
+        empty, target, status = len_n * [""], len_n * [target_sp], len_n * [qc_status]
+        data = {
+                "Query Seq-id": acc_list, "Subject GI": empty, "Subject accession": empty,
+                "Species": empty, "Target species": target, "QC status": status}
+        return pd.DataFrame(data)
 
-    def count_contigs(self, gff_list, contiglimit):
+    def count_contigs(self, gff_list):
+        fna_files = [f for f in os.listdir(self.fna_dir) if f.endswith(".fna")]
         exclude = []
-        for dirs in os.listdir(self.target_dir):
-            if dirs not in systemdirs:
-                path = os.path.join(self.target_dir, dirs)
-                if os.path.isdir(path):
-                    for files in os.listdir(path):
-                        if files.endswith(".fna"):
-                            contigcount = 0
-                            filepath = os.path.join(path, files)
-                            file = files.split(".fna")[0]
-                            for line in open(filepath).readlines():
-                                if ">" in line:
-                                    contigcount += 1
-                            if contigcount >= contiglimit:
-                                exclude.append(file)
+        max_contig = []
+        for f in fna_files:
+            fp = os.path.join(self.fna_dir, f)
+            contigs = list(SeqIO.parse(fp, "fasta"))
+            if len(contigs) >= self.contiglimit:
+                file = f.split(".fna")[0]
+                exclude.append(file)
+                max_contig.append(file + ".gff")
 
-        if len(exclude) > 0:
-            for item in exclude:
-                if item + ".gff" in gff_list:
-                    gff_list.remove(item + ".gff")
-                data = [item, "", "", "", "", "Max contigs"]
-                if data not in self.contig_ex:
-                    self.contig_ex.append(data)
-            info = (
-                "skip " + str(len(self.contig_ex))
-                + " Genome(s) with more than " + str(self.contiglimit)
-                + " contigs")
-            print(info)
-            G.logger("> " + info)
+        gff_list = list(set(gff_list) - set(max_contig))
+        excluded = ["_".join(f.split("_")[0:-1]) for f in exclude]
+        maxdf = self.get_qc_data_df(excluded, "Max contigs")
 
-        return gff_list
+        return gff_list, maxdf
 
     def identify_duplicates(self, gff_list):
-        duplicate = []
-        duplicate_test = []
-        keep = []
-        remove_older_version = []
+        assembly_list = [f.split(".gff")[0] for f in gff_list]
+        df = pd.DataFrame(assembly_list)
+        v_mask = df[0].str.contains(r'GCF.*v|GCA.*v')
+        vsplit = df[v_mask][0].str.split("v", expand=True)
+        sort_v = pd.concat([
+                    vsplit[0], vsplit[1].str.split("_").str[0],
+                    vsplit[1].str.split("_").str[1]], axis=1)
+        sort_v.columns = range(sort_v.shape[1])
+        sort_v.sort_values([1], ascending=False, inplace=True)
+        mask = sort_v.duplicated([0])
+        duplicates = sort_v[mask]
+        keep = sort_v[~mask]
+        double = (
+                duplicates[0] + "v" + duplicates[1] + "_" + duplicates[2]).tolist()
+        qc_list = (
+                    keep[0] + "v" + keep[1] + "_" + keep[2] + ".gff"
+                    ).tolist() + df[~v_mask][0].tolist()
+        doub_df = self.get_qc_data_df(double, "Duplicate")
+        return qc_list, doub_df
 
-        def find_potential_duplicates():
-            for item in gff_list:
-                name = '_'.join(item.split(".gff")[0].split("_")[0:-1])
-                if (("GCA" or "GCF") and "v") in name:
-                    version = name.split("_")[-1].split("v")[1]
-                    common = name.split("v")[0]
-                    if int(version) > 1:
-                        if common not in duplicate:
-                            duplicate.append(common)
+    def check_sequences(self, gff_list, qc_genes_list, qc_gene):
+        assembly_ids = ["_".join(f.split("_")[:-1]) for f in gff_list]
+        assembly_dict = {assembly_ids[i]: gff_list[i] for i in range(len(assembly_ids))}
+        no_seq = list(set(assembly_ids) - set(qc_genes_list))
+        no_seq_filter = [assembly_dict[x] for x in no_seq]
+        no_seq_data = [f.split(".gff")[0] for f in no_seq_filter]
+        nogene_df = self.get_qc_data_df(no_seq_data, "QC gene missing")
+        ffn_list = [f.split(".gff")[0] + ".ffn" for f in gff_list if not f in no_seq_filter]
+        return ffn_list, nogene_df
 
-        def test_if_duplicate(duplicate):
-            for y in duplicate:
-                del duplicate_test[:]
-                for x in gff_list:
-                    x = "_".join(x.split(".")[0].split("_")[0:-1])
-                    if str(y) in str(x):
-                        if x not in duplicate_test:
-                            duplicate_test.append(x)
-
-                if len(duplicate_test) > 0:
-                    maxi = max(
-                        duplicate_test,
-                        key=lambda item: int(item.split("v")[1])
-                    )
-                    if maxi not in keep:
-                        keep.append(maxi)
-                    duplicate_test.remove(maxi)
-                    for item in duplicate_test:
-                        if item not in remove_older_version:
-                            remove_older_version.append(item)
-
-        find_potential_duplicates()
-        test_if_duplicate(duplicate)
-
-        if len(remove_older_version) > 0:
-            for item in remove_older_version:
-                for gff_file in gff_list:
-                    if item in gff_file:
-                        if gff_file in gff_list:
-                            gff_list.remove(gff_file)
-                        data = [
-                            gff_file.split(".gff")[0],
-                            "", "", "", "", "Duplicate"]
-                        if data not in self.double:
-                            self.double.append(data)
-
-            info = (
-                "skip " + str(len(self.double)) + " duplicate Genome(s) ")
-            print(info)
-            G.logger("> " + info)
-
-        return gff_list
-
-    # 12.02.2018 change to generate one QC file
-    def check_no_sequence(self, qc_gene, gff):
-        ffn_list = []
-        sub_gff = []
-        sub_gene_search = []
-        for file_name in gff:
-            name = "_".join(file_name.split("_")[:-1])
-            sub_gff.append(name)
-        for seq_id in self.qc_gene_search:
-            seq_name = "_".join(seq_id.split("_")[:-1])
-            sub_gene_search.append(seq_name)
-        no_seq_found = set(sub_gff) - set(sub_gene_search)
-
-        if len(no_seq_found) > 0:
-            for item in no_seq_found:
-                for file_name in gff:
-                    if item in file_name:
-                        gff.remove(file_name)
-                        self.no_seq.append([
-                            file_name.split(".gff")[0],
-                            "", "", "", "", "QC gene missing"])
-
-            info = (
-                "skip " + str(len(self.no_seq)) + " Genome(s) without "
-                + qc_gene + " sequence")
-            print(info)
-            G.logger("> " + info)
-
-        for item in gff:
-            ffn = item.split(".gff")[0] + ".ffn"
-            ffn_list.append(ffn)
-
-        return ffn_list
+    def search_qc_genes(self, gff_list, qc_gene):
+        gene_list = []
+        fps = [os.path.join(self.gff_dir, f) for f in gff_list]
+        for fp in fps:
+            with open(fp) as f:
+                for line in f:
+                    if self.searchdict[qc_gene] in line:
+                        gene = line.split("ID=")[1].split(";")[0].split(" ")[0]
+                        gene_list.append(gene)
+        accession_ids = ["_".join(f.split("_")[:-1]) for f in gene_list]
+        return accession_ids, gene_list
 
     def get_qc_seqs(self, qc_gene):
         G.logger("Run: get_qc_seqs(" + qc_gene + ")")
@@ -884,393 +803,171 @@ class QualityControl:
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
         G.create_directory(qc_dir)
         # find annotation of gene in gff files and store file name
-        for files in os.listdir(self.gff_dir):
-            if files not in gff:
-                gff.append(files)
-        info = "found " + str(len(gff)) + " gff files"
-        G.logger(info)
-        print(info)
-
-        if len(gff) > 0:
-            # look for annotations
-            if self.contiglimit > 0:
-                contig_gff_list = self.count_contigs(gff, self.contiglimit)
-                gff_list = self.identify_duplicates(contig_gff_list)
-            else:
-                gff_list = self.identify_duplicates(gff)
-
-            for item in gff_list:
-                self.search_qc_gene(item, qc_gene)
-
-            info = (
-                "found " + str(len(self.qc_gene_search)) + " "
-                + qc_gene + " annotations in gff files")
-            G.logger(info)
-            print(info)
-
-            ffn_check = self.check_no_sequence(qc_gene, gff_list)
-
-            # search sequences in ffn files
-            for files in os.listdir(self.ffn_dir):
-                if files in ffn_check:
-                    if files not in self.ffn_list:
-                        self.ffn_list.append(files)
-            info = (
-                    "selected " + str(len(self.ffn_list)) + " "
-                    + qc_gene + " sequences from ffn files")
-            G.logger(info)
-            print(info)
+        gff_list = [f for f in os.listdir(self.gff_dir) if f.endswith(".gff")]
+        G.comm_log("found " + str(len(gff_list)) + " gff files")
+        if len(gff_list) == 0:
+            error_msg = "> Error: No .gff files found for QualityControl " + qc_gene
+            G.comm_log(error_msg)
+            errors.append([self.target, error_msg])
+            return 1, "Error"
 
         else:
-            error_msg = (
-                    "Error: No .gff files found for QualityControl " + qc_gene)
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
-            return 1
-        return 0
+            # look for annotations
+            if self.contiglimit > 0:
+                gff_list, maxdf = self.count_contigs(gff_list)
 
-    def choose_sequence(self, qc_gene):
+            gff_list, doubdf = self.identify_duplicates(gff_list)
+            qc_accession_ids, qc_gene_ids = self.search_qc_genes(gff_list, qc_gene)
+            G.comm_log(
+                "found " + str(len(qc_accession_ids)) + " "
+                + qc_gene + " annotations in gff files")
+            ffn_list, nogene_df = self.check_sequences(gff_list, qc_accession_ids, qc_gene)
+            qc_seqs = self.choose_sequence(ffn_list, qc_gene_ids, qc_gene)
+
+        skip_qc_df = pd.concat([maxdf, doubdf, nogene_df])
+
+        return qc_seqs, skip_qc_df
+
+    def choose_sequence(self, ffn_list, qc_gene_ids, qc_gene):
+        qc_recs = []
         """ find files and choose the longest sequence
         if a sequence was found more than once """
         G.logger("Run: choose_sequence(" + qc_gene + ")")
-        qc_seqs = []
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
-        with open(os.path.join(qc_dir, qc_gene + "_seq"), "w") as o:
-            for file_name in self.ffn_list:
-                recid = []
-                recseq = []
-                for seq_id in self.qc_gene_search:
-                    match = "_".join(seq_id.split("_")[:-1])
-                    if file_name.startswith(match):
-                        file_path = os.path.join(self.ffn_dir, file_name)
-                        for record in SeqIO.parse(file_path, "fasta"):
-                            if seq_id in record.id:
-                                if len(str(record.seq)) != 0:
-                                    if record.id not in recid:
-                                        recid.append(record.id)
-                                    if str(record.seq) not in recseq:
-                                        recseq.append(str(record.seq))
+        for f in ffn_list:
+            fp = os.path.join(self.ffn_dir, f)
+            recs = list(SeqIO.parse(fp, "fasta"))
+            rec_dict = SeqIO.to_dict(recs)
+            qc_rec_data = [[rec.id, str(rec.seq)] for rec in recs if rec.id in qc_gene_ids]
+            max_len = sorted(qc_rec_data, key=lambda x: len(x[1]), reverse=True)[0]
+            qc_recs.append(rec_dict[max_len[0]])
 
-                # get longest sequence and write to file
-                if len(recseq) != 0:
-                    q = max(recseq, key=len)
-                    z = dict(zip(tuple(recid), tuple(recseq)))
-                    a = {v: k for k, v in z.items()}
-                    o.write(">" + str(a[q]) + "\n" + str(q) + "\n")
-                    qc_seqs.append([str(a[q]), str(q)])
+        output = os.path.join(qc_dir, qc_gene + "_seq")
+        SeqIO.write(qc_recs, output, "fasta")
+        qc_seqs = [[rec.id, str(rec.seq)] for rec in qc_recs]
 
         return qc_seqs
 
-    def qc_blast_parser(self, qc_gene):
-        qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
-        G.logger("Run: qc_blast_parser(" + qc_gene + ")")
+    def check_passed_list(self, qc_report, qc_gene):
+        if self.config.ignore_qc:
+            G.comm_log(
+                "--ignore_qc option: Check quality control"
+                " files in the Summary directory", True)
+            return 0
 
-        def delete_blastreport(xmlblastresults):
-            os.chdir(qc_dir)
-            for file_name in xmlblastresults:
-                os.remove(file_name)
-                n = file_name.split("_")[-2]
-                os.remove(qc_gene + ".part-" + n)
-            os.remove(qc_gene + "_seq")
+        pass_mask = qc_report["QC status"] == "passed QC"
+        passed = qc_report.loc[pass_mask, :]
+        failed = qc_report.loc[~pass_mask, :]
+        if len(passed.index) == 0:
+            error_msg = "> Error: No genomes survived QC"
+        elif len(passed.index) < 2:
+            error_msg = "> Error: Less than two genomes survived QC"
+        else:
+            self.remove_qc_failures(failed, qc_gene)
+            return 0
 
-        def parse_blastresults():
-            wrote = []
-            exceptions = []
-            if not self.exception == []:
-                for item in self.exception:
-                    exception = ' '.join(item.split("_"))
-                    exceptions.append(exception)
-            gi_list = []
-            excluded_gis = self.get_excluded_gis()
-            expected = " ".join(self.target.split("_"))
-            # collect the blast results
-            os.chdir(qc_dir)
-            blapa = BlastParser(self.config)
-            xmlblastresults = blapa.blastresult_files(qc_dir)
-            for filename in xmlblastresults:
-                blast_record_list = blapa.parse_BLASTfile(filename)
-                for index, blast_record in enumerate(blast_record_list):
-                    i = 0
-                    try:
-                        alignment = blast_record.alignments[i]
-                        aln_data = blapa.get_alignmentdata(alignment, [])
-                        spec, gi, db_id = aln_data[0], aln_data[1], aln_data[2]
-                        query = blast_record.query
-                        if str(gi) in excluded_gis:
-                            if gi not in gi_list:
-                                gi_list.append(gi)
+        G.comm_log(error_msg)
+        errors.append([self.target, error_msg])
+        self.remove_qc_failures(failed, qc_gene)
+        return 1
 
-                            while i < len(blast_record.alignments) - 1:
-                                i = i+1
-                                alignment = blast_record.alignments[i]
-                                aln_data = blapa.get_alignmentdata(
-                                                                alignment, [])
-                                spec, gi, db_id = (
-                                        aln_data[0], aln_data[1], aln_data[2])
-                                if str(gi) not in excluded_gis:
-                                    break
-                                else:
-                                    if gi not in gi_list:
-                                        gi_list.append(gi)
-
-                    except IndexError:
-                        query = blast_record.query
-                        spec, gi, db_id = "no match", "", ""
-
-                    if expected in spec:
-                        if query not in wrote:
-                            wrote.append(query)
-                            success = [
-                                query, gi, db_id, spec,
-                                expected, "passed QC"]
-                            self.passed.append(success)
-
-                    elif spec in exceptions:
-                        if query not in wrote:
-                            wrote.append(query)
-                            success = [
-                                query, gi, db_id, spec,
-                                expected, "passed QC"]
-                            self.passed.append(success)
-                    else:
-                        if query not in wrote:
-                            wrote.append(query)
-                            fail = [
-                                query, gi, db_id, spec, expected, "failed QC"]
-                            self.problems.append(fail)
-
-            if self.config.intermediate is False:
-                delete_blastreport(xmlblastresults)
-            if len(gi_list) > 0:
-                info = "removed GI's in excluded GI list from results"
-                print(info)
-                print(gi_list)
-                G.logger(info)
-                G.logger(gi_list)
-            os.chdir(self.target_dir)
-
-        def write_blastresults():
-            results = []
-            if len(self.passed) > 0:
-                for item in self.passed:
-                    results.append(item)
-            if len(self.problems) > 0:
-                for item in self.problems:
-                    results.append(item)
-            if len(self.no_seq) > 0:
-                for item in self.no_seq:
-                    results.append(item)
-            if len(self.contig_ex) > 0:
-                for item in self.contig_ex:
-                    results.append(item)
-            if len(self.double) > 0:
-                for item in self.double:
-                    results.append(item)
-            # write files
-            report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
-            if len(results) > 0:
-                header = [
-                    "Query", "GI", "DB ID", "Species",
-                    "Target species", "QC status"]
-                G.csv_writer(report, results, header)
-            else:
-                error_msg = "No Quality Control results found."
-                print(error_msg)
-                G.logger("> " + error_msg)
-                errors.append([self.target, error_msg])
-
-
-        parse_blastresults()
-        write_blastresults()
-        return self.passed
-
-    def remove_qc_failures(self, qc_gene):
-        G.logger("Run: remove_qc_failures(" + qc_gene + ")")
-        print("Run: remove_qc_failures(" + qc_gene + ")")
-        qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
-        delete = []
-        with open(os.path.join(qc_dir, qc_gene + "_QC_report.csv"), "r") as f:
-            reader = csv.reader(f)
-            next(reader, None)
-            for row in reader:
-                if "passed QC" not in row[5]:
-                    name = '_'.join(row[0].split("_")[0:-1])
-                    if name not in delete:
-                        delete.append(name)
-
+    def remove_qc_failures(self, failed, qc_gene):
+        G.comm_log("Run: remove_qc_failures(" + qc_gene + ")")
+        delete = ["_".join(f.split("_")[0:-1]) for f in failed.iloc[:, 0].tolist()]
         if len(delete) > 0:
             G.create_directory(self.ex_dir)
             self.delete_failed_assemblies(delete)
-            info = "Quality control removed " + str(len(delete)) + " Genome(s)"
-            G.logger("> " + info)
-            print("\n" + info)
-
-        return delete
+            G.comm_log("Quality control removed " + str(len(delete)) + " Genome(s)", True)
 
     def delete_failed_assemblies(self, delete):
-        filepath = os.path.join(self.ex_dir, "excluded_list.txt")
-        with open(filepath, "a+") as f:
-            for item in delete:
-                f.write(item + "\n")
-
         def move_dirs(from_dir, to_dir):
-            try:
-                shutil.move(from_dir, to_dir)
-                info = "Moved: " + from_dir + " to " + to_dir
-                G.logger(info)
-            except shutil.Error:
-                if os.path.isdir(from_dir):
-                    shutil.rmtree(from_dir)
+            if os.path.isdir(from_dir):
+                try:
+                    shutil.move(from_dir, to_dir)
+                    info = "Moved: " + from_dir + " to " + to_dir
+                    G.logger(info)
+                except shutil.Error:
+                    if os.path.isdir(from_dir):
+                        shutil.rmtree(from_dir)
 
         def move_file(from_file, to_file):
-            try:
-                shutil.move(from_file, to_file)
-                info = "Moved: " + from_file + " to " + to_file
-                G.logger(info)
-            except shutil.Error:
-                pass
+            if os.path.isfile(from_file):
+                try:
+                    os.makedirs(os.path.dirname(to_file), exist_ok=True)
+                    shutil.move(from_file, to_file)
+                    info = "Moved: " + from_file + " to " + to_file
+                    G.logger(info)
+                except shutil.Error or OSError:
+                    if os.path.isfile(from_file):
+                        os.remove(from_file)
 
-        def remove_from_list(file_format, file_name):
-            if file_format == "ffn":
-                if file_name in self.ffn_list:
-                    self.ffn_list.remove(file_name)
-
-        def delete_files(item, directory):
-            search_str = str(item + "_*")
-            for files in os.listdir(directory):
-                if re.search(search_str, files):
-                    x = '_'.join(files.split("_")[0:-1])
-                    if x == item:
-                        filepath = os.path.join(directory, files)
-                        file_format = files.split(".")[1]
-                        from_file = filepath
-                        ff_dir = os.path.join(
-                                self.ex_dir, file_format + "_files")
-                        G.create_directory(ff_dir)
-                        to_file = os.path.join(ff_dir, files)
-                        move_file(from_file, to_file)
-                        info = "remove: " + files
-                        G.logger(info)
-                        remove_from_list(file_format, files)
-                        try:
-                            os.remove(filepath)
-                        except FileNotFoundError:
-                            pass
-
-        def remove_directories():
-            for item in delete:
-                search_str = str(item + "_*")
-                for root, dirs, files in os.walk(self.target_dir):
-                    for directory in dirs:
-                        if directory not in systemdirs:
-                            if re.search(search_str, directory):
-                                dir_path = os.path.join(root, directory)
-                                file_names = os.listdir(dir_path)
-                                if len(file_names) == 0:
-                                    info = "Remove empty directory " + dir_path
-                                    G.logger(info)
-                                    os.rmdir(dir_path)
-                                else:
-                                    x = '_'.join(
-                                        file_names[0].split("_")[0:-1])
-                                    if x == item:
-                                        from_dir = os.path.join(
-                                            root, directory)
-                                        to_dir = os.path.join(
-                                            self.ex_dir, directory)
-                                        move_dirs(from_dir, to_dir)
-
-        def remove_files():
-            for item in delete:
-                search_str = str(item + "_*")
-                if "GCF" and "v" in item or "GCA" and "v" in item:
-                    accession = ".".join(item.split("v"))
-                    search_str = str(accession + "_*")
-                # genomic_fna
-                genome_dir = os.path.join(self.target_dir, "genomic_fna")
-                if os.path.isdir(genome_dir):
-                    for files in os.listdir(genome_dir):
-                        if re.search(search_str, files):
-                            G.create_directory(
-                                os.path.join(self.ex_dir, "genomic_fna"))
-                            from_file = os.path.join(genome_dir, files)
+        def remove_files(search_annot, search_genomic_ncbi):
+            # clean subdirs
+            dirs = [self.fna_dir, self.ffn_dir, self.gff_dir, self.genomic_dir]
+            for d in dirs:
+                for f in os.listdir(d):
+                    for x in search_annot:
+                        if re.search(x, f):
+                            from_file = os.path.join(d, f)
                             to_file = os.path.join(
-                                self.ex_dir, "genomic_fna", files)
+                                self.ex_dir,  os.path.basename(d), f)
                             move_file(from_file, to_file)
 
-                    delete_files(item, self.ffn_dir)
-                    delete_files(item, self.gff_dir)
-                    delete_files(item, self.fna_dir)
+                    # ncbi genomic files
+                    for x in search_genomic_ncbi:
+                        if re.search(x, f):
+                            from_file = os.path.join(d, f)
+                            to_file = os.path.join(
+                                self.ex_dir,  os.path.basename(d), f)
+                            move_file(from_file, to_file)
 
-                # clean the remaining directories
-                for root, dirs, files in os.walk(self.target_dir):
-                    for file_name in files:
-                        if re.search(search_str, file_name):
-                            x = '_'.join(file_name.split("_")[0:-1])
-                            if x == item:
-                                info = "remove " + str(file_name)
-                                G.logger(info)
-                                os.remove(os.path.join(root, file_name))
-        remove_directories()
-        remove_files()
+        def remove_dirs(search_annot):
+            for d in os.listdir(self.target_dir):
+                for x in search_annot:
+                    if re.search(x, d):
+                        dp = os.path.join(self.target_dir, d)
+                        if len(os.listdir(dp)) == 0:
+                            os.rmdir(dp)
+                        else:
+                            to_dir = os.path.join(self.ex_dir, os.path.basename(d))
+                            move_dirs(dp, to_dir)
 
-    def check_passed_list(self, passed_list, qc_gene):
-        if self.config.ignore_qc:
-            info = (
-                "--ignore_qc option: Check quality control"
-                " files in the Summary directory")
-            G.logger("> " + info)
-            print("\n" + info)
-            return 0
+        filepath = os.path.join(self.ex_dir, "excluded_list.txt")
+        del_df = pd.DataFrame(delete)
+        if os.path.isfile(filepath):
+            del_df.to_csv(filepath, index=False, header=None, mode='a')
+        else:
+            del_df.to_csv(filepath, index=False, header=None, )
 
-        if len(passed_list) == 0:
-            error_msg = "Error: No genomes survived QC"
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
-            self.remove_qc_failures(qc_gene)
-            return 1
-
-        if len(passed_list) < 2:
-            error_msg = "Error: Less than two genomes survived QC"
-            print(error_msg)
-            G.logger("> " + error_msg)
-            errors.append([self.target, error_msg])
-            self.remove_qc_failures(qc_gene)
-            return 1
-
-        self.remove_qc_failures(qc_gene)
-        return 0
-
+        search_annot = [x + "_*" for x in delete]
+        search_genomic_ncbi =  [
+                ".".join(x.split("v")) + "_*" for x in delete if (
+                "GCF" and "v" in x or "GCA" and "v" in x)]
+        remove_files(search_annot, search_genomic_ncbi)
+        remove_dirs(search_annot)
 
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
         if os.path.isfile(pan):
-            info = "Found Pangenome directory, skip QC " + qc_gene
-            G.logger("> " + info)
-            print(info)
+            G.comm_log("> Found Pangenome directory, skip QC " + qc_gene)
             return 0
 
-        print("\nRun: quality_control(" + qc_gene + ")")
-        G.logger("Run: quality_control(" + qc_gene + ")")
+        G.comm_log("Run: quality_control(" + qc_gene + ")", True)
+        qc_seqs, skip_qc_df = self.get_qc_seqs(qc_gene)
+        if len(qc_seqs) == 0:
+            return 1
 
-        if self.get_qc_seqs(qc_gene) == 0:
-            qc_seqs = self.choose_sequence(qc_gene)
-            if len(qc_seqs) > 0:
-                use_cores, inputseqs = BlastPrep(
-                        qc_dir, qc_seqs, qc_gene,
-                        self.config.blastseqs).run_blastprep()
-                Blast(
-                    self.config, qc_dir, "quality_control"
-                ).run_blast(qc_gene, use_cores)
+        use_cores, inputseqs = BlastPrep(
+                qc_dir, qc_seqs, qc_gene,
+                self.config.blastseqs).run_blastprep()
+        Blast(self.config, qc_dir, "quality_control").run_blast(qc_gene, use_cores)
+        passed_df = BlastParser(self.config, results="quality_control").bp_parse_results(qc_dir)
+        qc_report = pd.concat([passed_df, skip_qc_df])
+        fp = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
+        qc_report.to_csv(fp, index=False)
 
-            passed_list = self.qc_blast_parser(qc_gene)
-            exitcode = self.check_passed_list(passed_list, qc_gene)
-        else:
-            exitcode = 1
-        return exitcode
+        return self.check_passed_list(qc_report, qc_gene)
 
 
 class PangenomeAnalysis:
@@ -1959,7 +1656,8 @@ class Blast:
 
 
 class BlastParser:
-    def __init__(self, configuration, results="seqs"):
+class BlastParser:
+    def __init__(self, configuration, results="conserved"):
         self.exception = configuration.exception
         self.config = configuration
         self.target = configuration.target
@@ -1972,21 +1670,19 @@ class BlastParser:
         self.blast_dir = os.path.join(self.results_dir, "blast")
         self.nontargetlist = configuration.nontargetlist
         self.selected = []
-        self.mode = "normal"
+        self.mode = results
         self.start = time.time()
-        if results == "primer":
-            self.mode = "primer"
-            self.primer_dir = os.path.join(self.results_dir, "primer")
-            self.blast_dir = os.path.join(self.primer_dir, "primerblast")
-            #self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
-            self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
-            self.maxgroupsize = 25000
+        self.primer_dir = os.path.join(self.results_dir, "primer")
+        self.blast_dir = os.path.join(self.primer_dir, "primerblast")
+        #self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
+        self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+        self.maxgroupsize = 25000
 
-    def blastresult_files(self):
+    def blastresult_files(self, blast_dir):
         blastresults = []
         print("Run: blastresults_files(" + self.target + ")")
-        for files in [f for f in os.listdir(self.blast_dir) if f.endswith("results.csv")]:
-            file_path = os.path.join(self.blast_dir, files)
+        for files in [f for f in os.listdir(blast_dir) if f.endswith("results.csv")]:
+            file_path = os.path.join(blast_dir, files)
             if file_path not in blastresults:
                 blastresults.append(file_path)
         blastresults.sort()
@@ -2022,9 +1718,6 @@ class BlastParser:
         raise BlastDBError(error_msg)
 
     def check_seq_ends(self, rejected):
-        #w_mode = 'a'
-        #if os.path.isfile("BLAST_results_summary.csv") is True and filenum == 0:
-            #w_mode = 'w'
         # Filter non-aligned endings
         rejected.loc[:, 'overhang'] = (
                             rejected.loc[:,'Query sequence length'] - rejected.loc[:, 'End of alignment in query'])
@@ -2054,12 +1747,30 @@ class BlastParser:
         return excluded_gis
 
     def parse_blastrecords(self, blastdf, excluded_gis):
-        exceptions = [H.subspecies_handler(self.target, mode="space")]
+        target_sp = " ".join([self.target.split("_")[0], H.subspecies_handler(self.target, mode="space")])
+        exceptions = [target_sp]
         if self.exception != []:
             for item in self.exception:
                 exception = ' '.join(item.split("_"))
                 if exception not in exceptions:
                     exceptions.append(exception)
+
+        if self.mode == "quality_control":
+            # remove excluded sequences from the results
+            blastdf = blastdf[~blastdf["Subject GI"].isin(excluded_gis)]
+            blastdf = blastdf[~blastdf["Subject accession"].isin(excluded_gis)]
+            blastdf.sort_values(["Query Seq-id", "Bit score"], ascending=False, inplace=True)
+            blastdf.drop_duplicates(["Query Seq-id"], inplace=True)
+            blastdf = self.get_species_names_from_title(blastdf)
+            mask = blastdf["Species"].str.contains("|".join(exceptions))
+            blastdf.loc[mask, "QC status"] = "passed QC"
+            blastdf.loc[~mask, "QC status"] = "failed QC"
+            blastdf["Target species"] = target_sp
+            QC_results = blastdf[[
+                    "Query Seq-id", "Subject GI", "Subject accession",
+                    "Species", "Target species", "QC status"]]
+            na = pd.DataFrame()
+            return QC_results, na, na, na
 
         target_filter = blastdf["Subject Title"].str.contains("|".join(exceptions))
         target_hits = blastdf[target_filter]
@@ -2080,7 +1791,7 @@ class BlastParser:
         reject = reject[~reject["Subject GI"].isin(excluded_gis)]
         reject = reject[~reject["Subject accession"].isin(excluded_gis)]
 
-        if self.mode == "normal":
+        if self.mode == "conserved":
             # Filter according to configuration
             reject = reject[reject['Percentage of identical matches'] >= self.config.nuc_identity]
             reject = reject[reject['Expect value'] <= self.config.evalue]
@@ -2089,8 +1800,7 @@ class BlastParser:
             speciesdata = blastdf[['Query Seq-id', 'Subject accession', "Subject Title"]]
             reject = reject[['Query Seq-id', "Subject accession"]]
         else:
-            partial = pd.DataFrame()
-            speciesdata = pd.DataFrame()
+            partial, speciesdata = pd.DataFrame(), pd.DataFrame()
             reject = reject[[
                             "Query Seq-id", "Subject accession", "Start of alignment in subject",
                             "End of alignment in subject", "Subject sequence length", "Subject Title"]]
@@ -2119,7 +1829,7 @@ class BlastParser:
         to_file = os.path.join(self.blast_dir, "mostcommonhits.csv")
         total = len(df.index)
         queries = len(set(df["Query Seq-id"]))
-        df = self.get_species_names_from_title(df)
+        df = get_species_names_from_title(df)
         mostcommon = pd.DataFrame(df.drop_duplicates(["Query Seq-id", "Species"])["Species"].value_counts())
         mostcommon.index.name ="Species"
         mostcommon.columns = ["BLAST hits [count]"]
@@ -2146,19 +1856,16 @@ class BlastParser:
                                                                     lambda x: ' '.join(x))
         return df
 
-    def bp_parse_results(self):
+    def bp_parse_results(self, blast_dir):
         target_dfs = []
         offtarget_dfs = []
         partial_dfs = []
         speciesdata_dfs = []
-        blastresults = self.blastresult_files()
+        blastresults = self.blastresult_files(blast_dir)
         excluded_gis = self.get_excluded_gis()
         print("Excluded GI(s):", excluded_gis)
         fmt_file = os.path.join(dict_path, "blastfmt6.csv")
         header = list(pd.read_csv(fmt_file, header=None)[1].dropna())
-        tmp_file = os.path.join(self.blast_dir, "tmp_mostcommon.csv")
-        if os.path.isfile(tmp_file):
-            os.remove(tmp_file)
         for i, filename in enumerate(blastresults):
             print(
                 "\nopen BLAST result file " + str(i+1)
@@ -2181,6 +1888,15 @@ class BlastParser:
         offtarget = pd.concat(offtarget_dfs)
         partial = pd.concat(partial_dfs)
         speciesdata = pd.concat(speciesdata_dfs)
+
+        if self.mode == "quality_control":
+            if len(accept.index) == 0:
+                error_msg = "No Quality Control results found."
+                print(error_msg)
+                G.logger("> " + error_msg)
+                errors.append([self.target, error_msg])
+
+            return accept
 
         specific_seqs = self.blastresults_summary(target, offtarget, partial)
 
@@ -2321,10 +2037,9 @@ class BlastParser:
         offtarget["Start overhang"] = offtarget["Start overhang"].astype('Int64')
         offtarget["End overhang"] = offtarget["End overhang"].astype('Int64')
 
+        # data binning
         max_range = offtarget["End overhang"].max()
         stepsize = self.config.maxsize + overhang*2 + 1
-
-        # simple binning of data
         collection = []
         for i in range(1, max_range,  stepsize):
             j = i + overhang*2 + self.config.maxsize
@@ -2333,10 +2048,8 @@ class BlastParser:
             maxi = sub.groupby(["Subject accession"])["End overhang"].max()
             submax = pd.concat([mini, maxi], axis=1)
             submax.columns = ["Start", "Stop"]
-
             submax.sort_values(["Start", "Stop"], inplace=True, ascending=False)
             submax.drop_duplicates(inplace=True)
-
             collection.append(submax)
 
         results = pd.concat(collection)
@@ -2374,10 +2087,8 @@ class BlastParser:
 
     def write_nontarget_sequences(self):
         # faster but requires more RAM
-        maxpartsize = 25000
-        if self.config.customdb is not None:
-            db = self.config.customdb
-        else:
+        db = self.config.customdb
+        if db is None:
             db = "nt"
 
         dbids = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
@@ -2386,11 +2097,8 @@ class BlastParser:
         df.sort_values(["Accession"], inplace=True)
 
         seqcount = len(df.index)
-        info = "Found " + str(seqcount) + " sequences for the non-target DB"
-        G.logger(info)
-        print("\n" + info + "\n")
-
-        parts = len(df.index)//maxpartsize + 1
+        G.comm_log("Found " + str(seqcount) + " sequences for the non-target DB", newline=True)
+        parts = len(df.index)//self.maxgroupsize + 1
         chunks = np.array_split(df, parts)
 
         for part, chunk in enumerate(chunks):
@@ -2407,11 +2115,8 @@ class BlastParser:
             filename = "BLASTnontarget" + str(part) + ".sequences"
             filepath = os.path.join(self.primer_qc_dir, filename)
             if not os.path.isfile(filepath):
-                info = "Start writing " + filename
-                print(info)
-                G.logger(info)
-                print("Start DB extraction")
-                G.logger("Start DB extraction")
+                G.comm_log("Start writing " + filename)
+                G.comm_log("Start DB extraction")
                 fasta_seqs = G.run_parallel(
                         P.get_seq_fromDB, one_extraction, db)
                 try:
@@ -2419,20 +2124,14 @@ class BlastParser:
                 except (KeyboardInterrupt, SystemExit):
                     G.keyexit_rollback("DB extraction", fp=filepath)
                     raise
-
+                G.comm_log("Finished writing " + filename)
             else:
-                info2 = "Skip writing " + filename
-                print(info2)
-                G.logger(info2)
-                return
-            info3 = "Finished writing " + filename
-            print(info3)
-            G.logger(info3)
+                G.comm_log("Skip writing " + filename)
 
     def run_blastparser(self):
         if self.mode == "primer":
             print("Start primer blast parser")
-            offtarget = self.bp_parse_results()
+            offtarget = self.bp_parse_results(self.blast_dir)
             db_seqs = self.find_primerbinding_offtarget_seqs(offtarget)
             self.get_primerBLAST_DBIDS(db_seqs)
             self.write_nontarget_sequences()
@@ -2443,8 +2142,8 @@ class BlastParser:
                 + str(timedelta(seconds=duration)).split(".")[0])
             print(timedelta(seconds=duration))
         else:
-            specific_ids = self.bp_parse_results()
-            self.write_primer3_input(specific_ids)
+            specific_ids = self.bp_parse_results(self.blast_dir)
+            write_primer3_input(specific_ids)
             duration = time.time() - self.start
             info = ("species specific conserved sequences: "
                     + str(len(specific_ids)))
@@ -2456,9 +2155,8 @@ class BlastParser:
             PipelineStatsCollector(self.target_dir).write_stat(info)
 
             if len(specific_ids) == 0:
-                msg = "No conserved sequences without non-target match found"
-                print(msg)
-                G.logger("> " + msg)
+                msg = "> No conserved sequences without non-target match found"
+                G.comm_log(msg)
                 errors.append([self.target, msg])
                 return 1
 
