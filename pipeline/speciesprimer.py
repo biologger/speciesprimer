@@ -799,7 +799,6 @@ class QualityControl:
         G.logger("Run: get_qc_seqs(" + qc_gene + ")")
         G.logger("> Starting QC with " + qc_gene)
         print("Starting QC with " + qc_gene)
-        gff = []
         qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
         G.create_directory(qc_dir)
         # find annotation of gene in gff files and store file name
@@ -1656,7 +1655,6 @@ class Blast:
 
 
 class BlastParser:
-class BlastParser:
     def __init__(self, configuration, results="conserved"):
         self.exception = configuration.exception
         self.config = configuration
@@ -1829,7 +1827,7 @@ class BlastParser:
         to_file = os.path.join(self.blast_dir, "mostcommonhits.csv")
         total = len(df.index)
         queries = len(set(df["Query Seq-id"]))
-        df = get_species_names_from_title(df)
+        df = self.get_species_names_from_title(df)
         mostcommon = pd.DataFrame(df.drop_duplicates(["Query Seq-id", "Species"])["Species"].value_counts())
         mostcommon.index.name ="Species"
         mostcommon.columns = ["BLAST hits [count]"]
@@ -2143,7 +2141,7 @@ class BlastParser:
             print(timedelta(seconds=duration))
         else:
             specific_ids = self.bp_parse_results(self.blast_dir)
-            write_primer3_input(specific_ids)
+            self.write_primer3_input(specific_ids)
             duration = time.time() - self.start
             info = ("species specific conserved sequences: "
                     + str(len(specific_ids)))
