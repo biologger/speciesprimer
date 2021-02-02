@@ -257,7 +257,7 @@ def test_check_input(monkeypatch):
     def mock_taxid(db, term):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "esearchmock01.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     target = "Lactobacillus_curvatus"
     email = "biologger@protonmail.com"
@@ -270,7 +270,7 @@ def test_check_input_fail(monkeypatch):
     def mock_taxid(db, term):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "esearchmock02.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     target = "Lactobacious_curvatus"
     email = "biologger@protonmail.com"
@@ -296,7 +296,7 @@ def test_check_species_syn(monkeypatch):
     def mock_syn(db, id):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock01.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     target = "Lactobacillus_curvatus"
     email = "biologger@protonmail.com"
@@ -312,7 +312,7 @@ def test_check_species_syn_target_sc(monkeypatch):
     def mock_syn(db, id):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock04.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     target = "Chlamydophila pneumoniae"
     email = "biologger@protonmail.com"
@@ -332,7 +332,7 @@ def test_check_species_syn_none(monkeypatch):
     def mock_syn(db, id):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock02.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     # not relevant since return is mocked
     target = "Lactobacillus_curvatus"
@@ -347,7 +347,7 @@ def test_check_synonyms_nosyn(monkeypatch):
     def mock_syn(db, id):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock03.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     # not relevant since return is mocked
     target = "Lactobacillus_wasatchensis"
@@ -362,7 +362,7 @@ def test_check_synonyms_nonesyn(monkeypatch):
     def mock_syn(db, id):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock05.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'b')
         return f
     # not relevant since return is mocked
     target = "Lactobacillus_curvatus"
