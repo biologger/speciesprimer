@@ -21,7 +21,7 @@ msg = (
     - Start the container
         sudo docker start {Containername}
     - Start an interactive terminal in the container
-        sudo docker exec -it {Containername} bash
+        sudo docker exec -u 0 -it {Containername} bash
     - Start the tests in the container terminal
         cd /
         pytest -vv --cov=pipeline /tests/
@@ -62,19 +62,19 @@ class MockingBird():
     def mock_syn(self, *args, **kwargs):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "efetchmock01.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'rb')
         return f
 
     def mock_getsummary(self, *args, **kwargs):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "getsummarymock.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'rb')
         return f
 
     def mock_getlinks(self, *args, **kwargs):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "getlinksmock.xml")
-        f = open(mockfile)
+        f = open(mockfile, 'rb')
         return f
 
     def run(self, *args, **kwargs):
@@ -314,8 +314,10 @@ def test_auto_run_config():
 
 
 def test_DataCollection(config, monkeypatch):
+    import Bio
+    basepath = os.path.dirname(Bio.__file__)
     dtd_path = os.path.join(
-            "/", "root", ".config", "biopython", "Bio", "Entrez", "DTDs")
+            basepath, "Entrez", "DTDs")
     dtd1 = os.path.join(dtd_path, "esummary_assembly.dtd")
     dtd2 = os.path.join(dtd_path, "efetch.dtd")
     mockdtd1 = os.path.join(
@@ -351,13 +353,13 @@ def test_DataCollection(config, monkeypatch):
         def mock_taxid(db, term):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "esearchmock01.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         def mock_syn(db, id):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "efetchmock01.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         monkeypatch.setattr(Entrez, "esearch", mock_taxid)
@@ -372,7 +374,7 @@ def test_DataCollection(config, monkeypatch):
         def mock_taxid(db, term):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "esearchmock02.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         monkeypatch.setattr(Entrez, "esearch", mock_taxid)
@@ -488,13 +490,13 @@ def test_DataCollection(config, monkeypatch):
         def mock_getsummary(db, term, retmax):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "getsummarymock.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         def mock_getlinks(db, id, rettype, retmode):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "getlinksmock.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
@@ -556,13 +558,13 @@ def test_DataCollection(config, monkeypatch):
         def mock_getsummary(db, term, retmax):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "getsummarymock.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         def mock_getlinks(db, id, rettype, retmode):
             mockfile = os.path.join(
                     testfiles_dir, "entrezmocks", "getlinksmock02.xml")
-            f = open(mockfile)
+            f = open(mockfile, 'rb')
             return f
 
         monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
@@ -1266,10 +1268,13 @@ def test_PrimerDesign(config):
     assert os.path.isfile(p3_output) is True
 
     pd.run_primerdesign()
+
     with open(reffile) as f:
         for line in f:
             refdict = json.loads(line)
-    assert refdict == pd.p3dict
+
+    for k, v in refdict.items():
+        assert refdict[k] == pd.p3dict[k]
 
     # test primer3 error
     p3_error = os.path.join(testfiles_dir, "primer3_output_err")
@@ -1572,14 +1577,16 @@ def test_primerblastparser(config):
     if not os.path.isfile(file_path):
         nonred_dict = blapa.remove_redundanthits(align_dict)
         blapa.write_nontargethits(
-                            blapa.primerblast_dir, nonred_dict,
-                            "json")
+                            blapa.primerblast_dir, nonred_dict, "json")
     else:
         nonred_dict = align_dict
 
     G.create_directory(blapa.primer_qc_dir)
     nonreddata = blapa.sort_nontarget_sequences(nonred_dict)
-    assert len(nonreddata) == 97
+
+    # version diff (libprimer3 release 2.3.6/2.5.0)
+    #assert len(nonreddata) == 97
+    assert len(nonreddata) == 89
     blapa.write_nontarget_sequences(nonreddata)
     nontarget_seqs = os.path.join(primer_qc_dir, "BLASTnontarget0.sequences")
     DBIDS = os.path.join(primer_qc_dir, "primerBLAST_DBIDS.csv")
@@ -1590,7 +1597,10 @@ def test_primerblastparser(config):
         for line in f:
             if ">" in line:
                 count += 1
-    assert count == 97
+
+    # version diff (libprimer3 release 2.3.6/2.5.0)
+    #assert count == 97
+    assert count == 89
     # skip
     exitstatus = blapa.get_primerBLAST_DBIDS(nonred_dict)
     assert exitstatus == 0
@@ -1731,14 +1741,15 @@ def test_PrimerQualityControl_specificitycheck(config):
             'Lb_curva_asnS_1_P0_F',
             'AAACCATGTCGATGAAGAAGTTAAA',
             'Lb_curva_asnS_1_P0_R',
-            'TGCCATCACGTAATTGGAGGA',
+            'TCACGTAATTGGAGGAATGAAATCT',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
-            + 'AAGATTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAA'
-            + 'AAG']]
+            +'AAGATTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG'
+            ]]
         ref2 = [[
             'asnS_1', 'Primer_pair_0',
             'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGG'
-            + 'AAGATTTCATTCCTCCAATTACGTGATGGCA', 'Lb_curva_asnS_1_P0']]
+            + 'AAGATTTCATTCCTCCAATTACGTGA',
+            'Lb_curva_asnS_1_P0']]
         inputseqs.sort()
         modes = ['mfeprimer', "mfold", "dimercheck"]
         for mode in modes:
@@ -1751,7 +1762,8 @@ def test_PrimerQualityControl_specificitycheck(config):
                 assert primerinfo == [[
                     'Lb_curva_asnS_1_P0',
                     'AAACCATGTCGATGAAGAAGTTAAA',
-                    'TGCCATCACGTAATTGGAGGA']]
+                    'TCACGTAATTGGAGGAATGAAATCT'
+                    ]]
 
     def test_MFEprimer_DBs():
         for files in os.listdir(pqc.primer_qc_dir):
@@ -1785,13 +1797,13 @@ def test_PrimerQualityControl_specificitycheck(config):
 
     def test_MFEprimer(inputseqs):
         import itertools
-        primerinfo = pqc.get_primerinfo([inputseqs[0]], "mfeprimer")
+        n = 8
+        primerinfo = pqc.get_primerinfo([inputseqs[n]], "mfeprimer")
         os.chdir(pqc.primer_qc_dir)
         # template
-        print("Test MFEprimer_template()")
         ppcth = [100, 90, 80, 70]
         outcome = [
-            [None], [None], 'Lb_curva_asnS_1_P0_F', 'Lb_curva_asnS_1_P0_F']
+            [None], [None], 'Lb_curva_comFA_2_P2_F', 'Lb_curva_comFA_2_P2_F']
         results = []
         for index, item in enumerate(ppcth):
             pqc.mfethreshold = item
@@ -1805,28 +1817,20 @@ def test_PrimerQualityControl_specificitycheck(config):
         check_nontarget = pqc.write_MFEprimer_results(results, "template")
 
         # nontarget
-        print("Test MFEprimer_nontarget()")
         ref = [[
-            'Lb_curva_asnS_1_P0_F',
-            'AAACCATGTCGATGAAGAAGTTAAA',
-            'Lb_curva_asnS_1_P0_R',
-            'TGCCATCACGTAATTGGAGGA',
-            'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
-            + 'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
-            17.700000000000003],
+            'Lb_curva_comFA_2_P2_F', 'ACAACGCCATGTCTTAACTGC',
+            'Lb_curva_comFA_2_P2_R', 'CGCAGCAACACACACACG',
+            'GCGGTTAGTGGAAGGGGATCAGTTGNTTTACGTGCCTGAATGCAATCTGTTTGAGTCGATNGT'
+            'AGAACCGCTAACTTGGTCGGGGACACTAACCCCTTTTCAAGCACAAGCCGCAAAGCAGATTGT'
+            'TGCGGTCATTACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGA'
+            'GATGTTATTTCAAGGCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCC'
+            'GCGGGTGGCGGTTTGTTTAGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT',
+            19.099999999999994],
             [
                 'AmpID\tFpID\tRpID\tHitID\tPPC\tSize\tAmpGC\tFpTm\tRpTm\tFpDg'
-                '\tRpDg\tBindingStart\tBindingStop\tAmpSeq',
-                '1\tLb_curva_asnS_1_P0_F\tLb_curva_asnS_1_P0_F'
-                '\tNZ_CP020459.1_1524567_1528567\t-16.4\t364\t37.09\t7.26'
-                '\t15.22\t-4.51\t-6.20\t3075\t3409\t'
-                'aaaccatgtcgatgAAGAAGTTAAAaaaccagctgaattagacaaatacctaaagagtat'
-                'tgactaattcattacaaaaaaagatcccgtcaatgacgagatctttttttatgctcaatt'
-                'actaaccgcgatggtcagcacccttcacttaaacgtgcttctcgaactgccttttccggt'
-                'taaccacaaaatgggaatcatggctaaacccgccataatccccattttcttgttaatcct'
-                'caaagccaacccgttcgagtcagcactttatttgttttctttcttttcgctttgctttaa'
-                'ttcttcacccaatttgatgatgtatttcttcaaatcatcTTTAACTTCTtcatcgacatg'
-                'gttt']]
+                '\tRpDg\tBindingStart\tBindingStop\tAmpSeq']]
+
+
         results = []
         nontarget_lists = []
         for index, item in enumerate(ppcth):
@@ -1843,21 +1847,24 @@ def test_PrimerQualityControl_specificitycheck(config):
         # assembly
         print("Test MFEprimer_assembly()")
         ref = [[
-            'Lb_curva_asnS_1_P0_F',
-            'AAACCATGTCGATGAAGAAGTTAAA',
-            'Lb_curva_asnS_1_P0_R',
-            'TGCCATCACGTAATTGGAGGA',
-            'AAACCATGTCGATGAAGAAGTTAAAATTGGCGTTTGGTTAACCGACAAACGNTCAAGTGGGAAGA'
-            'TTTCATTCCTCCAATTACGTGATGGCACTGCCTTTTTCCAAGGGGTTGTCGTTAAAAG',
-            17.700000000000003]]
+            'Lb_curva_comFA_2_P2_F', 'ACAACGCCATGTCTTAACTGC',
+            'Lb_curva_comFA_2_P2_R', 'CGCAGCAACACACACACG',
+            'GCGGTTAGTGGAAGGGGATCAGTTGNTTTACGTGCCTGAATGCAATCTGTTTGAGTCGATNGT'
+            'AGAACCGCTAACTTGGTCGGGGACACTAACCCCTTTTCAAGCACAAGCCGCAAAGCAGATTGT'
+            'TGCGGTCATTACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGA'
+            'GATGTTATTTCAAGGCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCC'
+            'GCGGGTGGCGGTTTGTTTAGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT',
+            19.099999999999994]]
+
         results = []
-        outcome = [[None], [None], [None], 'Lb_curva_asnS_1_P0_F']
+        outcome = [[None], [None], [None], 'Lb_curva_comFA_2_P2_F']
         dbfile = dbfile = H.abbrev(pqc.target) + ".genomic"
         for index, item in enumerate(ppcth):
             result = P.MFEprimer_assembly(
                     check_assembly[0], [pqc.primer_qc_dir, dbfile, item])
 
             results.append(result)
+
             if outcome[index] == [None]:
                 assert result[0] == outcome[index]
             else:
@@ -1867,7 +1874,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         assert check_final == ref
 
     def test_fullMFEprimer_run():
-        outcome = [15, 42, 54, 65]
+        outcome = [8, 33, 43, 51]
         ppcth = [100, 90, 80, 70]
         primerinfos = pqc.get_primerinfo(inputseqs, "mfeprimer")
         for index, item in enumerate(ppcth):
@@ -1911,8 +1918,8 @@ def test_PrimerQualityControl_structures(config):
         pqc.mfold_analysis(primerinfos)
         pqc.config.mfold = -1.0
         selected_primer, excluded_primer = pqc.mfold_parser()
-        assert len(selected_primer) == 3
-        assert len(excluded_primer) == 1
+        assert len(selected_primer) == 2 #3
+        assert len(excluded_primer) == 2# 1
 
         pqc.config.mfold = -12.0
         selected_primer, excluded_primer = pqc.mfold_parser()
@@ -1959,12 +1966,17 @@ def test_PrimerQualityControl_structures(config):
             'Lb_curva_g1243_2_P0', 'Lb_curva_comFA_5_P1',
             'Lb_curva_g4295_1_P0', 'Lb_curva_g4295_1_P4',
             'Lb_curva_gshAB_2_P4', 'Lb_curva_comFA_4_P2',
-            'Lb_curva_comFA_4_P5', 'Lb_curva_g1243_1_P2',
-            'Lb_curva_comFA_6_P1', 'Lb_curva_comFA_2_P1']
+            'Lb_curva_g1243_1_P2', 'Lb_curva_gshAB_2_P0',
+            'Lb_curva_g4430_1_P0']
+
+
         ref_choice.sort()
         dimercheck = pqc.dimercheck_primer(selected_primer, excluded_primer)
         choice = pqc.check_primerdimer(dimercheck)
         choice.sort()
+
+        print(choice)
+
         assert choice == ref_choice
         return choice
 
@@ -1973,18 +1985,19 @@ def test_PrimerQualityControl_structures(config):
     choice = test_dimercheck()
     total_results = pqc.write_results(choice)
     total_results.sort()
+
+    print(total_results[0])
+
     assert total_results[0] == [
-        'Lb_curva_comFA_2_P1', 100.0, 1.64, 'ComF operon protein 1',
-        'TACCAAGCAACAACGCCATG',
-        59.4, 0.63, 'ACACACACGCTGCCCATTAG', 60.95, 0.99,
-        'None', 'None', 'None', 106, 82.53,
-        'TACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAGG'
-        + 'CATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGT',
-        'GCGGTTAGTGGAAGGGGATCAGTTGNTTTACGTGCCTGAATGCAATCTGTTTGAGTCGATNGTAGAACC'
-        + 'GCTAACTTGGTCGGGGACACTAACCCCTTTTCAAGCACAAGCCGCAAAGCAGATTGTTGCGGTCATT'
-        + 'ACCAAGCAACAACGCCATGTCTTAACTGCAGTGACCGGTGCTGGTAAAACTGAGATGTTATTTCAAG'
-        + 'GCATTGCGACGGCTTTNGCTAATGGGCAGCGTGTGTGTGTTGCTGCGCCGCGGGTGGCGGTTTGTTT'
-        + 'AGAACTCTATCCGCGCTTGCAAGCAGCGTTTGCTAACACACCAAT']
+        'Lb_curva_comFA_4_P2', 96.9, 6.58, 'ComF operon protein 1',
+        'CCAATTCGCTTTCATGGTCACT', 59.51, 2.53,
+        'GGTAACTGATGCCGTTTAACTGA', 59.0, 4.03,
+        'None', 'None', 'None', 89, 81.07,
+        'CCAATTCGCTTTCATGGTCACTTATTACCTGAACCGCATTGCTATCCCTTGTTTACGTGGCGGCGT'
+        'TCAGTTAAACGGCATCAGTTACC', 'ATCTATCTGACGGCGACNCCAACTGTAAAGTTGCGCCAT'
+        'GCGATTAATACNGGGGATTTAACGGGTAGTGAGCTACCAATTCGCTTTCATGGTCACTTATTACCT'
+        'GAACCGCATTGCTATCCCTTGTTTACGTGGCGGCGTTCAGTTAAACGGCATCAGTTACCATCCGTG'
+        'ATGCG']
 
 
 def test_summary(config):
