@@ -1,4 +1,4 @@
-FROM biologger/speciesprimerdeps:V2.1
+FROM biologger/speciesprimerdeps:v2.2-beta
 
 LABEL maintainer="biologger@protonmail.com"
 
@@ -19,3 +19,4 @@ RUN chmod +x /boot.sh
 
 CMD ["/boot.sh"]
 WORKDIR /primerdesign
+USER primer

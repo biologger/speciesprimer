@@ -1,0 +1,121 @@
+Linear DNA folding at 60� C. [Na+] = 1.0, [Mg++] = 0.003.
+ 
+Structure    1
+ 
+ g600_3_P0_PCR
+ dG =     -1.91  dH =   -175.90  dS =   -522.26  Tm =   63.7 ℃
+ 
+ 
+External loop:	ddG =  -2.95  67 ss bases &  3 closing helices.
+Stack:		ddG =  -0.94 External closing pair is A(   124)-T(   135)
+Stack:		ddG =  -0.95 External closing pair is C(   125)-G(   134)
+Stack:		ddG =  -0.82 External closing pair is A(   126)-T(   133)
+Helix:		ddG =  -2.71   4 base pairs.
+Hairpin loop:	ddG =   3.08          Closing pair is G(   127)-C(   132)
+Stack:		ddG =  -0.82 External closing pair is A(    54)-T(   117)
+Stack:		ddG =  -1.70 External closing pair is G(    55)-C(   116)
+Stack:		ddG =  -0.95 External closing pair is C(    56)-G(   115)
+Helix:		ddG =  -3.47   4 base pairs.
+Interior loop:	ddG =   2.97 External closing pair is A(    57)-T(   114)
+Stack:		ddG =  -0.81 External closing pair is T(    59)-A(   111)
+Helix:		ddG =  -0.81   2 base pairs.
+Interior loop:	ddG =   0.12 External closing pair is C(    60)-G(   110)
+Stack:		ddG =  -0.95 External closing pair is T(    62)-A(   108)
+Stack:		ddG =  -0.18 External closing pair is G(    63)-C(   107)
+Stack:		ddG =  -0.33 External closing pair is G(    64)-T(   106)
+Stack:		ddG =  -0.95 External closing pair is C(    65)-G(   105)
+Helix:		ddG =  -2.41   5 base pairs.
+Interior loop:	ddG =   3.76 External closing pair is A(    66)-T(   104)
+Stack:		ddG =  -0.95 External closing pair is C(    71)-G(    99)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =   0.23 External closing pair is A(    72)-T(    98)
+Stack:		ddG =  -0.95 External closing pair is T(    74)-A(    96)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =  -0.44 External closing pair is G(    75)-C(    95)
+Stack:		ddG =  -0.95 External closing pair is T(    77)-A(    93)
+Stack:		ddG =  -0.94 External closing pair is G(    78)-C(    92)
+Helix:		ddG =  -1.89   3 base pairs.
+Hairpin loop:	ddG =   4.39          Closing pair is T(    79)-A(    91)
+Stack:		ddG =  -0.43 External closing pair is A(    18)-T(    29)
+Stack:		ddG =  -0.95 External closing pair is T(    19)-A(    28)
+Stack:		ddG =  -1.70 External closing pair is G(    20)-C(    27)
+Helix:		ddG =  -3.08   4 base pairs.
+Hairpin loop:	ddG =   3.20          Closing pair is C(    21)-G(    26)
+ 
+Structure    2
+ 
+ g600_3_P0_PCR
+ dG =     -1.88  dH =   -148.50  dS =   -440.10  Tm =   64.3 ℃
+ 
+ 
+External loop:	ddG =  -1.84  89 ss bases &  3 closing helices.
+Stack:		ddG =  -0.95 External closing pair is T(   117)-A(   141)
+Stack:		ddG =  -1.70 External closing pair is G(   118)-C(   140)
+Stack:		ddG =  -0.22 External closing pair is C(   119)-G(   139)
+Stack:		ddG =  -0.16 External closing pair is G(   120)-T(   138)
+Helix:		ddG =  -3.03   5 base pairs.
+Interior loop:	ddG =   2.11 External closing pair is G(   121)-C(   137)
+Stack:		ddG =  -0.94 External closing pair is A(   124)-T(   135)
+Stack:		ddG =  -0.95 External closing pair is C(   125)-G(   134)
+Stack:		ddG =  -0.82 External closing pair is A(   126)-T(   133)
+Helix:		ddG =  -2.71   4 base pairs.
+Hairpin loop:	ddG =   3.08          Closing pair is G(   127)-C(   132)
+Stack:		ddG =  -0.95 External closing pair is C(    71)-G(    99)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =   0.23 External closing pair is A(    72)-T(    98)
+Stack:		ddG =  -0.95 External closing pair is T(    74)-A(    96)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =  -0.44 External closing pair is G(    75)-C(    95)
+Stack:		ddG =  -0.95 External closing pair is T(    77)-A(    93)
+Stack:		ddG =  -0.94 External closing pair is G(    78)-C(    92)
+Helix:		ddG =  -1.89   3 base pairs.
+Hairpin loop:	ddG =   4.39          Closing pair is T(    79)-A(    91)
+Stack:		ddG =  -0.43 External closing pair is A(    18)-T(    29)
+Stack:		ddG =  -0.95 External closing pair is T(    19)-A(    28)
+Stack:		ddG =  -1.70 External closing pair is G(    20)-C(    27)
+Helix:		ddG =  -3.08   4 base pairs.
+Hairpin loop:	ddG =   3.20          Closing pair is C(    21)-G(    26)
+ 
+Structure    3
+ 
+ g600_3_P0_PCR
+ dG =     -1.85  dH =   -170.60  dS =   -506.53  Tm =   63.7 ℃
+ 
+ 
+External loop:	ddG =  -1.67  39 ss bases &  2 closing helices.
+Stack:		ddG =  -0.16 External closing pair is G(   128)-T(   143)
+Stack:		ddG =  -0.94 External closing pair is G(   129)-C(   142)
+Stack:		ddG =  -0.95 External closing pair is T(   130)-A(   141)
+Stack:		ddG =  -1.70 External closing pair is G(   131)-C(   140)
+Helix:		ddG =  -3.75   5 base pairs.
+Hairpin loop:	ddG =   3.73          Closing pair is C(   132)-G(   139)
+Stack:		ddG =  -0.94 External closing pair is A(    23)-T(   122)
+Stack:		ddG =  -1.40 External closing pair is C(    24)-G(   121)
+Stack:		ddG =  -1.57 External closing pair is C(    25)-G(   120)
+Stack:		ddG =  -1.70 External closing pair is G(    26)-C(   119)
+Stack:		ddG =  -0.95 External closing pair is C(    27)-G(   118)
+Helix:		ddG =  -6.56   6 base pairs.
+Bulge loop:	ddG =   5.03 External closing pair is A(    28)-T(   117)
+Stack:		ddG =  -1.70 External closing pair is G(    55)-C(   116)
+Stack:		ddG =  -0.95 External closing pair is C(    56)-G(   115)
+Helix:		ddG =  -2.65   3 base pairs.
+Interior loop:	ddG =   2.97 External closing pair is A(    57)-T(   114)
+Stack:		ddG =  -0.81 External closing pair is T(    59)-A(   111)
+Helix:		ddG =  -0.81   2 base pairs.
+Interior loop:	ddG =   0.12 External closing pair is C(    60)-G(   110)
+Stack:		ddG =  -0.95 External closing pair is T(    62)-A(   108)
+Stack:		ddG =  -0.18 External closing pair is G(    63)-C(   107)
+Stack:		ddG =  -0.33 External closing pair is G(    64)-T(   106)
+Stack:		ddG =  -0.95 External closing pair is C(    65)-G(   105)
+Helix:		ddG =  -2.41   5 base pairs.
+Interior loop:	ddG =   3.76 External closing pair is A(    66)-T(   104)
+Stack:		ddG =  -0.95 External closing pair is C(    71)-G(    99)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =   0.23 External closing pair is A(    72)-T(    98)
+Stack:		ddG =  -0.95 External closing pair is T(    74)-A(    96)
+Helix:		ddG =  -0.95   2 base pairs.
+Interior loop:	ddG =  -0.44 External closing pair is G(    75)-C(    95)
+Stack:		ddG =  -0.95 External closing pair is T(    77)-A(    93)
+Stack:		ddG =  -0.94 External closing pair is G(    78)-C(    92)
+Helix:		ddG =  -1.89   3 base pairs.
+Hairpin loop:	ddG =   4.39          Closing pair is T(    79)-A(    91)
