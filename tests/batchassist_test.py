@@ -15,12 +15,13 @@ msg = (
     - Start the container
         sudo docker start {Containername}
     - Start an interactive terminal in the container
-        sudo docker exec -it {Containername} bash
+        sudo docker exec -u 0 -it {Containername} bash
     - Start the tests in the container terminal
         cd /
         pytest -vv --cov=pipeline /tests/
     """
 )
+
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 pipe_dir = os.path.join(BASE_PATH.split("tests")[0], "pipeline")
@@ -337,6 +338,7 @@ def get_config_from_file(conf_from_file):
 
 
 def test_sys_exit(monkeypatch):
+    os.chdir("/")
     monkeypatch.setattr('builtins.input', fail_input)
     with pytest.raises(SystemExit):
         conf_from_file = Config()
