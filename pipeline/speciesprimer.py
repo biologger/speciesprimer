@@ -1318,7 +1318,7 @@ class PangenomeAnalysis:
         if os.path.isfile(coregenealn):
             tree = H.abbrev(self.target) + "_tree.nwk"
             fasttree_cmd = [
-                "fasttree", "-nt", "-gtr", "-nopr", coregenealn, ">", tree]
+                "FastTreeMP", "-nt", "-gtr", "-nopr", coregenealn, ">", tree]
             try:
                 G.run_shell(
                     " ".join(fasttree_cmd), printcmd=True, logcmd=True,
