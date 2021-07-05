@@ -14,9 +14,16 @@ ENV SSL_CERT_DIR="/etc/ssl/certs"
 ENV PATH="/pipeline/:${PATH}"
 ENV PATH="/pipeline/gui/daemon/:${PATH}"
 ENV PATH="/pipeline/ext-scripts/:${PATH}"
-RUN chmod +x /pipeline/*.py
-RUN chmod +x /pipeline/gui/daemon/*.py
-RUN chmod +x /boot.sh
+RUN chmod +x /pipeline/*.py \
+&& chmod +x /pipeline/gui/daemon/*.py \
+&& chmod +x /boot.sh
+
+# directories for tests
+RUN chown -R primer /pipeline/ \
+&& chown -R root /pipeline/dictionaries/default/ \
+&& chown -R primer /programs \
+&& chown -R primer /usr/local/share/ca-certificates/ \
+&& chown -R primer /opt/conda/lib/python3.7/site-packages/Bio/Entrez/DTDs/
 
 CMD ["/boot.sh"]
 WORKDIR /primerdesign
