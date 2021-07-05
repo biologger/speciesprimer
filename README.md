@@ -9,11 +9,12 @@
 [![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
 
 New in SpeciesPrimer v2.2
+* Updated dependencies
 * Automatic download of genome assemblies from genbank
 * New filter options for specificity BLAST step
 	* Nucleotide identity
 	* E-value
-* New functions (Beta)
+* New functions (experimental)
 	* Strainprimer: strain specific primer design
 	* Primer design for viruses
 * Removed blastdbv5 option
@@ -77,25 +78,19 @@ New in SpeciesPrimer v2.2
 
 * After the docker run command open a new terminal
 
-		# open an interactive terminal in the docker container
-		$ sudo docker exec -it speciesprimer bash
+		# open an interactive terminal in the docker container as root user
+		$ sudo docker exec -u 0 -it speciesprimer bash
 
 * Download the nt BLAST DB (>60 GB):
 
-		$ getblastdb.py -dbpath /blastdb --delete
+		$ cd /blastdb
+		$ update_blastdb.pl --passive --decompress nt
+		$ cd /primerdesign
 
 * or download the ref_prok_rep_genomes DB (~6.5 GB):
 
-		$ getblastdb.py -db ref_prok_rep_genomes -dbpath /blastdb --delete
-
-* or alternatively
-
 		$ cd /blastdb
-
-		$ update_blastdb.pl --passive --decompress nt
-		# or
 		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes
-
 		$ cd /primerdesign
 
 * Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
