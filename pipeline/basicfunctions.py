@@ -649,7 +649,7 @@ class ParallelFunctions:
         GeneralFunctions().logger("> Start index non-target DB " + db_name)
         print("\nStart index " + db_name)
         start = time.time()
-        cmd = ["IndexDb.sh", inputfilepath, "9"]
+        cmd = ["IndexDB.py", inputfilepath, "-k", "9"]
         try:
             GeneralFunctions().run_subprocess(
                     cmd, True, True, False)
