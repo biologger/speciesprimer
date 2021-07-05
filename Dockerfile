@@ -10,6 +10,7 @@ COPY boot.sh /
 ENV FLASK_APP="/pipeline/gui/speciesprimergui.py"
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+ENV SSL_CERT_DIR="/etc/ssl/certs"
 ENV PATH="/pipeline/:${PATH}"
 ENV PATH="/pipeline/gui/daemon/:${PATH}"
 ENV PATH="/pipeline/ext-scripts/:${PATH}"
