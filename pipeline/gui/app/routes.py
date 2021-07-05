@@ -70,7 +70,7 @@ def start_frontail():
         os.remove(pidfile)
     frontail_cmd = [
             "frontail-linux", "-d", "-n", "20", "--pid-path",
-            pidfile, log_file]
+            "--disable-usage-stats", pidfile, log_file]
     subprocess.Popen(frontail_cmd, cwd=pipe_dir)
 
 

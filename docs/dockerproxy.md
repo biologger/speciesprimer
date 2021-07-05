@@ -128,4 +128,4 @@
             $ cp /primerdesign/certificates/Proxy_CA.crt /usr/local/share/ca-certificates/Proxy_CA.crt
             $ update-ca-certificates
             $ export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-            $ echo export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt >> /home/primer/.profile
+            $ echo export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt >> /home/primer/.bashrc
