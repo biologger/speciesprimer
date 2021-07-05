@@ -349,13 +349,26 @@ def test_sys_exit(monkeypatch):
 
 
 def test_default_input(monkeypatch):
-    monkeypatch.setattr('builtins.input', alldef_input)
-    conf_from_file = Config()
-    configpath = get_config_from_file(conf_from_file)[0]
-    compare_configfiles(reference_dict, configpath, "0")
-    defdir = os.path.join("/", "Lactobacillus_curvatus")
-    if os.path.isdir(defdir):
-        shutil.rmtree(defdir)
+    startdir = os.getcwd()
+    testdir = os.path.join("/tests", "tmp")
+    try:
+        G.create_directory(testdir)
+        os.chdir(testdir)
+        monkeypatch.setattr('builtins.input', alldef_input)
+        conf_from_file = Config()
+        configpath = get_config_from_file(conf_from_file)[0]
+        with open(reference_dict) as f:
+            for line in f:
+                refdict = json.loads(line)
+        with open(configpath) as f:
+            for line in f:
+                confdict = json.loads(line)
+        refdict["0"].update({"path": os.getcwd()})
+        assert refdict["0"] == confdict
+    finally:
+        os.chdir(startdir)
+        if os.path.isdir(testdir):
+            shutil.rmtree(testdir)
 
 def test_offline(monkeypatch):
     monkeypatch.setattr('builtins.input', offline_input)
