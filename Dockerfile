@@ -19,11 +19,12 @@ RUN chmod +x /pipeline/*.py \
 && chmod +x /boot.sh
 
 # directories for tests
-RUN chown -R primer /pipeline/ \
-&& chown -R root /pipeline/dictionaries/default/ \
+RUN chown -R primer /tests \
+&& chown -R primer /pipeline \
+&& chown -R root /pipeline/dictionaries/default \
 && chown -R primer /programs \
-&& chown -R primer /usr/local/share/ca-certificates/ \
-&& chown -R primer /opt/conda/lib/python3.7/site-packages/Bio/Entrez/DTDs/
+&& chown -R primer /usr/local/share/ca-certificates \
+&& chown -R primer /opt/conda/lib/python3.7/site-packages/Bio/Entrez/DTDs
 
 CMD ["/boot.sh"]
 WORKDIR /primerdesign
