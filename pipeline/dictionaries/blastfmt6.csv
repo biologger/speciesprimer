@@ -1,0 +1,19 @@
+qseqid,Query Seq-id
+qlen,Query sequence length
+qstart,Start of alignment in query
+qend,End of alignment in query
+sseqid,Subject Seq-id
+stitle,Subject Title
+sgi,Subject GI
+sacc,Subject accession
+sstart,Start of alignment in subject
+send,End of alignment in subject
+slen,Subject sequence length
+evalue,Expect value
+bitscore,Bit score
+length,Alignment length
+pident,Percentage of identical matches
+nident,Number of identical matches
+mismatch,Number of mismatches
+gapopen,Number of gap openings
+staxids,Subject Taxonomy ID(s)

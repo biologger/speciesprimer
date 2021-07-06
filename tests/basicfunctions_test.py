@@ -271,6 +271,7 @@ def test_check_input_fail(monkeypatch):
         mockfile = os.path.join(
                 testfiles_dir, "entrezmocks", "esearchmock02.xml")
         f = open(mockfile, 'rb')
+
         return f
     target = "Lactobacious_curvatus"
     email = "biologger@protonmail.com"

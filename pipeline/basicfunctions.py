@@ -28,6 +28,14 @@ class GeneralFunctions:
             + str(string_to_log).strip())
 
     @staticmethod
+    def comm_log(string_to_log, newline=False):
+        GeneralFunctions().logger(string_to_log)
+        if newline:
+            print("\n" + string_to_log + "\n")
+        else:
+            print(string_to_log)
+
+    @staticmethod
     def run_subprocess(
             cmd, printcmd=True, logcmd=True, printoption=True):
         if logcmd:
