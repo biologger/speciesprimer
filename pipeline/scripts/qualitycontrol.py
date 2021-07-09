@@ -122,12 +122,13 @@ class QualityControl(RunConfig):
         if len(annotations) == 0:
             G.comm_log("No sequence(s) for "+ qc_gene +" found in " + str(gff_filepath))
             self.remove_qc_failures(accession)
-
-        ffn_p = Path(self.ffn_dir, accession + ".ffn")
-        recs = list(SeqIO.parse(ffn_p, "fasta"))
-        qc_rec_data = [[rec.id, str(rec.seq)] for rec in recs if rec.id in annotations]
-        max_len = sorted(qc_rec_data, key=lambda x: len(x[1]), reverse=True)[0]
-        record = SeqRecord(Seq(max_len[1]), id=max_len[0], name=max_len[0], description=qc_gene)
+            record = SeqRecord(Seq(""), id="failed", name="failed", description="failed")
+        else:
+            ffn_p = Path(self.ffn_dir, accession + ".ffn")
+            recs = list(SeqIO.parse(ffn_p, "fasta"))
+            qc_rec_data = [[rec.id, str(rec.seq)] for rec in recs if rec.id in annotations]
+            max_len = sorted(qc_rec_data, key=lambda x: len(x[1]), reverse=True)[0]
+            record = SeqRecord(Seq(max_len[1]), id=max_len[0], name=max_len[0], description=qc_gene)
         return record
 
     def qc_blast(self, qc_gene):
@@ -193,7 +194,8 @@ class QualityControl(RunConfig):
                 gff_filepath = Path(self.gff_dir, acc + ".gff")
                 if os.path.isfile(gff_filepath):
                     gene_locus = self.find_qcgene_annotations(gff_filepath, qc_gene)
-                    qc_sequences.append(gene_locus)
+                    if gene_locus.id != "failed":
+                        qc_sequences.append(gene_locus)
 
             qcblast_input = Path(qc_dir, qc_gene + ".part-0")
             SeqIO.write(qc_sequences, qcblast_input, "fasta")
@@ -205,4 +207,4 @@ class QualityControl(RunConfig):
             index=accessions)
         report_path = Path(self.genomedata_dir, "annotation_report.csv")
         annotation_df.to_csv(report_path)
-        return annotation_df
+        self.collect_qc_infos()
