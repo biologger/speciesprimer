@@ -18,6 +18,7 @@ import urllib
 import pandas as pd
 import numpy as np
 import itertools
+from pathlib import Path
 from itertools import islice
 from datetime import timedelta
 from Bio import SeqIO
@@ -34,12 +35,6 @@ pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 errors = []
-
-# general info
-systemdirs = [
-    "genomic_fna", "config", "ffn_files", "gff_files", "Pangenome",
-    "rRNA_QC", "recA_QC", "tuf_QC",
-    "dnaK_QC", "pheS_QC"]
 
 Entrez.tool = "SpeciesPrimer pipeline"
 
@@ -172,21 +167,40 @@ class CLIconf:
             f.write(json.dumps(config_dict))
 
 
-class DataCollection():
+class RunConfig():
     def __init__(self, configuration):
         self.config = configuration
         self.target = configuration.target
-        self.exception = self.config.exception
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
-        self.genomic_dir = os.path.join(self.target_dir, "genomic_fna")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.gff_dir = os.path.join(self.target_dir, "gff_files")
-        self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
-        self.fna_dir = os.path.join(self.target_dir, "fna_files")
+        self.genomedata_dir = os.path.join(self.target_dir, "genomedata")
+        self.genomic_dir = os.path.join(self.genomedata_dir, "genomic_fna")
+        self.ex_dir = os.path.join(self.genomedata_dir, "excluded_genomes")
+        self.annotation_dir = os.path.join(self.genomedata_dir, "annotations")
+        self.fna_dir = os.path.join(self.genomedata_dir, "fna_files")
+        self.ffn_dir = os.path.join(self.genomedata_dir, "ffn_files")
+        self.gff_dir = os.path.join(self.genomedata_dir, "gff_files")
+        self.pangenome_dir = os.path.join(self.target_dir, "pangenome")
+        self.results_dir = os.path.join(self.target_dir, "results")
+        self.coregene_dir = os.path.join(self.results_dir, "coregenes")
+        self.fasta_dir = os.path.join(self.coregene_dir, "fasta")
+        self.singlecopy = os.path.join(self.pangenome_dir, "singlecopy_genes.csv")
+        self.ffn_seqs = os.path.join(self.pangenome_dir, "ffn_sequences.csv")
+        self.alignments_dir = os.path.join(self.coregene_dir, "alignments")
+        self.consensus_dir = os.path.join(self.coregene_dir, "consensus")
+        self.blast_dir = os.path.join(self.coregene_dir, "blast")
+        self.primer_dir = os.path.join(self.target_dir, "primer")
+        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
+        self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
+        self.mfold_dir = os.path.join(self.primer_dir, "mfold")
+        self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
+        self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
+
+
+class DataCollection(RunConfig):
+    def __init__(self, configuration):
         self.contiglimit = 500
-        self.ex_dir = os.path.join(
-            self.config.path, "excludedassemblies", self.target)
+        RunConfig.__init__(self, configuration)
 
     def get_taxid(self, target):
         Entrez.email = H.get_email_for_Entrez()
@@ -223,8 +237,41 @@ class DataCollection():
 
     def get_ncbi_links(self, taxid, maxrecords=2000):
 
+        def get_genome_infos(records):
+            genome_data = []
+            keys = [
+                "AssemblyAccession", 'AssemblyName', "AssemblyStatus",
+                'FromType', 'RefSeq_category', 'Taxid', 'Organism',
+                'SpeciesTaxid', 'SpeciesName', 'FtpPath_GenBank',
+                'FtpPath_RefSeq', 'ExclFromRefSeq']
+
+            for result in records['DocumentSummarySet']['DocumentSummary']:
+                data = []
+                for k in keys:
+                    try:
+                        value = result[k]
+                        if value == []:
+                            value = ""
+                    except KeyError:
+                        value = "na"
+                    data.append(value)
+                    strain = "unknown"
+                    infraspecieslist = result['Biosource']['InfraspeciesList']
+                    for i, item in enumerate(infraspecieslist):
+                        if len(item) > 0:
+                            strain = infraspecieslist[i]['Sub_value']
+
+                data.insert(2, strain)
+                genome_data.append(data)
+            keys.insert(2, "Strain")
+            df = pd.DataFrame(genome_data, columns=keys)
+            metadatafile = (
+                os.path.join(self.genomedata_dir, "genomes_metadata.csv"))
+            df.to_csv(metadatafile, index=False)
+
+            return df
+
         def collect_genomedata(taxid, email):
-            genomedata = []
             # 02/12/18 overwrite file because assembly level can change
             Entrez.email = email
             assembly_search = Entrez.esearch(
@@ -242,71 +289,53 @@ class DataCollection():
 
             assembly_records = Entrez.read(assembly_efetch, validate=False)
 
-            with open("genomicdata.json", "w") as f:
-                f.write(json.dumps(assembly_records))
+            metadata = get_genome_infos(assembly_records)
 
-            with open("genomicdata.json", "r") as f:
-                for line in f:
-                    gen_dict = json.loads(line)
+            return metadata
 
-            for assembly in gen_dict['DocumentSummarySet']['DocumentSummary']:
-                accession = assembly["AssemblyAccession"]
-                name = assembly["AssemblyName"]
-                status = assembly["AssemblyStatus"]
-                ftp_path = assembly["FtpPath_RefSeq"]
+        def select_assemblies(df):
+            df = df.replace("", np.nan)
+            if self.config.assemblylevel == "offline":
+                return pd.DataFrame()
 
-                if ftp_path == "":
-                    if self.config.genbank is True:
-                        ftp_path = assembly["FtpPath_GenBank"]
-                        if ftp_path == "":
-                            ftp_link = "None"
-                        else:
-                            ftp_link = (
-                                ftp_path + "/" + ftp_path.split("/")[-1]
-                                + "_genomic.fna.gz"
-                            )
-                    else:
-                        ftp_link = "None"
-                else:
-                    ftp_link = (
-                        ftp_path + "/" + ftp_path.split("/")[-1]
-                        + "_genomic.fna.gz"
-                    )
-                data = [accession, name, status, ftp_link]
-                genomedata.append(data)
+            if self.config.assemblylevel != ["all"]:
+                df = df[df['AssemblyStatus'].str.lower().isin(
+                    [x for x in self.config.assemblylevel])]
 
-            return genomedata
+            if self.config.genbank:
+                df.loc[df["FtpPath_RefSeq"].isna(), "FtpPath_RefSeq"] = df["FtpPath_GenBank"]
 
-        def get_links(linkdata):
-            statusdict = {
-                "complete": "Complete Genome", "chromosome": "Chromosome",
-                "scaffold": "Scaffold", "contig": "Contig",
-                "offline": "Offline"}
-            links = []
-            if self.config.assemblylevel == ["all"]:
-                for item in linkdata:
-                    if not item[3] == "None":
-                        links.append(item[3])
+            if not self.config.ignore_qc:
+                df.loc[:, "Accession"] = df.iloc[:, 0].str.split(".").str[0]
+                df.loc[:, "version"] = df.iloc[:, 0].str.split(".").str[1]
+                df = df.astype({'version': 'int32'})
+                df.sort_values("version", inplace=True, ascending=False)
+                df.drop_duplicates("Accession")
+
+            df = df[~df["FtpPath_RefSeq"].isna()]
+            return df.sort_index()
+
+        def get_links(df):
+            print(df["FtpPath_RefSeq"])
+            if df.empty is False:
+                links = df["FtpPath_RefSeq"].to_list()
+                urls = [x + "/" + x.split("/")[-1] + "_genomic.fna.gz" for x in links]
+                outfile = os.path.join(self.genomedata_dir, "genomic_links.txt")
+                with open(outfile, "w") as f:
+                    for url in urls:
+                        f.write(url + "\n")
             else:
-                for status in self.config.assemblylevel:
-                    for item in linkdata:
-                        if item[2] == statusdict[status]:
-                            if not item[3] == "None":
-                                links.append(item[3])
+                urls = []
 
-            return links
+            return urls
 
-        def write_links(link_list):
-            with open("genomic_links.txt", "w") as f:
-                for link in link_list:
-                    f.write(link + "\n")
 
         G.logger("Run: ncbi_genome_links(" + self.target + ")")
         os.chdir(self.config_dir)
         email = H.get_email_for_Entrez()
-        genomedata = collect_genomedata(taxid, email)
-        time.sleep(1)
-        link_list = get_links(genomedata)
+        metadata = collect_genomedata(taxid, email)
+        link_df = select_assemblies(metadata)
+        link_list = get_links(link_df)
         msg = " genome assemblies are available for download"
         statmsg = "genome assemblies from NCBI: " + str(len(link_list))
         if self.config.assemblylevel == ["offline"]:
@@ -318,8 +347,6 @@ class DataCollection():
         print(info)
         G.logger("> " + info)
         PipelineStatsCollector(self.target_dir).write_stat(statmsg)
-
-        write_links(link_list)
         os.chdir(self.target_dir)
         return info
 
@@ -374,7 +401,7 @@ class DataCollection():
         G.create_directory(self.fna_dir)
         excluded = self.get_excluded_assemblies()
         os.chdir(self.genomic_dir)
-        with open(os.path.join(self.config_dir, "genomic_links.txt")) as r:
+        with open(os.path.join(self.genomedata_dir, "genomic_links.txt")) as r:
             for line in r:
                 zip_file = line.split("/")[-1].strip()
                 target_path = os.path.join(self.genomic_dir, zip_file)
@@ -438,7 +465,7 @@ class DataCollection():
 
     def copy_genome_files(self):
         G.logger("Run: copy_genome_files(" + self.target + ")")
-        for root, dirs, files in os.walk(self.target_dir):
+        for root, dirs, files in os.walk(self.annotation_dir):
             for file_name in files:
                 if file_name.endswith(".ffn"):
                     ffn_file = os.path.join(self.ffn_dir, file_name)
@@ -457,6 +484,7 @@ class DataCollection():
                                     os.path.join(root, file_name), fna_file)
 
     def run_prokka(self):
+        G.create_directory(self.annotation_dir)
         annotation_dirs = []
 
         def excluded_assemblies():
@@ -518,7 +546,7 @@ class DataCollection():
             else:
                 genus = self.target.split("_")[0]
                 kingdom = "Bacteria"
-            outdir = filename + "_" + date
+            outdir = str(Path(self.annotation_dir, filename + "_" + date))
             prokka_cmd = [
                 "prokka",
                 "--kingdom", kingdom,
@@ -527,7 +555,7 @@ class DataCollection():
                 "--locustag", filename,
                 "--prefix", filename + "_" + date,
                 "--cpus", "0",
-                "genomic_fna/" + fna
+                str(Path(self.genomic_dir, fna))
             ]
             info = file_name + " annotation required"
             G.logger(info)
@@ -699,29 +727,18 @@ class DataCollection():
         return self.config
 
 
-class QualityControl:
+class QualityControl(RunConfig):
     # dictionary containing the search word for annotated genes in gff files
     # check / update when Prokka version is updated
     searchdict = {
         "rRNA": "product=16S ribosomal RNA",
-        "tuf": "product=Translation initiation factor IF-1",
+        "tuf": "product=Elongation factor Tu",
         "dnaK": "product=Chaperone protein DnaK",
         "recA": "product=Protein RecA",
         "pheS": "product=Phenylalanine--tRNA ligase alpha subunit"}
 
     def __init__(self, configuration):
-        self.config = configuration
-        self.target = configuration.target
-        self.exception = configuration.exception
-        self.ex_dir = os.path.join(
-                        self.config.path, "excludedassemblies", self.target)
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.config_dir = os.path.join(self.target_dir, "config")
-        self.genomic_dir = os.path.join(self.target_dir, "genomic_fna")
-        self.gff_dir = os.path.join(self.target_dir, "gff_files")
-        self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
-        self.fna_dir = os.path.join(self.target_dir, "fna_files")
+        RunConfig.__init__(self, configuration)
         self.contiglimit = 500
 
 
@@ -773,10 +790,10 @@ class QualityControl:
         doub_df = self.get_qc_data_df(double, "Duplicate")
         return qc_list, doub_df
 
-    def check_sequences(self, gff_list, qc_genes_list, qc_gene):
+    def check_sequences(self, gff_list, qc_gene_loci, qc_gene):
         assembly_ids = ["_".join(f.split("_")[:-1]) for f in gff_list]
         assembly_dict = {assembly_ids[i]: gff_list[i] for i in range(len(assembly_ids))}
-        no_seq = list(set(assembly_ids) - set(qc_genes_list))
+        no_seq = list(set(assembly_ids) - set(qc_gene_loci))
         no_seq_filter = [assembly_dict[x] for x in no_seq]
         no_seq_data = [f.split(".gff")[0] for f in no_seq_filter]
         nogene_df = self.get_qc_data_df(no_seq_data, "QC gene missing")
@@ -786,6 +803,7 @@ class QualityControl:
     def search_qc_genes(self, gff_list, qc_gene):
         gene_list = []
         fps = [os.path.join(self.gff_dir, f) for f in gff_list]
+        print(fps)
         for fp in fps:
             with open(fp) as f:
                 for line in f:
@@ -799,7 +817,7 @@ class QualityControl:
         G.logger("Run: get_qc_seqs(" + qc_gene + ")")
         G.logger("> Starting QC with " + qc_gene)
         print("Starting QC with " + qc_gene)
-        qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
         G.create_directory(qc_dir)
         # find annotation of gene in gff files and store file name
         gff_list = [f for f in os.listdir(self.gff_dir) if f.endswith(".gff")]
@@ -832,7 +850,7 @@ class QualityControl:
         """ find files and choose the longest sequence
         if a sequence was found more than once """
         G.logger("Run: choose_sequence(" + qc_gene + ")")
-        qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
         for f in ffn_list:
             fp = os.path.join(self.ffn_dir, f)
             recs = list(SeqIO.parse(fp, "fasta"))
@@ -877,6 +895,7 @@ class QualityControl:
             G.create_directory(self.ex_dir)
             self.delete_failed_assemblies(delete)
             G.comm_log("Quality control removed " + str(len(delete)) + " Genome(s)", True)
+            return delete
 
     def delete_failed_assemblies(self, delete):
         def move_dirs(from_dir, to_dir):
@@ -947,7 +966,7 @@ class QualityControl:
 
     def quality_control(self, qc_gene):
         pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
-        qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
         if os.path.isfile(pan):
             G.comm_log("> Found Pangenome directory, skip QC " + qc_gene)
             return 0
@@ -961,21 +980,17 @@ class QualityControl:
                 qc_dir, qc_seqs, qc_gene,
                 self.config.blastseqs).run_blastprep()
         Blast(self.config, qc_dir, "quality_control").run_blast(qc_gene, use_cores)
-        passed_df = BlastParser(self.config, results="quality_control").bp_parse_results(qc_dir)
-        qc_report = pd.concat([passed_df, skip_qc_df])
+        qc_df = BlastParser(self.config, results="quality_control").bp_parse_results(qc_dir)
+        qc_report = pd.concat([qc_df, skip_qc_df])
         fp = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
         qc_report.to_csv(fp, index=False)
 
         return self.check_passed_list(qc_report, qc_gene)
 
 
-class PangenomeAnalysis:
+class PangenomeAnalysis(RunConfig):
     def __init__(self, configuration):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.gff_dir = os.path.join(self.target_dir, "gff_files")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
+        RunConfig.__init__(self, configuration)
 
     def get_numberofgenomes(self):
         inputgenomes = os.listdir(self.gff_dir)
@@ -1052,21 +1067,11 @@ class PangenomeAnalysis:
         return exitstat
 
 
-class CoreGenes:
+
+
+class CoreGenes(RunConfig):
     def __init__(self, configuration):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.ffn_dir = os.path.join(self.target_dir, "ffn_files")
-        self.gff_dir = os.path.join(self.target_dir, "gff_files")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.fasta_dir = os.path.join(self.results_dir, "fasta")
-        self.all_core_path = os.path.join(self.pangenome_dir, "allcoregenes")
-        self.multi_path = os.path.join(self.pangenome_dir, "multiannotated")
-        self.singlecopy = os.path.join(
-                self.pangenome_dir, "singlecopy_genes.csv")
-        self.ffn_seqs = os.path.join(self.pangenome_dir, "ffn_sequences.csv")
+        RunConfig.__init__(self, configuration)
 
     def get_singlecopy_genes(self, mode):
         total_count = []
@@ -1241,19 +1246,9 @@ class CoreGenes:
                 self.coregene_extract(mode="statistics")
 
 
-class CoreGeneSequences:
+class CoreGeneSequences(RunConfig):
     def __init__(self, configuration):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.config_dir = os.path.join(self.target_dir, "config")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.gff_dir = os.path.join(self.target_dir, "gff_files")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.fasta_dir = os.path.join(self.results_dir, "fasta")
-        self.alignments_dir = os.path.join(self.results_dir, "alignments")
-        self.consensus_dir = os.path.join(self.results_dir, "consensus")
-        self.blast_dir = os.path.join(self.results_dir, "blast")
+        RunConfig.__init__(self, configuration)
 
     def seq_alignments(self):
 
@@ -1564,13 +1559,10 @@ class BlastPrep():
         return cores, inputseqs
 
 
-class Blast:
+class Blast(RunConfig):
     def __init__(self, configuration, directory, mode):
         print("Start BLAST")
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.config_dir = os.path.join(self.config.path, self.target, "config")
+        RunConfig.__init__(self, configuration)
         self.directory = directory
         self.mode = mode
 
@@ -1654,26 +1646,16 @@ class Blast:
             os.chdir(self.target_dir)
 
 
-class BlastParser:
+class BlastParser(RunConfig):
     def __init__(self, configuration, results="conserved"):
+        RunConfig.__init__(self, configuration)
         self.exception = configuration.exception
-        self.config = configuration
-        self.target = configuration.target
         self.evalue = self.config.evalue
         self.nuc_identity = self.config.nuc_identity
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.config_dir = os.path.join(self.target_dir, "config")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.blast_dir = os.path.join(self.results_dir, "blast")
         self.nontargetlist = configuration.nontargetlist
         self.selected = []
         self.mode = results
         self.start = time.time()
-        self.primer_dir = os.path.join(self.results_dir, "primer")
-        self.blast_dir = os.path.join(self.primer_dir, "primerblast")
-        #self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
-        self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
         self.maxgroupsize = 25000
 
     def blastresult_files(self, blast_dir):
@@ -1757,8 +1739,9 @@ class BlastParser:
             # remove excluded sequences from the results
             blastdf = blastdf[~blastdf["Subject GI"].isin(excluded_gis)]
             blastdf = blastdf[~blastdf["Subject accession"].isin(excluded_gis)]
-            blastdf.sort_values(["Query Seq-id", "Bit score"], ascending=False, inplace=True)
-            blastdf.drop_duplicates(["Query Seq-id"], inplace=True)
+            blastdf = blastdf.sort_values(
+                ["Query Seq-id", "Bit score"], ascending=False)
+            blastdf = blastdf.drop_duplicates(["Query Seq-id"])
             blastdf = self.get_species_names_from_title(blastdf)
             mask = blastdf["Species"].str.contains("|".join(exceptions))
             blastdf.loc[mask, "QC status"] = "passed QC"
@@ -1871,6 +1854,9 @@ class BlastParser:
             try:
                 blastdf = pd.read_csv(filename, sep="\t", header=None)
                 blastdf.columns = header
+                blastdf = blastdf.astype(
+                    {"Subject GI": str, "Subject accession": str})
+                
             except pd.errors.EmptyDataError:
                 blastdf = pd.DataFrame()
 
@@ -2129,7 +2115,7 @@ class BlastParser:
     def run_blastparser(self):
         if self.mode == "primer":
             print("Start primer blast parser")
-            offtarget = self.bp_parse_results(self.blast_dir)
+            offtarget = self.bp_parse_results(self.primerblast_dir)
             db_seqs = self.find_primerbinding_offtarget_seqs(offtarget)
             self.get_primerBLAST_DBIDS(db_seqs)
             self.write_nontarget_sequences()
@@ -2161,15 +2147,9 @@ class BlastParser:
             return 0
 
 
-class PrimerDesign():
+class PrimerDesign(RunConfig):
     def __init__(self, configuration):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.blast_dir = os.path.join(self.results_dir, "blast")
-        self.primer_dir = os.path.join(self.results_dir, "primer")
+        RunConfig.__init__(self, configuration)
         self.p3dict = {}
 
     def run_primer3(self):
@@ -2378,24 +2358,10 @@ class PrimerDesign():
         return self.p3dict
 
 
-class PrimerQualityControl:
+class PrimerQualityControl(RunConfig):
     def __init__(self, configuration, primer3_dict):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.config_dir = os.path.join(self.target_dir, "config")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.blast_dir = os.path.join(self.results_dir, "blast")
-        self.primer_dir = os.path.join(self.results_dir, "primer")
-        self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
-        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
-        self.primer_qc_dir = os.path.join(self.primer_dir, "primer_QC")
-        self.mfold_dir = os.path.join(self.primer_dir, "mfold")
-        self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
+        RunConfig.__init__(self, configuration)
         self.primer3_dict = primer3_dict
-        self.call_blastparser = BlastParser(self.config, "primer")
-        self.fna_dir = os.path.join(self.target_dir, "fna_files")
         self.primerlist = []
         self.start = time.time()
         self.mfethreshold = self.config.mfethreshold
@@ -3153,21 +3119,9 @@ class PrimerQualityControl:
         return total_results
 
 
-class Summary:
+class Summary(RunConfig):
     def __init__(self, configuration, total_results):
-        self.config = configuration
-        self.target = configuration.target
-        self.target_dir = os.path.join(self.config.path, self.target)
-        self.config_dir = os.path.join(self.target_dir, "config")
-        self.fna_dir = os.path.join(self.target_dir, "fna_files")
-        self.pangenome_dir = os.path.join(self.target_dir, "Pangenome")
-        self.results_dir = os.path.join(self.pangenome_dir, "results")
-        self.blast_dir = os.path.join(self.results_dir, "blast")
-        self.primer_dir = os.path.join(self.results_dir, "primer")
-        self.primerblast_dir = os.path.join(self.primer_dir, "primerblast")
-        self.mfold_dir = os.path.join(self.primer_dir, "mfold")
-        self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
-        self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
+        RunConfig.__init__(self, configuration)
         self.aka = H.abbrev(self.target)
         self.g_info_dict = {}
         self.total_results = total_results
@@ -3211,7 +3165,7 @@ class Summary:
         if not qc_gene == "None":
             G.logger(
                 "Run: collect_qc_infos(" + self.target + " " + qc_gene + ")")
-            qc_dir = os.path.join(self.target_dir, qc_gene + "_QC")
+            qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
             qc_report = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
             try:
                 with open(qc_report, "r") as r:
