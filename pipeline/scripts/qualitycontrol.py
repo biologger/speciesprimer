@@ -10,28 +10,14 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 from speciesprimer import RunConfig
-from basicfunctions import GeneralFunctions as G
 from speciesprimer import Blast
 from speciesprimer import BlastParser
+from basicfunctions import GeneralFunctions as G
+from basicfunctions import HelperFunctions as H
 
 class QualityControl(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
-
-    def accession_from_filename(self, filename, version=True):
-        if "GCF" in filename or "GCA" in filename:
-            accession = "_".join(filename.split("_")[0:2])
-            if version:
-                accession = "v".join(accession.split("."))
-        else:
-            accession = "_".join(filename.split("_")[0:-1])
-        return accession
-
-    def genomicversion_from_accession(self, accession):
-        if "GCF" in accession or "GCA" in accession:
-            accession = "_".join(accession.split("_")[0:2])
-            accession = ".".join(accession.split("v"))
-        return accession
 
     def move_to_excluded(self, dir_tree, filename=None):
         if self.config.ignore_qc is False:
@@ -55,14 +41,14 @@ class QualityControl(RunConfig):
         self.move_to_excluded(outdir, filename=None)
         for i, d in enumerate(dirs):
             if i == 3:
-                accession = self.genomicversion_from_accession(accession)
+                accession = H.genomicversion_from_accession(accession)
             for filename in os.listdir(d):
                 if filename.startswith(accession):
                     self.move_to_excluded(d, filename)
 
     def count_contigs(self, filepath):
         contigs = list(SeqIO.parse(filepath, "fasta"))
-        if len(contigs) >= 500:
+        if len(contigs) >= self.contiglimit:
             dir_tree, filename = os.path.split(filepath)
             self.move_to_excluded(dir_tree, filename)
             return "max contig"
@@ -167,7 +153,7 @@ class QualityControl(RunConfig):
             Path(self.genomedata_dir, "annotation_report.csv"), index_col=0)
         maxcontigs = annotation_df["Max_contigs"]
         maxcontigs.index = [
-            self.genomicversion_from_accession(x) for x in maxcontigs.index.to_list()]
+            H.genomicversion_from_accession(x) for x in maxcontigs.index.to_list()]
         meta_data = pd.read_csv(
             Path(self.genomedata_dir, "genomes_metadata.csv"), index_col=0)
         qc_meta = meta_data[['AssemblyName', 'Strain', 'AssemblyStatus']]
@@ -178,19 +164,19 @@ class QualityControl(RunConfig):
             qc_df = pd.read_csv(fp, index_col=0)
             qc_data = qc_df[["QC status", "Species"]]
             qc_data.index = [
-            self.genomicversion_from_accession(x) for x in qc_data.index.to_list()]
+            H.genomicversion_from_accession(x) for x in qc_data.index.to_list()]
             qc_data.columns = [qc_gene, qc_gene + " Blast"]
             reports.append(qc_data)
         qc_infos = qc_meta.join(reports, how="outer")
         qc_infos.to_csv(Path(self.target_dir, "QC_report.csv"))
 
-    def qualitycontrol(self):
+    def quality_control(self):
         qc_files = []
         max_contigs = []
         annotations = []
         accessions = []
         for filename in os.listdir(self.genomic_dir):
-            accession = self.accession_from_filename(filename)
+            accession = H.accession_from_filename(filename)
             filepath = Path(self.genomic_dir, filename)
             accessions.append(accession)
             qc_files.append(filename)

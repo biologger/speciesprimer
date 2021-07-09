@@ -6,7 +6,6 @@ import logging
 import subprocess
 import os
 import csv
-import sys
 import json
 import shutil
 import concurrent.futures
@@ -205,6 +204,23 @@ class GeneralFunctions:
 class HelperFunctions:
 
     @staticmethod
+    def accession_from_filename(filename, version=True):
+        if "GCF" in filename or "GCA" in filename:
+            accession = "_".join(filename.split("_")[0:2])
+            if version:
+                accession = "v".join(accession.split("."))
+        else:
+            accession = "_".join(filename.split("_")[0:-1])
+        return accession
+
+    @staticmethod
+    def genomicversion_from_accession(accession):
+        if "GCF" in accession or "GCA" in accession:
+            accession = "_".join(accession.split("_")[0:2])
+            accession = ".".join(accession.split("v"))
+        return accession    
+
+    @staticmethod
     def advanced_pipe_config(path_to_configfile):
         options = [
             ["genus_abbrev", os.path.join(dict_path, "genus_abbrev.csv")],
@@ -369,13 +385,15 @@ class HelperFunctions:
             taxidresult = Entrez.read(searchtaxid, validate=False)
             taxid = taxidresult["IdList"]
             if len(taxid) == 1:
-                return taxid[0]
+                syn = HelperFunctions().check_species_syn(
+                                                    taxid[0], email, target)
+                return taxid[0], syn
 
             error = taxidresult['ErrorList']
             info = "No taxid was found on NCBI\nError: " + str(error)
             print(info)
             GeneralFunctions().logger("> " + info)
-            return None
+            return None, None
         except OSError:
             info = (
                 "ERROR: Taxid for " + target
@@ -485,6 +503,7 @@ class HelperFunctions:
             email = user_input_email(email)
 
         return email
+
 
     @staticmethod
     def BLASTDB_check(config):
