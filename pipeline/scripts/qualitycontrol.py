@@ -10,8 +10,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 from speciesprimer import RunConfig
-from speciesprimer import Blast
-from speciesprimer import BlastParser
+from blastscripts import Blast
+from blastscripts import BlastParser
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
