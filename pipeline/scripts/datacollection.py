@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import wget
 import json
 import shutil
@@ -10,9 +11,9 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from Bio import Entrez
-from speciesprimer import errors
-from speciesprimer import RunConfig
-from speciesprimer import PipelineStatsCollector
+from scripts.configuration import errors
+from scripts.configuration import RunConfig
+from scripts.configuration  import PipelineStatsCollector
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
@@ -21,6 +22,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 pipe_dir, tail = os.path.split(script_dir)
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+
+Entrez.tool = "SpeciesPrimer pipeline"
 
 class DataCollection(RunConfig):
     def __init__(self, configuration):

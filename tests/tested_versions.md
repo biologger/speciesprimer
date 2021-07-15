@@ -1,5 +1,5 @@
 ### Tools and Versions used for testing
-2021/07/05 (YY/MM/DD)
+2021/07/06 (YY/MM/DD)
 blastn: 2.11.0+
 FastTree 2.1.10 Double precision (No SSE3)
 Roary 3.13.0

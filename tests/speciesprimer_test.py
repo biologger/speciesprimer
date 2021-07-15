@@ -8,12 +8,13 @@ import json
 import time
 import csv
 import multiprocessing
+import pandas as pd
+import numpy as np
 from Bio import SeqIO
 from Bio import Entrez
 from basicfunctions import HelperFunctions as H
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import ParallelFunctions as P
-
 
 msg = (
     """
@@ -385,8 +386,8 @@ def test_DataCollection(config, monkeypatch):
     def test_maxcontigs(config):
         DC = DataCollection(config)
         G.create_directory(DC.genomic_dir)
-        name1 = "GCF_maxcontigs.1_date_genomic.fna"
-        name2 = "GCF_maxcontigs_date.fna"
+        name1 = "GCF_maxcontigs.1_20191001_genomic.fna"
+        name2 = "GCF_maxcontigsv1_20191001.fna"
         names = [name1, name2]
         for name in names:
             filepath = os.path.join(DC.genomic_dir, name)
@@ -402,7 +403,7 @@ def test_DataCollection(config, monkeypatch):
         assert os.path.isfile(os.path.join(DC.genomic_dir, name1)) is False
         assert os.path.isfile(os.path.join(DC.genomic_dir, name2)) is False
         filecont = []
-        refcont = ["GCF_maxcontigsv1", "GCF_maxcontigs"]
+        refcont = ["GCF_maxcontigsv1", "GCF_maxcontigsv1"]
         with open(os.path.join(DC.ex_dir, "excluded_list.txt")) as f:
             for line in f:
                 filecont.append(line.strip())
@@ -505,8 +506,7 @@ def test_DataCollection(config, monkeypatch):
         DC.get_ncbi_links(taxid, 1)
         DC.ncbi_download()
         filepath = os.path.join(
-            DC.target_dir, "genomic_fna",
-            "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
+            DC.genomic_dir, "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
         # will not download the file a second time
         # because it is already extracted
         time.sleep(2)
@@ -517,10 +517,10 @@ def test_DataCollection(config, monkeypatch):
         for direct in dirs:
             G.create_directory(direct)
         mockname = "GCF_902362325v1_2019118"
-        endings = ["fna", "gff", "ffn"]
-        for end in endings:
-            filepath = os.path.join(
-                    DC.target_dir, end + "_files", mockname + "." + end)
+        endings = ["gff", "ffn", "fna",]
+        
+        for i, end in enumerate(endings):
+            filepath = os.path.join(dirs[i], mockname + "." + end)
             with open(filepath, "w") as f:
                 f.write("Mock " + mockname + "." + end)
         # No download since annotated files are present
@@ -534,10 +534,8 @@ def test_DataCollection(config, monkeypatch):
         for direct in dirs:
             G.create_directory(direct)
         # test excluded files
-        excluded_dir = os.path.join(
-                DC.config.path, "excludedassemblies", DC.config.target)
-        excludedfile = os.path.join(excluded_dir, "excluded_list.txt")
-        G.create_directory(excluded_dir)
+        excludedfile = os.path.join(DC.ex_dir, "excluded_list.txt")
+        G.create_directory(DC.ex_dir)
         with open(excludedfile, "w") as f:
             f.write("GCF_902362325v1\n")
         annotation_dirs, annotated = DC.run_prokka()
@@ -546,11 +544,11 @@ def test_DataCollection(config, monkeypatch):
         time.sleep(2)
         DC.ncbi_download()
         assert os.path.isfile(filepath) is False
-        shutil.rmtree(excluded_dir)
+        shutil.rmtree(DC.ex_dir)
         mocked_urlopen_fail(monkeypatch)
-        fna = os.path.join(config.path, config.target, "genomic_fna")
-        shutil.rmtree(fna)
-        G.create_directory(fna)
+
+        shutil.rmtree(DC.fna_dir)
+        G.create_directory(DC.fna_dir)
         os.chdir(config.path)
 
     def test_get_ncbi_links(config, monkeypatch):
@@ -591,25 +589,22 @@ def test_DataCollection(config, monkeypatch):
         assert info == "6 genome assemblies are available for download"
 
     def prepare_prokka(config):
-        targetdir = os.path.join(config.path, config.target)
-        fileformat = ["fna", "gff", "ffn"]
-        for fo in fileformat:
-            for files in os.listdir(testfiles_dir):
-                if files.endswith("." + fo):
-                    fromfile = os.path.join(testfiles_dir, files)
-                    tofile = os.path.join(targetdir, fo + "_files", files)
-                    shutil.copy(fromfile, tofile)
-                    if fo == "fna":
-                        tofile = os.path.join(targetdir, "genomic_fna", files)
-                        shutil.copy(fromfile, tofile)
+        filename = "GCF_004088235v1_20191001."
+        fileformat = ["gff", "ffn", "fna"]
+        dirs = [DC.gff_dir, DC.ffn_dir, DC.fna_dir]
+        for i, fmt in enumerate(fileformat):
+            fromfile = os.path.join(testfiles_dir, filename + fmt)
+            tofile = os.path.join(dirs[i], filename + fmt)
+            shutil.copy(fromfile, tofile)
+            if fmt == "fna":
+                tofile = os.path.join(DC.genomic_dir, filename + fmt)
+                shutil.copy(fromfile, tofile)
 
-        print(os.listdir(os.path.join(targetdir, "genomic_fna")))
+        print(os.listdir(DC.genomic_dir))
 
     def test_run_prokka():
-        excluded_dir = os.path.join(
-                DC.config.path, "excludedassemblies", DC.config.target)
-        G.create_directory(excluded_dir)
-        exfile = os.path.join(excluded_dir, "excluded_list.txt")
+        G.create_directory(DC.ex_dir)
+        exfile = os.path.join(DC.ex_dir, "excluded_list.txt")
         with open(exfile, "w") as f:
             f.write("GCF_002224565v1")
 
@@ -664,17 +659,16 @@ def test_viral_prokka(monkeypatch):
 
     virfile = os.path.join(
             testfiles_dir, "vir", "GCF_009858895.2_ASM985889v3_genomic.fna")
-    targetdir = os.path.join(
-                        DCr.config.path, DCr.config.target, "genomic_fna")
 
-    G.create_directory(targetdir)
+
+    G.create_directory(DCr.genomic_dir)
     G.create_directory(DCr.gff_dir)
     G.create_directory(DCr.ffn_dir)
     G.create_directory(DCr.fna_dir)
 
     shutil.copy(
             virfile, os.path.join(
-                    targetdir, "GCF_009858895.2_ASM985889v3_genomic.fna"))
+                    DCr.genomic_dir, "GCF_009858895.2_ASM985889v3_genomic.fna"))
     annotation_dirs, annotated = DCr.run_prokka()
     assert [
         "_".join(
@@ -689,6 +683,7 @@ def test_viral_prokka(monkeypatch):
     shutil.rmtree(os.path.join(DCr.config.path, DCr.config.target))
 
 
+
 def test_QualityControl(config):
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)
@@ -697,6 +692,7 @@ def test_QualityControl(config):
     qc_gene = config.qc_gene[0]
     G.create_directory(tmpdir)
     config.customdb = os.path.join(tmpdir, "customdb.fas")
+    
 
     def create_customblastdb(infile=None):
         if infile is None:
@@ -724,60 +720,54 @@ def test_QualityControl(config):
             for line in lines:
                 f.write(line)
 
+
     def prepare_QC_testfiles(config):
         QC = QualityControl(config)
         G.create_directory(QC.gff_dir)
         G.create_directory(QC.ffn_dir)
         G.create_directory(QC.fna_dir)
-        excluded_dir = os.path.join(
-                QC.config.path, "excludedassemblies", QC.config.target)
-        G.create_directory(excluded_dir)
-        # GCF_004088235v1_20191001
+        G.create_directory(QC.ex_dir)
         testcases = [
-            "004088235v1_20191001", "maxcontigs_date",
-            "noseq_date", "duplicate"]
-        fileformat = ["fna", "gff", "ffn"]
-        for testcase in testcases:
-            for fo in fileformat:
-                for files in os.listdir(testfiles_dir):
-                    if files.endswith(testcases[0] + "."+fo):
-                        fromfile = os.path.join(testfiles_dir, files)
-                        if testcase == "duplicate":
-                            files = "v2".join(files.split("v1"))
-                            tofile = os.path.join(
-                                targetdir, fo + "_files", files)
-                            shutil.copy(fromfile, tofile)
-                            make_duplicate(tofile)
-                        else:
-                            tofile = os.path.join(
-                                targetdir, fo + "_files",
-                                "GCF_" + testcase + "." + fo)
-                            shutil.copy(fromfile, tofile)
+            "GCF_004088235v1", "GCF_maxcontigsv1",
+            "GCF_noseqv1", "GCF_004088235v2"]
+        fileformat = ["gff", "ffn", "fna"]
+        dirs = [QC.gff_dir, QC.ffn_dir, QC.fna_dir]
+        
+        for i, ff in enumerate(fileformat):
+            testfile =  os.path.join(
+                    testfiles_dir, "GCF_004088235v1_20191001." + ff)
+            tofile = os.path.join(dirs[i], "GCF_004088235v1_20191001." + ff)
+            shutil.copy(testfile, tofile)
+
+            for case in testcases:
+                with open(tofile, "r") as f:
+                    lines = f.readlines()
+                newfile = os.path.join(dirs[i], case + "_20191001." + ff)
+                with open(newfile, "w") as f:
+                    for line in lines:
+                        f.write(line.replace("GCF_004088235v1", case))
 
         def make_maxcontigs():
-            name = "GCF_maxcontigs_date.fna"
-            filepath = os.path.join(targetdir, "fna_files", name)
+            name = "GCF_maxcontigsv1_20191001.fna"
+            filepath = os.path.join(QC.fna_dir, name)
             nonsense = ">nonsense_contig\nATTAG\n"
             with open(filepath, "w") as f:
                 for i in range(0, 500):
                     f.write(nonsense)
 
+
         def remove_qc_seq():
-            keeplines = []
-            name = "GCF_noseq_date.ffn"
-            filepath = os.path.join(targetdir, "ffn_files", name)
-            with open(filepath, "r") as f:
-                for line in f:
-                    keeplines.append(line)
-
+            name = "GCF_noseqv1_20191001.gff"
+            filepath = os.path.join(QC.gff_dir, name)
             for gene in QC.searchdict.values():
-                for index, line in enumerate(keeplines):
-                    if gene in line:
-                        del keeplines[index]
-
-            with open(filepath, "w") as f:
-                for line in keeplines:
-                    f.write(line)
+                with open(filepath, "r") as f:
+                        lines = f.readlines()
+                with open(filepath, "w") as f:
+                    for line in lines:
+                        if gene in line:
+                            f.write(line.replace(gene, "product=mockmissing"))
+                        else: 
+                            f.write(line)
 
         make_maxcontigs()
         remove_qc_seq()
@@ -795,63 +785,47 @@ def test_QualityControl(config):
         if os.path.isfile(filepath):
             os.remove(filepath)
 
-    # test without GI list QC should fail
-    def test_get_excluded_gis():
-        remove_GI_list()
-        excluded_gis = QC.get_excluded_gis()
-        assert excluded_gis == []
-        prepare_GI_list()
-        excluded_gis = QC.get_excluded_gis()
-        assert excluded_gis == ["1231231231"]
-        remove_GI_list()
-        excluded_gis = QC.get_excluded_gis()
-        assert excluded_gis == []
-
-    def test_search_qc_gene():
-        gff = []
+    def test_search_qc_genes():
+        gff_list = []
         for files in os.listdir(QC.gff_dir):
-            if files not in gff:
-                gff.append(files)
-        for file_name in gff:
-            QC.search_qc_gene(file_name, qc_gene)
-        assert len(QC.qc_gene_search) == 12
-        return gff
+            if files not in gff_list:
+                gff_list.append(files)
+        qc_accession_ids, qc_gene_ids = QC.search_qc_genes(gff_list, qc_gene)
+        assert len(qc_accession_ids) == 18
+        assert len(qc_gene_ids) == 18
+        return qc_accession_ids, qc_gene_ids, gff_list
 
-    def test_count_contigs(gff_list, contiglimit):
-        gff_list = QC.count_contigs(gff_list, contiglimit)
+    def test_count_contigs(gff_list):
+        gff_list, maxdf = QC.count_contigs(gff_list)
         gff_list.sort()
         assert gff_list == [
                 'GCF_004088235v1_20191001.gff',
                 'GCF_004088235v2_20191001.gff',
-                'GCF_noseq_date.gff']
+                'GCF_noseqv1_20191001.gff']
 
         return gff_list
 
     def test_identify_duplicates(gff_list):
-        gff_list = QC.identify_duplicates(gff_list)
+        gff_list, doubdf  = QC.identify_duplicates(gff_list)
         gff_list.sort()
         assert gff_list == [
             'GCF_004088235v2_20191001.gff',
-            'GCF_noseq_date.gff']
+            'GCF_noseqv1_20191001.gff']
         return gff_list
 
-    def test_check_no_sequence(qc_gene, gff):
-        ffn = QC.check_no_sequence(qc_gene, gff)
-        assert ffn == ['GCF_004088235v2_20191001.ffn']
+    def test_check_no_sequence(gff_list, qc_accession_ids, qc_gene):
+        ffn_list, nogene_df = QC.check_sequences(gff_list, qc_accession_ids, qc_gene)
+        assert ffn_list == ['GCF_004088235v2_20191001.ffn']
         qc_gene = "tuf"
-        ffn = QC.check_no_sequence(qc_gene, gff)
-        assert ffn == ['GCF_004088235v2_20191001.ffn']
+        ffn_list, nogene_df = QC.check_sequences(gff_list, qc_accession_ids, qc_gene)
+        assert ffn_list == ['GCF_004088235v2_20191001.ffn']
+        
+        return ffn_list
 
-        for files in os.listdir(QC.ffn_dir):
-            if files in ffn:
-                if files not in QC.ffn_list:
-                    QC.ffn_list.append(files)
-        assert len(QC.ffn_list) == 1
-
-    def test_choose_sequence(qc_gene):
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+    def test_choose_sequence(ffn_list, qc_gene_ids, qc_gene):
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
         G.create_directory(qc_dir)
-        qc_seqs = QC.choose_sequence(qc_gene)
+        qc_seqs = QC.choose_sequence(ffn_list, qc_gene_ids, qc_gene)
         assert len(qc_seqs) == 1
         assert len(qc_seqs[0]) == 2
         # these values changed due to removal of fasta style ">" and new line
@@ -862,7 +836,7 @@ def test_QualityControl(config):
     def qc_blast(qc_gene):
         from speciesprimer import Blast
         from speciesprimer import BlastPrep
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
         use_cores, inputseqs = BlastPrep(
                         qc_dir, qc_seqs, qc_gene,
                         QC.config.blastseqs).run_blastprep()
@@ -872,44 +846,69 @@ def test_QualityControl(config):
 
     def test_qc_blast_parser(gi_list=False):
         from speciesprimer import errors
-        passed = QC.qc_blast_parser(qc_gene)
+        from speciesprimer import BlastParser
+        #passed = QC.qc_blast_parser(qc_gene)
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
+        qc_df = BlastParser(
+            QC.config, results="quality_control").bp_parse_results(qc_dir)
+        
         if gi_list is True:
-            error_msg = "Error: Less than two genomes survived QC"
-            assert passed == [[
-                'GCF_004088235v2_00210', '343201711',
-                'NR_042437', 'Lactobacillus curvatus',
-                'Lactobacillus curvatus', 'passed QC']]
-            exstat = QC.check_passed_list(passed, qc_gene)
+            error_msg = "> Error: Less than two genomes survived QC"
+            exstat = QC.check_passed_list(qc_df, qc_gene)
             assert exstat == 1
             assert errors[-1] == [QC.config.target, error_msg]
-
 
         else:
-            error_msg = "Error: No genomes survived QC"
-            exstat = QC.check_passed_list(passed, qc_gene)
-            assert passed == []
+            error_msg = "> Error: No genomes survived QC"
+            exstat = QC.check_passed_list(qc_df, qc_gene)
+            #assert passed == []
             assert exstat == 1
             assert errors[-1] == [QC.config.target, error_msg]
 
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
-        corrfile = os.path.join(testfiles_dir, "rRNA_0_results_err.xml")
-        errfile = os.path.join(qc_dir, "rRNA_0_results.xml")
-        if os.path.isfile(errfile):
-            os.remove(errfile)
-        shutil.copy(corrfile, errfile)
+        
+        error_mockfile = os.path.join(qc_dir, "rRNA_0_results.csv")
+        with open(error_mockfile, "w") as f:
+            f.write("")
         with pytest.raises(Exception):
-            passed = QC.qc_blast_parser(qc_gene)
-        assert os.path.isfile(errfile) is False
+            qc_df = BlastParser(
+                QC.config, results="quality_control").bp_parse_results(qc_dir)
+        assert os.path.isfile(error_mockfile) is False           
+        
+        mock_data = [[
+            "somedata", "somedata", "somedata",
+            "somedata", "gnl|BL_ORD_ID|somestr"]]
+        mock_df = pd.DataFrame(columns=range(0, 19))
+        mock_df = mock_df.append(mock_data, ignore_index=True)
+        mock_df.replace(np.nan, "somedata", inplace=True)
+        mock_df.to_csv(error_mockfile, index=False, header=False, sep="\t")
+        with pytest.raises(Exception):
+            qc_df = BlastParser(
+                    QC.config, results="quality_control"
+                                    ).bp_parse_results(qc_dir)
+        assert os.path.isfile(error_mockfile) is False
+        
+        mock_data = [[
+            "somedata", "somedata", "somedata",
+            "somedata", "somedata", "No definition line"]]
+        mock_df = pd.DataFrame(columns=range(0, 19))
+        mock_df = mock_df.append(mock_data, ignore_index=True)
+        mock_df.replace(np.nan, "somedata", inplace=True)
+        mock_df.to_csv(error_mockfile, index=False, header=False, sep="\t")
+        with pytest.raises(Exception):
+            qc_df = BlastParser(
+                    QC.config, results="quality_control"
+                                    ).bp_parse_results(qc_dir)
+        assert os.path.isfile(error_mockfile) is False
 
     def qc_blast_fail(qc_gene):
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
         if os.path.isdir(qc_dir):
             shutil.rmtree(qc_dir)
         G.create_directory(qc_dir)
         QC.config.customdb = os.path.join(tmpdir, "not_a_db.fas")
         from speciesprimer import Blast
         from speciesprimer import BlastPrep
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
         use_cores, inputseqs = BlastPrep(
                         qc_dir, qc_seqs, qc_gene,
                         QC.config.blastseqs).run_blastprep()
@@ -920,18 +919,22 @@ def test_QualityControl(config):
         QC.config.customdb = os.path.join(tmpdir, "customdb.fas")
 
     def test_qc_blast_parser_fail():
+        from speciesprimer import BlastParser
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
+        error_mockfile = os.path.join(qc_dir, "rRNA_0_results.csv")
+        with open(error_mockfile, "w") as f:
+            f.write("")
         with pytest.raises(Exception):
-            QC.qc_blast_parser(qc_gene)
-        filename = (
-            '/primerdesign/test/Lactobacillus_curvatus/rRNA_QC/'
-            'rRNA_0_results.xml')
-        error_msg = (
-                "A problem with the BLAST results file " + filename +
-                " was detected. Please check"
-                " if the file was removed and start the run again")
+            qc_df = BlastParser(
+                    QC.config, results="quality_control"
+                                    ).bp_parse_results(qc_dir)
+        filename = os.path.join(qc_dir, 'rRNA_0_results.csv')
+        error_msg = " ".join([
+                "A problem with the BLAST results file",
+                filename, "was detected.",
+                "Please check if the file was removed and start the run again"])
         from speciesprimer import errors
         assert errors[-1] == ['Lactobacillus_curvatus', error_msg]
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
         if os.path.isdir(qc_dir):
             shutil.rmtree(qc_dir)
         G.create_directory(qc_dir)
@@ -941,7 +944,7 @@ def test_QualityControl(config):
         from speciesprimer import BlastPrep
         infile = os.path.join(testfiles_dir, "customdb_err.fas")
         create_customblastdb(infile)
-        qc_dir = os.path.join(QC.target_dir, qc_gene + "_QC")
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
         use_cores, inputseqs = BlastPrep(
                         qc_dir, qc_seqs, qc_gene,
                         QC.config.blastseqs).run_blastprep()
@@ -957,17 +960,44 @@ def test_QualityControl(config):
         assert errstart[0:29] == "Error: No definition line in "
 
     def test_remove_qc_failures():
-        gen_dir = os.path.join(
-                QC.config.path, "excludedassemblies", "Lactobacillus_curvatus",
-                "genomic_fna")
+        from speciesprimer import BlastPrep
+        from speciesprimer import Blast
+        from speciesprimer import BlastParser
+        
+        qc_dir = os.path.join(QC.genomedata_dir, qc_gene + "_QC")
+        gen_dir = os.path.join(QC.ex_dir, "genomic_fna")
         G.create_directory(gen_dir)
         infile = os.path.join(
             testfiles_dir, "GCF_002224565.1_ASM222456v1_genomic.fna")
         to_dir = os.path.join(
-            QC.ex_dir, "genomic_fna",
+            QC.genomedata_dir, "genomic_fna",
             "GCF_002224565.1_ASM222456v1_genomic.fna")
         shutil.copy(infile, to_dir)
-        delete = QC.remove_qc_failures(qc_gene)
+        
+        qc_seqs, skip_qc_df = QC.get_qc_seqs(qc_gene)
+        print(qc_seqs)
+        if len(qc_seqs) == 0:
+            return 1
+
+        use_cores, inputseqs = BlastPrep(
+                qc_dir, qc_seqs, qc_gene,
+                QC.config.blastseqs).run_blastprep()
+        Blast(QC.config, qc_dir, "quality_control").run_blast(qc_gene, use_cores)
+        qc_df = BlastParser(QC.config, results="quality_control").bp_parse_results(qc_dir)
+        qc_report = pd.concat([qc_df, skip_qc_df])
+        fp = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
+        qc_report.to_csv(fp, index=False)
+        
+        fp = os.path.join(qc_dir, qc_gene + "_QC_report.csv")
+        qc_report = pd.read_csv(fp)
+        pass_mask = qc_report["QC status"] == "passed QC"
+        passed = qc_report.loc[pass_mask, :]
+        failed = qc_report.loc[~pass_mask, :]
+        print(failed)
+        delete = QC.remove_qc_failures(failed, qc_gene)
+        
+        print(delete)
+        
         fna_files = os.path.join(QC.ex_dir, "fna_files")
         genomic_files = os.path.join(QC.ex_dir, "genomic_fna")
         sumfile = os.path.join(QC.ex_dir, "excluded_list.txt")
@@ -982,21 +1012,21 @@ def test_QualityControl(config):
             for line in f:
                 sumf.append(line.strip())
         delete.sort()
-        assert delete == ['GCF_004088235v1', 'GCF_maxcontigs', 'GCF_noseq']
+        assert delete == ['GCF_004088235v1', 'GCF_maxcontigsv1', 'GCF_noseqv1']
         fna.sort()
         assert fna == [
             'GCF_004088235v1_20191001.fna',
-            'GCF_maxcontigs_date.fna',
-            'GCF_noseq_date.fna']
+            'GCF_maxcontigsv1_20191001.fna',
+            'GCF_noseqv1_20191001.fna']
         assert genomic == ["GCF_002224565.1_ASM222456v1_genomic.fna"]
-        assert sumf == ['GCF_noseq', 'GCF_maxcontigs', 'GCF_004088235v1']
+        assert sumf == ['GCF_noseqv1', 'GCF_maxcontigsv1', 'GCF_004088235v1']
 
-    test_get_excluded_gis()
-    gff_list = test_search_qc_gene()
-    gff_list = test_count_contigs(gff_list, QC.contiglimit)
-    gff = test_identify_duplicates(gff_list)
-    ffn_list = test_check_no_sequence(qc_gene, gff)
-    qc_seqs = test_choose_sequence(qc_gene)
+    qc_accession_ids, qc_gene_ids, gff_list = test_search_qc_genes()
+    gff_list = test_count_contigs(gff_list)
+    gff_list = test_identify_duplicates(gff_list)
+    ffn_list = test_check_no_sequence(gff_list, qc_accession_ids, qc_gene)
+
+    qc_seqs = test_choose_sequence(ffn_list, qc_gene_ids, qc_gene)
     qc_blast(qc_gene)
     test_qc_blast_parser()
     if os.path.isdir(QC.ex_dir):
@@ -1009,11 +1039,11 @@ def test_QualityControl(config):
     QC = QualityControl(config)
     prepare_QC_testfiles(config)
     prepare_GI_list()
-    gff_list = test_search_qc_gene()
-    gff_list = test_count_contigs(gff_list, QC.contiglimit)
-    gff = test_identify_duplicates(gff_list)
-    ffn_list = test_check_no_sequence(qc_gene, gff)
-    qc_seqs = test_choose_sequence(qc_gene)
+    qc_accession_ids, qc_gene_ids, gff_list = test_search_qc_genes()
+    gff_list = test_count_contigs(gff_list)
+    gff_list = test_identify_duplicates(gff_list)
+    ffn_list = test_check_no_sequence(gff_list, qc_accession_ids, qc_gene)
+    qc_seqs = test_choose_sequence(ffn_list, qc_gene_ids, qc_gene)
     qc_blast(qc_gene)
     test_qc_blast_parser(gi_list=True)
     if os.path.isdir(QC.ex_dir):
@@ -1093,8 +1123,8 @@ def test_CoreGenes(config):
     def prepare_tests():
         if os.path.isdir(CG.ffn_dir):
             shutil.rmtree(CG.ffn_dir)
-        new_ffn_dir = os.path.join(testfiles_dir, "ffn_files")
-        shutil.copytree(new_ffn_dir, CG.ffn_dir)
+        new_ffn_dir = os.path.join(testfiles_dir, "gff_files")
+        shutil.copytree(new_ffn_dir, CG.gff_dir)
 
     def test_get_singlecopy_genes():
         coregenesummary = CG.get_singlecopy_genes(mode="normal")
@@ -1102,12 +1132,10 @@ def test_CoreGenes(config):
 
     def test_coregene_extract():
         G.create_directory(CG.results_dir)
-        fasta_dir = os.path.join(CG.results_dir, "fasta")
-        G.create_directory(fasta_dir)
+        G.create_directory(CG.fasta_dir)
         CG.run_CoreGenes()
         ref_dir = os.path.join(ref_data, "fasta")
-        fasta_dir = os.path.join(CG.results_dir, "fasta")
-        compare_ref_files(fasta_dir, ref_dir)
+        compare_ref_files(CG.fasta_dir, ref_dir)
 
     def test_check_genenames():
         genes = ["rbsK/rbiA", "cas9-2", "cas9 2", "tarJ'"]
@@ -1232,18 +1260,18 @@ def test_CoreGeneSequences(config):
     assert conserved_seq_dict == tmp_dict
 
     conserved = BlastParser(
-            config).run_blastparser(conserved_seq_dict)
+            config).run_blastparser()
     assert conserved == 0
     test_noconservedseqs()
     conserved = BlastParser(
-            config).run_blastparser(conserved_seq_dict)
+            config).run_blastparser()
     assert conserved == 1
     nt_file = os.path.join(CGS.blast_dir, "nontargethits.json")
     if os.path.isfile(nt_file):
         os.remove(nt_file)
     conserved_seq_dict = test_run_coregeneanalysis(config)
     conserved = BlastParser(
-            config).run_blastparser(conserved_seq_dict)
+            config).run_blastparser()
 
 def test_PrimerDesign(config):
     reffile = os.path.join(testfiles_dir, "ref_primer3_summary.json")
@@ -1368,7 +1396,7 @@ def test_BlastDBError(config):
     dbinputfiles(dbpath)
     create_customblastdb(dbpath)
     conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
-    blapa.run_blastparser(conserved_seq_dict)
+    blapa.run_blastparser()
     assert os.path.isfile(primer3in) is True
 
     print("\n>>> Start custom DB no parse_seqids option:\n")
@@ -1378,7 +1406,7 @@ def test_BlastDBError(config):
     create_customblastdb(dbpath, noseq=True)
     conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
     with pytest.raises(BlastDBError):
-        blapa.run_blastparser(conserved_seq_dict)
+        blapa.run_blastparser()
 
     error_msg = (
         "Problem with custom DB, Please use the '-parse_seqids'"
@@ -1392,7 +1420,7 @@ def test_BlastDBError(config):
     create_customblastdb(dbpath)
     conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
     with pytest.raises(BlastDBError):
-        blapa.run_blastparser(conserved_seq_dict)
+        blapa.run_blastparser()
     errstart = errors[-1][1]
     assert errstart[0:29] == "Error: No definition line in "
 
@@ -1490,7 +1518,7 @@ def test_blastparser(config):
     shutil.copy(corrfile, errfile)
     conserved_seq_dict = CoreGeneSequences(config).run_coregeneanalysis()
     with pytest.raises(Exception):
-        blapa.run_blastparser(conserved_seq_dict)
+        blapa.run_blastparser()
     assert os.path.isfile(errfile) is False
 
 
@@ -1729,7 +1757,7 @@ def test_PrimerQualityControl_specificitycheck(config):
         reffile = os.path.join(testfiles_dir, "primer_nontargethits.json")
         tofile = os.path.join(pqc.primerblast_dir, "nontargethits.json")
         shutil.copy(reffile, tofile)
-        pqc.call_blastparser.run_blastparser("primer")
+        pqc.call_blastparser.run_blastparser()
 
         if os.path.isdir(tmpdir):
             shutil.rmtree(tmpdir)

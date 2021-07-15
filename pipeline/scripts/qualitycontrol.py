@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import shutil
 import multiprocessing
 import pandas as pd
@@ -9,11 +10,22 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
-from speciesprimer import RunConfig
-from blastscripts import Blast
-from blastscripts import BlastParser
+from scripts.configuration import RunConfig
+from scripts.blastscripts import Blast
+from scripts.blastscripts import BlastParser
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
+
+# paths
+script_dir = os.path.dirname(os.path.abspath(__file__))
+pipe_dir, tail = os.path.split(script_dir)
+dict_path = os.path.join(pipe_dir, "dictionaries")
+tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+if not pipe_dir in sys.path:
+    sys.path.append(pipe_dir)
+if not pipe_dir in sys.path:
+    sys.path.append(pipe_dir)
+
 
 class QualityControl(RunConfig):
     def __init__(self, configuration):
@@ -169,42 +181,48 @@ class QualityControl(RunConfig):
             qc_data.columns = [qc_gene, qc_gene + " Blast"]
             reports.append(qc_data)
         qc_infos = qc_meta.join(reports, how="outer")
-        qc_infos.to_csv(Path(self.target_dir, "QC_report.csv"))
+        qc_infos.to_csv(Path(self.target_dir, "inputfiles_report.csv"))
 
     def quality_control(self):
-        qc_files = []
-        max_contigs = []
-        annotations = []
-        accessions = []
-        for filename in os.listdir(self.genomic_dir):
-            accession = H.accession_from_filename(filename)
-            filepath = Path(self.genomic_dir, filename)
-            accessions.append(accession)
-            qc_files.append(filename)
-            max_contigs.append(self.count_contigs(filepath))
-            annotations.append(self.annotation(filepath, accession))
+        if os.path.isdir(self.pangenome_dir):
+            G.comm_log("> Found pangenome directory, skip QC ")
+        else:
+            qc_files = []
+            max_contigs = []
+            annotations = []
+            accessions = []
+            for filename in os.listdir(self.genomic_dir):
+                accession = H.accession_from_filename(filename)
+                filepath = Path(self.genomic_dir, filename)
+                accessions.append(accession)
+                qc_files.append(filename)
+                max_contigs.append(self.count_contigs(filepath))
+                annotations.append(self.annotation(filepath, accession))
 
-        annotation_dict = {"filename": qc_files, "Max_contigs": max_contigs, "Annotated": annotations}
+            annotation_dict = {
+                "filename": qc_files,
+                "Max_contigs": max_contigs,
+                "Annotated": annotations}
 
-        for qc_gene in self.config.qc_gene:
-            qc_sequences = []
-            qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
-            G.create_directory(qc_dir)
-            for acc in accessions:
-                gff_filepath = Path(self.gff_dir, acc + ".gff")
-                if os.path.isfile(gff_filepath):
-                    gene_locus = self.find_qcgene_annotations(gff_filepath, qc_gene)
-                    if gene_locus.id != "failed":
-                        qc_sequences.append(gene_locus)
+            for qc_gene in self.config.qc_gene:
+                qc_sequences = []
+                qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
+                G.create_directory(qc_dir)
+                for acc in accessions:
+                    gff_filepath = Path(self.gff_dir, acc + ".gff")
+                    if os.path.isfile(gff_filepath):
+                        gene_locus = self.find_qcgene_annotations(gff_filepath, qc_gene)
+                        if gene_locus.id != "failed":
+                            qc_sequences.append(gene_locus)
 
-            qcblast_input = Path(qc_dir, qc_gene + ".part-0")
-            SeqIO.write(qc_sequences, qcblast_input, "fasta")
-            qc_df = self.qc_blast(qc_gene)
-            self.remove_offtarget_genomes(qc_df)
+                qcblast_input = Path(qc_dir, qc_gene + ".part-0")
+                SeqIO.write(qc_sequences, qcblast_input, "fasta")
+                qc_df = self.qc_blast(qc_gene)
+                self.remove_offtarget_genomes(qc_df)
 
-        annotation_df = pd.DataFrame(
-            data = annotation_dict,
-            index=accessions)
-        report_path = Path(self.genomedata_dir, "annotation_report.csv")
-        annotation_df.to_csv(report_path)
-        self.collect_qc_infos()
+            annotation_df = pd.DataFrame(
+                data = annotation_dict,
+                index=accessions)
+            report_path = Path(self.genomedata_dir, "annotation_report.csv")
+            annotation_df.to_csv(report_path)
+            self.collect_qc_infos()

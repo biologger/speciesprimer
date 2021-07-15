@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import time
 import shutil
 import logging
@@ -9,45 +10,49 @@ import fnmatch
 import multiprocessing
 import pandas as pd
 import numpy as np
+from datetime import timedelta
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from datetime import timedelta
-from speciesprimer import errors
-from speciesprimer import RunConfig
-from speciesprimer import PipelineStatsCollector
-from basicfunctions import GeneralFunctions as G
-from basicfunctions import HelperFunctions as H
-from basicfunctions import ParallelFunctions as P
-from basicfunctions import BlastDBError
+
 
 # paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
 pipe_dir, tail = os.path.split(script_dir)
 dict_path = os.path.join(pipe_dir, "dictionaries")
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+if not pipe_dir in sys.path:
+    sys.path.append(pipe_dir)
+
+from scripts.configuration import errors
+from scripts.configuration import RunConfig
+from scripts.configuration import PipelineStatsCollector
+from basicfunctions import GeneralFunctions as G
+from basicfunctions import HelperFunctions as H
+from basicfunctions import ParallelFunctions as P
+from basicfunctions import BlastDBError
 
 
 class BlastPrep():
-    def __init__(self, directory, input_list, name, maxpartsize):
+    def __init__(self, directory, input_records, name, maxpartsize):
         self.list_dict = {}
-        self.input_list = input_list
+        self.input_records = input_records
         self.maxpartsize = maxpartsize
         self.filename = name
         self.directory = directory
 
     def create_listdict(self):
-        groups = len(self.input_list) // self.maxpartsize
-        if len(self.input_list) % self.maxpartsize > 0:
+        groups = len(self.input_records) // self.maxpartsize
+        if len(self.input_records) % self.maxpartsize > 0:
             groups = groups + 1
         for i in range(0, groups):
             if i not in self.list_dict.keys():
                 self.list_dict.update({i: []})
 
     def get_equalgroups(self):
-        self.input_list.sort(key=lambda x: int(len(x[1])), reverse=True)
+        self.input_records.sort(key=lambda x: int(len(x.seq)), reverse=True)
         list_start = 0
-        list_end = len(self.input_list) - 1
+        list_end = len(self.input_records) - 1
         removed_key = []
         key = 0
         i = list_start
@@ -55,7 +60,7 @@ class BlastPrep():
             if key in removed_key:
                 key = key + 1
             else:
-                item = self.input_list[i]
+                item = self.input_records[i]
                 if len(self.list_dict[key]) < self.maxpartsize:
                     self.list_dict[key].append(item)
                     key = key + 1
@@ -69,17 +74,12 @@ class BlastPrep():
                     removed_key.append(key)
 
     def write_blastinput(self):
-        inputsequences = []
         for key in self.list_dict.keys():
             if len(self.list_dict[key]) > 0:
                 file_name = os.path.join(
                     self.directory, self.filename + ".part-"+str(key))
-                with open(file_name, "w") as f:
-                    for item in self.list_dict[key]:
-                        f.write(">" + item[0] + "\n")
-                        inputsequences.append(item[0])
-                        f.write(item[1] + "\n")
-        return inputsequences
+                SeqIO.write(self.list_dict[key], file_name, "fasta")
+
 
     def run_blastprep(self):
         G.logger("Run: run_blastprep - Preparing files for BLAST")
@@ -87,8 +87,8 @@ class BlastPrep():
         self.create_listdict()
         self.get_equalgroups()
         cores = multiprocessing.cpu_count()
-        inputseqs = self.write_blastinput()
-        return cores, inputseqs
+        self.write_blastinput()
+        return cores
 
 
 class Blast(RunConfig):
@@ -346,7 +346,7 @@ class BlastParser(RunConfig):
         mostcommon = pd.DataFrame(df.drop_duplicates(["Query Seq-id", "Species"])["Species"].value_counts())
         mostcommon.index.name ="Species"
         mostcommon.columns = ["BLAST hits [count]"]
-        mostcommon["BLAST hits [% of queries]"] = mostcommon["BLAST hits [count]"].apply(                                                                    lambda x: round(100/queries*x, 1))
+        mostcommon["BLAST hits [% of queries]"] = mostcommon["BLAST hits [count]"].apply(lambda x: round(100/queries*x, 1))
         mostcommon.sort_values("BLAST hits [% of queries]", ascending=False, inplace=True)
         f_head = str("Total BLAST hits,Number of queries\n" + str(total) + "," + str(queries) + "\n")
         with open(to_file, "w") as f:
@@ -388,7 +388,7 @@ class BlastParser(RunConfig):
                 blastdf.columns = header
                 blastdf = blastdf.astype(
                     {"Subject GI": str, "Subject accession": str})
-                
+
             except pd.errors.EmptyDataError:
                 blastdf = pd.DataFrame()
 
@@ -457,24 +457,21 @@ class BlastParser(RunConfig):
                     "and quality control will start from scratch")
                 info2 = "Differences in primer3 input:"
                 for info in [info1, info2, diff]:
-                    G.logger(info)
-                    print(info)
-                primer_dir = os.path.join(self.results_dir, "primer")
-                if os.path.isdir(primer_dir):
-                    G.logger("Delete primer directory")
-                    print("Delete primer directory")
-                    shutil.rmtree(primer_dir)
+                    G.comm_log(info)
+                if os.path.isdir(self.primer_dir):
+                    G.comm_log("Delete primer directory")
+                    shutil.rmtree(self.primer_dir)
 
                 shutil.copy(file_path, controlfile_path)
         else:
             shutil.copy(file_path, controlfile_path)
 
     def write_primer3_input(self, selected_seqs):
-        #G.logger("Run: write_primer3_input(" + self.target + ")")
-        conserved_seqs = os.path.join(self.blast_dir, H.abbrev(self.target) + "_conserved")
+        G.create_directory(self.primer_dir)
+        conserved_seqs = os.path.join(self.blast_dir, "conserved_seqs.fas")
         conserved_seq_dict = SeqIO.to_dict(SeqIO.parse(conserved_seqs, "fasta"))
-        file_path = os.path.join(self.results_dir, "primer3_input")
-        controlfile_path = os.path.join(self.results_dir, ".primer3_input")
+        file_path = os.path.join(self.primer_dir, "primer3_input")
+        controlfile_path = os.path.join(self.primer_dir, ".primer3_input")
         if self.config.probe is True:
             probe = "\nPRIMER_PICK_INTERNAL_OLIGO=1"
         else:

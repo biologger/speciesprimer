@@ -3,6 +3,7 @@
 
 import os
 import re
+import sys
 import csv
 import shutil
 import multiprocessing
@@ -11,13 +12,23 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
-from speciesprimer import RunConfig
-from speciesprimer import errors
-from blastscripts import Blast
-from blastscripts import BlastPrep
-from speciesprimer import PipelineStatsCollector
+from scripts.configuration import RunConfig
+from scripts.configuration import errors
+from scripts.configuration import PipelineStatsCollector
+from scripts.blastscripts import Blast
+from scripts.blastscripts import BlastPrep
+from scripts.blastscripts import BlastParser
+
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
+
+# paths
+script_dir = os.path.dirname(os.path.abspath(__file__))
+pipe_dir, tail = os.path.split(script_dir)
+dict_path = os.path.join(pipe_dir, "dictionaries")
+tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
+if not pipe_dir in sys.path:
+    sys.path.append(pipe_dir)
 
 class PangenomeAnalysis(RunConfig):
     def __init__(self, configuration):
@@ -72,7 +83,6 @@ class PangenomeAnalysis(RunConfig):
 
     def run_pangenome_analysis(self):
         G.comm_log("Run: run_pangenome_analysis(" + self.target + ")")
-        exitstat = 0
         if os.path.isdir(self.pangenome_dir):
             filepath = os.path.join(
                 self.pangenome_dir, "gene_presence_absence.csv")
@@ -81,15 +91,14 @@ class PangenomeAnalysis(RunConfig):
                     "Pangenome directory already exists\n"
                     "Continue with existing Pangenome data")
                 G.comm_log("> " + info)
-                exitstat = 2
-                return exitstat
+                return 2
             shutil.rmtree(self.pangenome_dir)
 
         self.get_numberofgenomes()
         self.run_roary()
         self.run_fasttree()
-        return exitstat
-    
+        return 0
+
 
 class CoreGenes(RunConfig):
     def __init__(self, configuration):
@@ -115,7 +124,7 @@ class CoreGenes(RunConfig):
         G.comm_log("core genes: " + str(len(data.index)))
         G.comm_log("single copy core genes: " + str(len(coregenes)))
         return coregenes
-        
+
     def get_sequences_from_ffn(self, coregenes):
         if not os.path.isfile(self.ffn_seqs):
             ffn_seqs = []
@@ -130,9 +139,9 @@ class CoreGenes(RunConfig):
                             ffn_seqs.append([acc, rec.id, str(rec.seq)])
 
             ffn_df = pd.DataFrame(ffn_seqs)
-            ffn_df.to_csv(self.ffn_seqs, index=False, header=False)  
+            ffn_df.to_csv(self.ffn_seqs, index=False, header=False)
         else:
-            ffn_df = pd.read_csv(self.ffn_seqs, header=None)        
+            ffn_df = pd.read_csv(self.ffn_seqs, header=None)
         return ffn_df
 
     def check_genename(self, gene):
@@ -165,14 +174,14 @@ class CoreGenes(RunConfig):
                                 id='{}|{}|{}'.format(name, item, gene),
                                 description="")
                             SeqIO.write(record, r, "fasta")
-            
+
     def run_CoreGenes(self):
         G.comm_log("> Collect results of pan-genome analysis")
         G.create_directory(self.fasta_dir)
         coregenes = self.get_singlecopy_genes()
         ffn_df = self.get_sequences_from_ffn(coregenes)
         self.get_fasta(ffn_df)
-        
+
 
 class CoreGeneSequences(RunConfig):
     def __init__(self, configuration):
@@ -185,28 +194,27 @@ class CoreGeneSequences(RunConfig):
         outputfiles = [f.split(".best.fas")[0] for f in os.listdir(self.alignments_dir)]
         todo = list(set(inputfiles) - set(outputfiles))
         cmds = [
-            "prank -d=" + os.path.join(self.fasta_dir, f + ".fasta") 
-            + " -o=" + os.path.join(self.alignments_dir, f)
-            for f in todo]
+            ["prank", "-d=" + os.path.join(self.fasta_dir, f + ".fasta"),
+            " -o=" + os.path.join(self.alignments_dir, f)] for f in todo]
         try:
-            G.run_parallel(G.run_shell, cmds)
+            G.run_parallel(G.read_shelloutput, cmds)
         except (KeyboardInterrupt, SystemExit):
             G.keyexit_rollback(
                 "Prank MSA run", dp=self.alignments_dir)
-            raise 
-        
+            raise
+
     def run_consesus_sequences(self):
         G.comm_log("> Find consensus sequence for aligned core gene sequences")
-        G.create_directory(self.consensus_dir)  
+        G.create_directory(self.consensus_dir)
         inputfiles = [f.split(".best.fas")[0] for f in os.listdir(self.alignments_dir)]
-        outputfiles = [f.split("_consens.fasta")[0] for f in os.listdir(self.consensus_dir)]
+        outputfiles = [f.split("_consensus.fas")[0] for f in os.listdir(self.consensus_dir)]
         todo = list(set(inputfiles) - set(outputfiles))
         cmds = [
-            "consambig -sequence " + os.path.join(self.alignments_dir, f + ".best.fas")
-            + " -outseq " + os.path.join(self.consensus_dir, f + "_consensus.fas")
-            + " -name " + f + "_consensus" + " -auto\n" for f in todo]
+            ["consambig", "-sequence", os.path.join(self.alignments_dir, f + ".best.fas"),
+            "-outseq", os.path.join(self.consensus_dir, f + "_consensus.fas"), "-name",
+             f + "_consensus", "-auto"] for f in todo]
         try:
-            G.run_parallel(G.run_shell, cmds)
+            G.run_parallel(G.read_shelloutput, cmds)
         except (KeyboardInterrupt, SystemExit):
             G.keyexit_rollback(
                 "consensus run", dp=self.consensus_dir)
@@ -225,7 +233,6 @@ class CoreGeneSequences(RunConfig):
         for seq in split_list:
             if len(seq) >= self.config.minsize:
                 desc = record.id
-                print(desc)
                 if "group_" in desc:
                     seq_name = (
                         "group_" + desc.split("_")[-2:-1][0]
@@ -233,23 +240,22 @@ class CoreGeneSequences(RunConfig):
                 else:
                     seq_name = (
                         desc.split("_")[-2:-1][0] + "_" + str(count))
-                count += 1 
-
-                rec = SeqRecord(seq, id=seq_name, desc="")
+                count += 1
+                rec = SeqRecord(Seq(seq), id=seq_name, description="")
                 split_records.append(rec)
         return split_records
-            
+
     def find_conserved_sequences(self):
         conserved_recs = []
         G.comm_log("> Search conserved regions in consensus sequences")
         files = [
-            os.path.join(self.consensus_dir, f) 
-            for f in os.listdir(self.consensus_dir)] 
+            os.path.join(self.consensus_dir, f)
+            for f in os.listdir(self.consensus_dir)]
         for filepath in files:
             for record in SeqIO.parse(filepath, "fasta"):
                 split_records = self.split_conserved_sequences(record)
                 conserved_recs.extend(split_records)
-        
+
         G.create_directory(self.blast_dir)
         f = os.path.join(self.blast_dir, H.abbrev(self.target) + "_conserved_seqs.fas")
         SeqIO.write(conserved_recs, f, "fasta")
@@ -260,8 +266,8 @@ class CoreGeneSequences(RunConfig):
             error_msg = "Error: no conserved target sequences found"
             G.comm_log(error_msg)
             errors.append([self.target, error_msg])
-            return 1        
-        
+            return 1
+
         return conserved_recs
 
     def run_coregeneanalysis(self):
@@ -274,10 +280,11 @@ class CoreGeneSequences(RunConfig):
         name = "conserved"
         blastsum = os.path.join(self.blast_dir, "BLAST_results_summary.csv")
         if not os.path.isfile(blastsum):
-            blast_input = [[r.id, r.seq] for r in conserved_seqs]
-            use_cores, inputseqs = BlastPrep(
-                self.blast_dir, blast_input, "conserved",
+            use_cores = BlastPrep(
+                self.blast_dir, conserved_seqs, "conserved",
                 self.config.blastseqs).run_blastprep()
             Blast(
                 self.config, self.blast_dir, "conserved"
             ).run_blast(name, use_cores)
+        BlastParser(self.config).run_blastparser()
+
