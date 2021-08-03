@@ -270,6 +270,14 @@ class CoreGeneSequences(RunConfig):
 
         return conserved_recs
 
+    def run_blastsearch(self, conserved_seqs):
+        use_cores = BlastPrep(
+             self.blast_dir, conserved_seqs, "conserved",
+             self.config.blastseqs).run_blastprep()
+        Blast(
+             self.config, self.blast_dir, "conserved"
+         ).run_blast("conserved", use_cores)
+
     def run_coregeneanalysis(self):
         G.logger("Run: run_coregeneanalysis(" + self.target + ")")
         self.run_prank()
@@ -277,14 +285,8 @@ class CoreGeneSequences(RunConfig):
         conserved_seqs = self.find_conserved_sequences()
         if conserved_seqs == 1:
             return 1
-        name = "conserved"
         blastsum = os.path.join(self.blast_dir, "BLAST_results_summary.csv")
         if not os.path.isfile(blastsum):
-            use_cores = BlastPrep(
-                self.blast_dir, conserved_seqs, "conserved",
-                self.config.blastseqs).run_blastprep()
-            Blast(
-                self.config, self.blast_dir, "conserved"
-            ).run_blast(name, use_cores)
+            self.run_blastsearch(conserved_seqs)
         BlastParser(self.config).run_blastparser()
 

@@ -19,9 +19,9 @@ from scripts.coregenes import PangenomeAnalysis
 from scripts.coregenes import CoreGenes
 from scripts.coregenes import CoreGeneSequences
 from scripts.primerdesign import PrimerDesign
-
-
+from scripts.primerdesign import PrimerQualityControl
 from scripts.summary import Summary
+
 
 # paths
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
@@ -236,10 +236,6 @@ def run_pipeline_for_target(target, config):
         config.qc_gene = []
 
     QualityControl(config).quality_control()
-
-    # writes QC summary in summary directory, run is finished
-    total_results = []
-    Summary(config, total_results).run_summary()
     PangenomeAnalysis(config).run_pangenome_analysis()
 
     if "strain" in config.runmode:
@@ -250,24 +246,12 @@ def run_pipeline_for_target(target, config):
         strainprimer.main(config)
 
     if "species" in config.runmode:
-        msg = "Start searching for species specific primers"
-        print(msg)
-        G.logger(msg)
+        G.comm_log("Start searching for species specific primers")
         CoreGenes(config).run_CoreGenes()
-        conserved_seq_dict = CoreGeneSequences(
-                config).run_coregeneanalysis()
-        if not conserved_seq_dict == 1:
-            conserved = BlastParser(
-                    config).run_blastparser(conserved_seq_dict)
-            if conserved == 0:
-                primer_dict = PrimerDesign(config).run_primerdesign()
-                total_results = PrimerQualityControl(
-                    config, primer_dict).run_primer_qc()
-                Summary(config, total_results).run_summary(mode="last")
-            else:
-                Summary(config, total_results).run_summary(mode="last")
-        else:
-            Summary(config, total_results).run_summary(mode="last")
+        CoreGeneSequences(config).run_coregeneanalysis()
+        PrimerDesign(config).run_primerdesign()
+        PrimerQualityControl(config).run_primer_qc()
+        Summary(config).run_summary()
 
 
 def get_configuration_from_args(target, args):

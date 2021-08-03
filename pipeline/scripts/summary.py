@@ -68,7 +68,7 @@ class Summary(RunConfig):
             except OSError:
                 pass
 
-    def run_summary(self, mode="normal"):
+    def run_summary(self):
         G.logger("Run: run_summary(" + self.target + ")")
         G.create_directory(self.summ_dir)
         self.copy_primerresults()
