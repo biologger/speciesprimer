@@ -12,6 +12,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
+from ipywidgets import widgets
 from scripts.configuration import RunConfig
 from scripts.configuration import errors
 from scripts.configuration import PipelineStatsCollector
@@ -33,6 +34,8 @@ if not pipe_dir in sys.path:
 class PangenomeAnalysis(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def get_numberofgenomes(self):
         inputgenomes = len(os.listdir(self.gff_dir))
@@ -81,7 +84,7 @@ class PangenomeAnalysis(RunConfig):
                 raise
         os.chdir(self.target_dir)
 
-    def run_pangenome_analysis(self):
+    def main(self):
         G.comm_log("Run: run_pangenome_analysis(" + self.target + ")")
         if os.path.isdir(self.pangenome_dir):
             filepath = os.path.join(
@@ -103,6 +106,8 @@ class PangenomeAnalysis(RunConfig):
 class CoreGenes(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def get_singlecopy_genes(self):
         filepath = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
@@ -186,6 +191,8 @@ class CoreGenes(RunConfig):
 class CoreGeneSequences(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def run_prank(self):
         G.comm_log("> Start alignment of core gene sequences")

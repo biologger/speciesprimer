@@ -62,13 +62,15 @@ class Config:
 
 
 class CLIconf:
+    ## attention!!!! position of nontargetlist has changed
     def __init__(
             self, minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold,
             skip_download, assemblylevel,
-            nontargetlist, skip_tree, nolist, offline, ignore_qc, mfethreshold,
+            skip_tree, nolist, offline, ignore_qc, mfethreshold,
             customdb, blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains):
+            evalue, nuc_identity, runmode, strains,
+            nontargetlist):
         self.minsize = minsize
         self.maxsize = maxsize
         self.mpprimer = mpprimer
@@ -95,7 +97,10 @@ class CLIconf:
         self.nuc_identity = nuc_identity
         self.runmode = runmode
         self.strains = strains
-        self.save_config()
+        self.gui = False
+        #self.save_config()
+    def set_gui(self):
+        self.gui = True
 
     def save_config(self):
         config_dict = {}
@@ -164,6 +169,9 @@ class RunConfig():
         self.dimercheck_dir = os.path.join(self.primer_dir, "dimercheck")
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.contiglimit = 500
+        self.outputlayout={
+            'border': '1px solid black', 'width': '65%',
+            'height': '200px','overflow': 'auto'}
 
 
 class PipelineStatsCollector(RunConfig):

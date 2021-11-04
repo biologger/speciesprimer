@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from Bio import Entrez
+from ipywidgets import widgets
 from scripts.configuration import errors
 from scripts.configuration import RunConfig
 from scripts.configuration  import PipelineStatsCollector
@@ -28,6 +29,8 @@ Entrez.tool = "SpeciesPrimer pipeline"
 class DataCollection(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def get_taxid(self, target):
         Entrez.email = H.get_email_for_Entrez()
@@ -153,7 +156,7 @@ class DataCollection(RunConfig):
         G.comm_log(statmsg)
         PipelineStatsCollector(self.config).write_stat(statmsg)
         return statmsg
-    
+
     def download_is_required(self, filename):
         # check if the genome is already in genomic_fna
         ex_genomic_dir = os.path.join(self.ex_dir, "genomic_fna")
@@ -178,7 +181,7 @@ class DataCollection(RunConfig):
                             testlist.append(1)
                 if testlist == [1, 1, 1]:
                     return False
-        
+
         return True
 
     def download_genomes(self, filename, URL, tries=3):
@@ -197,7 +200,7 @@ class DataCollection(RunConfig):
                                 "and NCBI FTP server status")
                     G.comm_log(error_msg)
                     errors.append([self.target, error_msg])
-    
+
     def ncbi_download(self):
         G.logger("Run: ncbi_download(" + self.target + ")")
         G.create_directory(self.gff_dir)
@@ -205,7 +208,10 @@ class DataCollection(RunConfig):
         G.create_directory(self.fna_dir)
         os.chdir(self.genomic_dir)
         with open(os.path.join(self.genomedata_dir, "genomic_links.txt")) as f:
-            for URL in f:
+            URLS = f.readlines()
+            total = len(URLS)
+            for i, URL in enumerate(URLS):
+                self.progress.value = i/total
                 URL = URL.strip()
                 filename = Path(URL).parts[-1]
                 if self.download_is_required(filename):
@@ -228,37 +234,39 @@ class DataCollection(RunConfig):
         with open(conffile, "w") as f:
             f.write(json.dumps(config_dict))
         return self.config.exception
-    
-    def collect_data(self):
-        G.logger("Run: collect data(" + self.target + ")")
-        self.prepare_dirs()
-        pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
-        if os.path.isfile(pan):
-            return 0
 
-        if not self.config.offline:
-            syn, taxid = self.get_taxid(self.target)
-            if syn:
-                self.add_synonym_exceptions(syn)
+    def main(self):
+        with self.output:
+            G.logger("Run: collect data(" + self.target + ")")
+            self.prepare_dirs()
+            pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
+            if os.path.isfile(pan):
+                self.progress.value = 1.0
+                return 0
 
-            self.get_ncbi_links(taxid)
-            if not self.config.skip_download:
-                self.ncbi_download()
+            if not self.config.offline:
+                syn, taxid = self.get_taxid(self.target)
+                if syn:
+                    self.add_synonym_exceptions(syn)
 
-        G.create_directory(self.gff_dir)
-        G.create_directory(self.ffn_dir)
-        G.create_directory(self.fna_dir)
-        for files in os.listdir(self.genomic_dir):
-            if files.endswith(".gz"):
-                filepath = os.path.join(self.genomic_dir, files)
-                G.run_subprocess(
-                    ["gunzip", filepath], False, True, False)
-        os.chdir(self.target_dir)
+                self.get_ncbi_links(taxid)
+                if not self.config.skip_download:
+                    self.ncbi_download()
 
-        self.create_GI_list()
+            G.create_directory(self.gff_dir)
+            G.create_directory(self.ffn_dir)
+            G.create_directory(self.fna_dir)
+            for files in os.listdir(self.genomic_dir):
+                if files.endswith(".gz"):
+                    filepath = os.path.join(self.genomic_dir, files)
+                    G.run_subprocess(
+                        ["gunzip", filepath], False, True, False)
+            os.chdir(self.target_dir)
 
-        if self.config.intermediate is False:
-            if os.path.isdir(self.annotation_dir):
-                shutil.rmtree(self.annotation_dir)
+            self.create_GI_list()
+
+            if self.config.intermediate is False:
+                if os.path.isdir(self.annotation_dir):
+                    shutil.rmtree(self.annotation_dir)
 
         return self.config

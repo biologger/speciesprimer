@@ -23,32 +23,4 @@ BLAST databases can sometimes contain sequences with wrong taxonomic labels. Thi
 Add the NCBI gene identifier(s) of a sequence to the NO_BLAST.gi file (one GI per line).
 During the start of a new pipeline run the NO_BLAST.gi is read and copied to the config directory in the run. The GI's in this list are not used to evaluate the specificity of the template sequences or the primers.
 
-## 2.txids
-
-The taxid list contains all NCBI taxonomic ids for bacteria (NCBI:txid2). From time to time NCBI may add new taxids if new species are added.
-
-There is a script in the GUI version (Pipeline configuration), which allows to update this list if required.
-This can also be done using python in the terminal of the docker container.
-
-#### Example
-
-$ python3
-from Bio import Entrez
-Entrez.email = "your_email_adress"
-searchtaxid = Entrez.esearch(db="taxonomy", term="txid2[orgn]", retmax="500000")
-taxidresult = Entrez.read(searchtaxid)
-taxids = taxidresult["IdList"]
-taxids.sort(key=lambda x: int(x))
-filename = "2.txids"
-with open(filename, "w") as f:
-    for txid in taxids:
-        f.write(txid + "\n")
-
-
-As an alternative if the Entrez EDirect Utility and the BLAST+ command line application are installed on the host computer, the get_species_taxids.sh script from the BLAST+ program can be used to create this list.
-
-__Example__
-
-    $ get_species_taxids.sh -t 2 > $HOME/speciesprimer/pipeline/dictionaries/2.txids
-
 

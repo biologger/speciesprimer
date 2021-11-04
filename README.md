@@ -2,22 +2,25 @@
 # SpeciesPrimer
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://img.shields.io/badge/License-GPLv3-blue.svg)
-[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
+[![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=speciesprimerv2.2)](https://travis-ci.com/biologger/speciesprimer)
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
-[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
+[![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/speciesprimerv2.2/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 [![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
 
-
-New in SpeciesPrimer v2.1
-* Configfile option for pipeline setup (v2.1.1)
-* Custom Blast DB support
-* Email option for command line
-* Increased speed
-* Species synonyms are added to exceptions
-* Bugfixes and KeyboardInterrupt rollback
-* Simpler directory structure
-
+New in SpeciesPrimer v2.2
+* Updated dependencies
+* Automatic download of genome assemblies from genbank
+* New filter options for specificity BLAST step
+	* Nucleotide identity
+	* E-value
+* New functions (experimental)
+	* Strainprimer: strain specific primer design
+	* Primer design for viruses
+* Removed blastdbv5 option
+	* v5 BLAST DB is the new standard
+	* Taxid filtering is not supported anymore (use customdb instead)
+* Bugfixes
 
 ## Contents
 * [Hardware recommendations](https://github.com/biologger/speciesprimer/tree/master#hardware-recommendations)
@@ -25,17 +28,20 @@ New in SpeciesPrimer v2.1
 * [Introduction](https://github.com/biologger/speciesprimer/tree/master#introduction)
 	* [Pipeline workflow and tools](https://github.com/biologger/speciesprimer/tree/master#pipeline-workflow-and-tools)
 	* [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings)
+* [Recent changes](https://github.com/biologger/speciesprimer/tree/master#recent-changes)
 * [Citation](https://github.com/biologger/speciesprimer/tree/master#citation)
 
 ## Docs
-* [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/tutorial.md)
-* [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
-* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/master/docs/pipelinesetup.md)
-* [Primerdesign](https://github.com/biologger/speciesprimer/tree/master/docs/primerdesign.md)
-* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/master/docs/troubleshooting.md)
-* [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/master/docs/customdbtutorial.md)
-* [More troubleshooting (Docker)](https://github.com/biologger/speciesprimer/tree/master/docs/dockertroubleshooting.md)
-* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/master/docs/dockerproxy.md)
+* [Table of contents](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/tableofcontents.md)
+* [Pipeline and Docker tutorial](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/tutorial.md)
+* [Pipeline setup](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/pipelinesetup.md)
+* [Primerdesign](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/primerdesign.md)
+* [Troubleshooting](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/troubleshooting.md)
+* [Custom BLAST DB tutorial](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/customdbtutorial.md)
+* [Advanced command line usage](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/cmdlineonly.md)
+* [Troubleshooting Docker](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockertroubleshooting.md)
+* [Docker and proxy settings](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/dockerproxy.md)
+* [Virus example](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/virus.md)
 
 ## Minimum system requirements
 
@@ -72,25 +78,19 @@ New in SpeciesPrimer v2.1
 
 * After the docker run command open a new terminal
 
-		# open an interactive terminal in the docker container
-		$ sudo docker exec -it speciesprimer bash
+		# open an interactive terminal in the docker container as root user
+		$ sudo docker exec -u 0 -it speciesprimer bash
 
 * Download the nt BLAST DB (>60 GB):
 
-		$ getblastdb.py -dbpath /blastdb --delete
+		$ cd /blastdb
+		$ update_blastdb.pl --passive --decompress nt
+		$ cd /primerdesign
 
 * or download the ref_prok_rep_genomes DB (~6.5 GB):
 
-		$ getblastdb.py -db ref_prok_rep_genomes -dbpath /blastdb --delete
-
-* or alternatively
-
 		$ cd /blastdb
-
-		$ update_blastdb.pl --passive --decompress nt
-		# or
 		$ update_blastdb.pl --passive --decompress ref_prok_rep_genomes
-
 		$ cd /primerdesign
 
 * Customize the species list and other parameters if required (see docs/pipelinesetup.md for more info):
@@ -105,7 +105,7 @@ New in SpeciesPrimer v2.1
 
 * Starting the script will start an assistant for the configuration of a new run
 
-For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/blob/master/docs/cmdlineonly.md)
+For more information and advanced settings see [Advanced command line usage](https://github.com/biologger/speciesprimer/tree/speciesprimerv2.2/docs/cmdlineonly.md)
 
 #### If you want to use the ref_prok_rep_genomes DB use the customdb option with the path
 
@@ -150,18 +150,23 @@ Python modules and software used for the GUI:
 |Section|Command line option [Input]|Description|Default|
 |--|--|--|--|
 |General| target [str]|Name of the target species|None (required)|
+|	|runmode|Design species and/or strain specific primers|species|
+|	|strains [str]|Select strains for strain specific primer design|None|
+|	|virus|Design primers for viruses|False|
 |	|exception [str]|Name of a non-target bacterial species for which primer binding is tolerated|None|
 |	|path [str]|Absolute path of the working directory|Current working directory|
 |	|offline|Work offline with local genome assemblies|False|
 |	|skip\_download|Skips download of genome assemblies from NCBI RefSeq FTP server|False|
 |	|assemblylevel [all, complete, chromosome, scaffold, contig]| Only genome assemblies with the selected assembly status will be downloaded from the NCBI RefSeq FTP server|['all']|
+|	|genbank| Download also genome assemblies from the NCBI Genbank FTP server|False|
 |	|customdb [str]|Use the NCBI ref_prok_rep_genomes database or any other BLAST DB|None|
 |	|blastseqs [100, 500, 1000, 2000, 5000]|Set the number of sequences per BLAST search. Decreasing the number of sequences requires less memory|1000|
-|	|blastdbv5 |Limits all BLAST searches to taxid:2 (bacteria). Works only with version 5 BLAST databases. May increase speed.|False|
-|	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
+|	|nuc_identity [int] |Nucleotide identity threshold for BLAST search, all results with a lower value pass (specificty check) |0|
+|	|evalue [float]|E-value threshold for BLAST search, all results with a lower value pass (specificty check) |500|
 |	|intermediate|Select this option to keep intermediate files.|False|
 |	|nolist|Do not use the (non-target) species list, only sequences without Blast hits are selected for primer design. May be used with a custom Blast DB|False|
 |	|configfile [str]|Path to configuration file (json) to use custom species_list.txt, p3parameters, genus_abbrev.csv and no_blast.gi files|None|
+|	|email [str]|Provide your email in the command line to access NCBI. No input required during the run.|None|
 |Quality control|qc\_gene  [rRNA, recA, dnaK, pheS, tuf]|Selection of housekeeping genes for BLAST search to determine the species of input genome assemblies|['rRNA']
 |	 |ignore\_qc|Keep genome assemblies, which fail to meet the criteria of the quality control step|False|
 |Pan-genome analysis|skip_tree|Skips core gene alignment (Roary) and core gene phylogeny (FastTree)|False|
@@ -170,6 +175,18 @@ Python modules and software used for the GUI:
 |Primer quality control|mfold [float] | Set the deltaG threshold (max. deltaG) for the secondary structures at 60 °C in the PCR product, calculated by Mfold|-3.5|
 |	|mpprimer [float] |Set the deltaG threshold (max. deltaG)  for the primer-primer 3’-end binding, calculated by MPprimer|-3.0|
 |	|mfethreshold [int] | Threshold for MFEprimer primer pair coverage (PPC) score. Higher values: select for better coverage for target and lower coverage for for non-target sequences  (recommended range 80 - 100).|90|
+
+## Recent changes
+
+#### SpeciesPrimer v2.1
+* Configfile option for pipeline setup (v2.1.1)
+* Custom Blast DB support
+* Email option for command line
+* Increased speed
+* Species synonyms are added to exceptions
+* Bugfixes and KeyboardInterrupt rollback
+* Simpler directory structure
+
 
 ## Citation
 If you use this software please cite:

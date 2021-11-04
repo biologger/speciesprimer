@@ -9,6 +9,7 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from ipywidgets import widgets
 from pathlib import Path
 from scripts.configuration import RunConfig
 from scripts.blastscripts import Blast
@@ -30,6 +31,8 @@ if not pipe_dir in sys.path:
 class QualityControl(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def move_to_excluded(self, dir_tree, filename=None):
         if self.config.ignore_qc is False:
@@ -93,6 +96,7 @@ class QualityControl(RunConfig):
             raise
 
     def annotation(self, filepath, accession):
+        G.create_directory(self.annotation_dir)
         fmts = ["fna", "gff", "ffn"]
         dirs = [self.fna_dir, self.gff_dir, self.ffn_dir ]
         testlist = []
@@ -183,7 +187,7 @@ class QualityControl(RunConfig):
         qc_infos = qc_meta.join(reports, how="outer")
         qc_infos.to_csv(Path(self.target_dir, "inputfiles_report.csv"))
 
-    def quality_control(self):
+    def main(self):
         if os.path.isdir(self.pangenome_dir):
             G.comm_log("> Found pangenome directory, skip QC ")
         else:
