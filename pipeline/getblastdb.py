@@ -30,20 +30,20 @@ class htmllinkparser(HTMLParser):
 
 
 class config:
-    baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq", ".nog"]
+    baseend = [".nhr", ".nin", ".nnd", ".nni", ".nsq"]
     urldict = {
         "nt": {
             "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "extend": [".nhd", ".nhi"]},
+            "extend": [".nhd", ".nhi", ".nog"]},
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "extend": []},
+            "extend": [".nog"]},
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
-            "extend": []}}
+            "extend": [".nog", ".nsd", ".nsi"]}}
 
     def __init__(self, db, db_dir, delete, test):
         self.db = db
@@ -244,15 +244,9 @@ def extract_archives(dbfile, conf):
         if len(extract_archive) > 0:
             for archive in extract_archive:
                 logger("Extract archive " + dbfile)
-                with tarfile.open(dbfile, 'r', errorlevel=1) as tar:
-                    for file_ in tar:
-                        try:
-                            tar.extract(file_)
-                        except IOError as e:
-                            os.remove(file_.name)
-                            tar.extract(file_)
-                        finally:
-                            os.chmod(file_.name, file_.mode)
+                tar = tarfile.open(dbfile)
+                tar.extractall()
+                tar.close()
                 check_extract = []
                 for end in conf.extract_end:
                     if dbfile.split(".tar.gz")[0] + end in os.listdir("."):

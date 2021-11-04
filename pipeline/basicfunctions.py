@@ -6,6 +6,7 @@ import logging
 import subprocess
 import os
 import csv
+import sys
 import json
 import shutil
 import concurrent.futures
@@ -25,14 +26,6 @@ class GeneralFunctions:
         logging.info(time.strftime(
             "%d %b %Y %H:%M:%S: ", time.localtime())
             + str(string_to_log).strip())
-
-    @staticmethod
-    def comm_log(string_to_log, newline=False):
-        GeneralFunctions().logger(string_to_log)
-        if newline:
-            print("\n" + string_to_log + "\n")
-        else:
-            print(string_to_log)
 
     @staticmethod
     def run_subprocess(
@@ -204,23 +197,6 @@ class GeneralFunctions:
 class HelperFunctions:
 
     @staticmethod
-    def accession_from_filename(filename, version=True):
-        if "GCF" in filename or "GCA" in filename:
-            accession = "_".join(filename.split("_")[0:2])
-            if version:
-                accession = "v".join(accession.split("."))
-        else:
-            accession = "_".join(filename.split("_")[0:-1])
-        return accession
-
-    @staticmethod
-    def genomicversion_from_accession(accession):
-        if "GCF" in accession or "GCA" in accession:
-            accession = "_".join(accession.split("_")[0:2])
-            accession = ".".join(accession.split("v"))
-        return accession
-
-    @staticmethod
     def advanced_pipe_config(path_to_configfile):
         options = [
             ["genus_abbrev", os.path.join(dict_path, "genus_abbrev.csv")],
@@ -310,20 +286,8 @@ class HelperFunctions:
                 species = (
                     target.split("_")[1] + " subsp. "
                     + target.split("_")[3])
-        elif "_pv_" in target:
-            if mode == "underscore":
-                species = (
-                    target.split("_")[1] + "_pv_"
-                    + target.split("_")[3])
-            if mode == "space":
-                species = (
-                    target.split("_")[1] + " pv. "
-                    + target.split("_")[3])
         else:
-            if len(target.split("_")) > 1:
-                species = target.split("_")[1]
-            else:
-                species = target
+            species = target.split("_")[1]
         return species
 
     @staticmethod
@@ -364,8 +328,6 @@ class HelperFunctions:
                 geni = genus[0:5]
             name = geni+"_"+spec+"_"+sub
         else:
-            if len(target.split("_")) == 1:
-                return target
             genus = target.split("_")[0]
             species = target.split("_")[1]
             spec = species[0:5]
@@ -382,18 +344,16 @@ class HelperFunctions:
         try:
             Entrez.email = email
             searchtaxid = Entrez.esearch(db="taxonomy", term=target)
-            taxidresult = Entrez.read(searchtaxid, validate=False)
+            taxidresult = Entrez.read(searchtaxid)
             taxid = taxidresult["IdList"]
             if len(taxid) == 1:
-                syn = HelperFunctions().check_species_syn(
-                                                    taxid[0], email, target)
-                return taxid[0], syn
+                return taxid[0]
 
             error = taxidresult['ErrorList']
             info = "No taxid was found on NCBI\nError: " + str(error)
             print(info)
             GeneralFunctions().logger("> " + info)
-            return None, None
+            return None
         except OSError:
             info = (
                 "ERROR: Taxid for " + target
@@ -408,13 +368,11 @@ class HelperFunctions:
         Entrez.email = email
         try:
             searchsyn = Entrez.efetch(db="taxonomy", id=taxid)
-            synresult = Entrez.read(searchsyn, validate=False)
+            synresult = Entrez.read(searchsyn)
             scienctificname = synresult[0]['ScientificName']
             synonym = synresult[0]['OtherNames']['Synonym']
             includes = synresult[0]['OtherNames']['Includes']
-            equivalents = synresult[0]['OtherNames']['EquivalentName']
-
-            synonyms = synonym + includes + equivalents
+            synonyms = synonym + includes
             if synonyms != []:
                 synwarn = []
                 target_name = " ".join(target.split("_"))
@@ -504,11 +462,12 @@ class HelperFunctions:
 
         return email
 
-
     @staticmethod
     def BLASTDB_check(config):
         if config.customdb:
             DBname = config.customdb
+        elif config.blastdbv5:
+            DBname = "nt_v5"
         else:
             DBname = "nt"
         if (
@@ -540,40 +499,103 @@ class ParallelFunctions:
             fasta = GeneralFunctions().read_shelloutput(seq_cmd)
         return fasta
 
-    def MFEprimer_run(primerinfo, args):
+    @staticmethod
+    def MFEprimer_template(primerinfo, args):
+        [primer_qc_dir, mfethreshold] = args
         result = []
-        name, seqF, seqR = primerinfo
-        [dbfilepath, primer_qc_dir] = args
+        [nameF, seqF, nameR, seqR, templ_seq] = primerinfo
         with tempfile.NamedTemporaryFile(
             mode='w+', dir=primer_qc_dir, prefix="primer",
             suffix=".fa", delete=False
         ) as primefile:
             primefile.write(
-                ">" + name + "_F\n" + seqF + "\n>" + name + "_R\n" + seqR + "\n")
-        cmd = [
-            "MFEprimer.py", "-i", primefile.name, "-d", dbfilepath,
-            "-k", "9", "--tab", "--ppc", "10"]
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
 
+        db = "template.sequences"
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", db,
+            "-k", "9", "--tab", "--ppc", "10"]
         while result == []:
             result = GeneralFunctions().read_shelloutput(cmd)
         os.unlink(primefile.name)
-        return result
+        if len(result) == 2:
+            val = result[1].split("\t")
+            pp_F = "_".join(val[1].split("_")[0:-1])
+            pp_R = "_".join(val[2].split("_")[0:-1])
+            p_F = "_".join(val[1].split("_")[0:-2])
+            primername = val[3]
+            ppc = float(val[4])
+            if (
+                pp_F == pp_R and p_F == primername
+                and ppc >= float(mfethreshold)
+            ):
+                ppc_val = ppc - float(mfethreshold)
+                return [[nameF, seqF, nameR, seqR, templ_seq, ppc_val], result]
 
+        return [[None], result]
 
     @staticmethod
-    def MFEprimer_singleton(primerinfo, args):
-        [primer_qc_dir, db, mfethreshold, short] = args
-        nameF, seqF, seqR, ppc_val = primerinfo
-        targetname = "_".join(nameF.split(short)[1].split("_")[0:-3])
-        dbname = os.path.basename(os.path.dirname(db))
-        if dbname == targetname:
-            result = ParallelFunctions().MFEprimer_assembly(
-                                                        primerinfo, args[0:3])
-        else:
-            result = ParallelFunctions().MFEprimer_nontarget(
-                    primerinfo, [db, primer_qc_dir])
-        return result
+    def MFEprimer_nontarget(primerinfo, args):
+        result = []
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        [dbfilepath, primer_qc_dir] = args
+        dbfile = os.path.basename(dbfilepath)
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", dbfile,
+            "-k", "9", "--tab", "--ppc", "10"]
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        if len(result) != 1:
+            for index, item in enumerate(result):
+                if index > 0:
+                    val = item.split("\t")
+                    result_ppc = float(val[4])
+                    if result_ppc > ppc_val:
+                        return [[None], result]
 
+        return [primerinfo, result]
+
+    @staticmethod
+    def MFEprimer_assembly(primerinfo, args):
+        [primer_qc_dir, db, mfethreshold] = args
+        result = []
+        target_product = []
+        nameF, seqF, nameR, seqR, templ_seq, ppc_val = primerinfo
+        with tempfile.NamedTemporaryFile(
+            mode='w+', dir=primer_qc_dir, prefix="primer",
+            suffix=".fa", delete=False
+        ) as primefile:
+            primefile.write(
+                ">" + nameF + "\n" + seqF + "\n>" + nameR + "\n" + seqR + "\n")
+        cmd = [
+            "MFEprimer.py", "-i", primefile.name, "-d", db,
+            "-k", "9", "--tab", "--ppc", "10"]
+        while result == []:
+            result = GeneralFunctions().read_shelloutput(cmd)
+        os.unlink(primefile.name)
+        for index, item in enumerate(result):
+            if index > 0:
+                val = item.split("\t")
+                result_ppc = float(val[4])
+                product_len = int(val[5])
+                targetID = val[3]
+                if result_ppc == ppc_val + mfethreshold:
+                    target_product.append(targetID)
+                elif result_ppc > ppc_val:
+                    return [[None], result]
+        counts = Counter(target_product)
+        for item in counts.keys():
+            if counts[item] == 1:
+                return [primerinfo, result]
+
+        return [[None], result]
 
     @staticmethod
     def index_database(inputfilepath):
@@ -582,26 +604,21 @@ class ParallelFunctions:
         db_path = inputfilepath + ".sqlite3.db"
         if os.path.isfile(db_path) is True:
             msg = " ".join([db_name, "DB already exists"])
-            GeneralFunctions().comm_log(msg, True)
-            if os.stat(db_path).st_size == 0:
-                msg = " ".join(["Problem with", db_name, "db file is empty"])
-                GeneralFunctions().comm_log("> " + msg)
-                os.remove(db_path)
-            else:
-                return 0
-
+            print(msg)
+            GeneralFunctions().logger(msg)
+            return 0
         if os.stat(inputfilepath).st_size == 0:
             db_name = os.path.basename(inputfilepath)
             msg = " ".join(["Problem with", db_name, "input file is empty"])
-            GeneralFunctions().comm_log("> " + msg, True)
+            GeneralFunctions().logger("> " + msg)
+            print("\n!!!" + msg + "!!!\n")
             os.remove(inputfilepath)
             return msg
-
 
         GeneralFunctions().logger("> Start index non-target DB " + db_name)
         print("\nStart index " + db_name)
         start = time.time()
-        cmd = ["IndexDB.py", inputfilepath, "-k", "9"]
+        cmd = ["IndexDb.sh", inputfilepath, "9"]
         try:
             GeneralFunctions().run_subprocess(
                     cmd, True, True, False)
