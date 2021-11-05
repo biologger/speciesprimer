@@ -9,7 +9,7 @@ from basicfunctions import GeneralFunctions as G
 errors = []
 
 class Config:
-    def __init__(self, mode="man", config_dict=None):
+    def __init__(self, mode="man", config_dict={}):
         if mode == "man":
             self.config_dict = self.generate_config_files()
         else:

@@ -33,6 +33,7 @@ class QualityControl(RunConfig):
         RunConfig.__init__(self, configuration)
         self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
         self.output = widgets.Output(layout=self.outputlayout)
+        self.annot_report_path = Path(self.genomedata_dir, "annotation_report.csv")
 
     def move_to_excluded(self, dir_tree, filename=None):
         if self.config.ignore_qc is False:
@@ -60,63 +61,6 @@ class QualityControl(RunConfig):
             for filename in os.listdir(d):
                 if filename.startswith(accession):
                     self.move_to_excluded(d, filename)
-
-    def count_contigs(self, filepath):
-        contigs = list(SeqIO.parse(filepath, "fasta"))
-        if len(contigs) >= self.contiglimit:
-            dir_tree, filename = os.path.split(filepath)
-            self.move_to_excluded(dir_tree, filename)
-            return "max contig"
-        return "passed QC"
-
-    def start_prokka(self, inputfile, outputname):
-        if self.config.virus:
-            genus = 'Genus'
-            kingdom = "Viruses"
-        else:
-            genus = self.target.split("_")[0]
-            kingdom = "Bacteria"
-        outdir = str(Path(self.annotation_dir, outputname))
-        prokka_cmd = [
-            "prokka",
-            "--kingdom", kingdom,
-            "--outdir", outdir,
-            "--genus", genus,
-            "--locustag", outputname,
-            "--prefix", outputname,
-            "--cpus", "0",
-            str(inputfile)
-        ]
-        G.comm_log(outputname + " annotation required")
-        try:
-            G.run_subprocess(prokka_cmd, True, True, False)
-        except (KeyboardInterrupt, SystemExit):
-            G.keyexit_rollback(
-                "annotation", dp=outdir)
-            raise
-
-    def annotation(self, filepath, accession):
-        G.create_directory(self.annotation_dir)
-        fmts = ["fna", "gff", "ffn"]
-        dirs = [self.fna_dir, self.gff_dir, self.ffn_dir ]
-        testlist = []
-        for d in dirs:
-            for filename in os.listdir(d):
-                if filename.startswith(accession):
-                    testlist.append(1)
-        if testlist != [1, 1, 1]:
-            if os.path.isfile(filepath):
-                self.start_prokka(filepath, accession)
-                outdir = str(Path(self.annotation_dir, accession))
-                for filename in os.listdir(outdir):
-                    for i, fmt in enumerate(fmts):
-                        if filename.endswith(fmt):
-                            fromdir = Path(outdir, filename)
-                            todir = Path(dirs[i], filename)
-                            shutil.copy(fromdir, todir)
-            else:
-                return "failed"
-        return "annotated"
 
     def find_qcgene_annotations(self, gff_filepath, qc_gene):
         searchdict = {
@@ -166,8 +110,7 @@ class QualityControl(RunConfig):
         return offtarget
 
     def collect_qc_infos(self):
-        annotation_df = pd.read_csv(
-            Path(self.genomedata_dir, "annotation_report.csv"), index_col=0)
+        annotation_df = pd.read_csv(self.annot_report_path, index_col=0)
         maxcontigs = annotation_df["Max_contigs"]
         maxcontigs.index = [
             H.genomicversion_from_accession(x) for x in maxcontigs.index.to_list()]
@@ -188,45 +131,32 @@ class QualityControl(RunConfig):
         qc_infos.to_csv(Path(self.target_dir, "inputfiles_report.csv"))
 
     def main(self):
-        if os.path.isdir(self.pangenome_dir):
-            G.comm_log("> Found pangenome directory, skip QC ")
-        else:
-            qc_files = []
-            max_contigs = []
-            annotations = []
-            accessions = []
-            for filename in os.listdir(self.genomic_dir):
-                accession = H.accession_from_filename(filename)
-                filepath = Path(self.genomic_dir, filename)
-                accessions.append(accession)
-                qc_files.append(filename)
-                max_contigs.append(self.count_contigs(filepath))
-                annotations.append(self.annotation(filepath, accession))
+        with self.output:
+            if os.path.isdir(self.pangenome_dir):
+                G.comm_log("> Found pangenome directory, skip QC ")
+                self.progress.value = 1.0
+            else:
+                accessions = []
+                for filename in os.listdir(self.genomic_dir):
+                    accession = H.accession_from_filename(filename)
+                    accessions.append(accession)
 
-            annotation_dict = {
-                "filename": qc_files,
-                "Max_contigs": max_contigs,
-                "Annotated": annotations}
+                total = len(self.config.qc_gene)
+                for i, qc_gene in enumerate(self.config.qc_gene):
+                    qc_sequences = []
+                    qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
+                    G.create_directory(qc_dir)
+                    for acc in accessions:
+                        gff_filepath = Path(self.gff_dir, acc + ".gff")
+                        if os.path.isfile(gff_filepath):
+                            gene_locus = self.find_qcgene_annotations(gff_filepath, qc_gene)
+                            if gene_locus.id != "failed":
+                                qc_sequences.append(gene_locus)
 
-            for qc_gene in self.config.qc_gene:
-                qc_sequences = []
-                qc_dir = os.path.join(self.genomedata_dir, qc_gene + "_QC")
-                G.create_directory(qc_dir)
-                for acc in accessions:
-                    gff_filepath = Path(self.gff_dir, acc + ".gff")
-                    if os.path.isfile(gff_filepath):
-                        gene_locus = self.find_qcgene_annotations(gff_filepath, qc_gene)
-                        if gene_locus.id != "failed":
-                            qc_sequences.append(gene_locus)
+                    qcblast_input = Path(qc_dir, qc_gene + ".part-0")
+                    SeqIO.write(qc_sequences, qcblast_input, "fasta")
+                    qc_df = self.qc_blast(qc_gene)
+                    self.remove_offtarget_genomes(qc_df)
+                    self.progress.value = i/total
 
-                qcblast_input = Path(qc_dir, qc_gene + ".part-0")
-                SeqIO.write(qc_sequences, qcblast_input, "fasta")
-                qc_df = self.qc_blast(qc_gene)
-                self.remove_offtarget_genomes(qc_df)
-
-            annotation_df = pd.DataFrame(
-                data = annotation_dict,
-                index=accessions)
-            report_path = Path(self.genomedata_dir, "annotation_report.csv")
-            annotation_df.to_csv(report_path)
-            self.collect_qc_infos()
+                self.collect_qc_infos()

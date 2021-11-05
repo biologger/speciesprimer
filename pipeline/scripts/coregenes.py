@@ -85,22 +85,24 @@ class PangenomeAnalysis(RunConfig):
         os.chdir(self.target_dir)
 
     def main(self):
-        G.comm_log("Run: run_pangenome_analysis(" + self.target + ")")
-        if os.path.isdir(self.pangenome_dir):
-            filepath = os.path.join(
-                self.pangenome_dir, "gene_presence_absence.csv")
-            if os.path.isfile(filepath):
-                info = (
-                    "Pangenome directory already exists\n"
-                    "Continue with existing Pangenome data")
-                G.comm_log("> " + info)
-                return 2
-            shutil.rmtree(self.pangenome_dir)
+        with self.output:
+            G.comm_log("Run: run_pangenome_analysis(" + self.target + ")")
+            if os.path.isdir(self.pangenome_dir):
+                filepath = os.path.join(
+                    self.pangenome_dir, "gene_presence_absence.csv")
+                if os.path.isfile(filepath):
+                    info = (
+                        "Pangenome directory already exists\n"
+                        "Continue with existing Pangenome data")
+                    G.comm_log("> " + info)
+                    self.progress.value = 1.0
+                    return 2
+                shutil.rmtree(self.pangenome_dir)
 
-        self.get_numberofgenomes()
-        self.run_roary()
-        self.run_fasttree()
-        return 0
+            self.get_numberofgenomes()
+            self.run_roary()
+            self.run_fasttree()
+            return 0
 
 
 class CoreGenes(RunConfig):
@@ -134,9 +136,11 @@ class CoreGenes(RunConfig):
         if not os.path.isfile(self.ffn_seqs):
             ffn_seqs = []
             accessions = coregenes.columns.to_list()
-            for acc in accessions:
+            total = len(accessions)
+            for i, acc in enumerate(accessions):
                 ffn_path = Path(self.ffn_dir, acc + ".ffn")
                 loci = coregenes[acc].to_list()
+                self.progress.value = i/total
                 with open(ffn_path) as f:
                     records = SeqIO.parse(f, "fasta")
                     for rec in records:
@@ -147,6 +151,8 @@ class CoreGenes(RunConfig):
             ffn_df.to_csv(self.ffn_seqs, index=False, header=False)
         else:
             ffn_df = pd.read_csv(self.ffn_seqs, header=None)
+            self.progress.value = 1.0
+
         return ffn_df
 
     def check_genename(self, gene):
@@ -180,7 +186,7 @@ class CoreGenes(RunConfig):
                                 description="")
                             SeqIO.write(record, r, "fasta")
 
-    def run_CoreGenes(self):
+    def main(self):
         G.comm_log("> Collect results of pan-genome analysis")
         G.create_directory(self.fasta_dir)
         coregenes = self.get_singlecopy_genes()
@@ -285,7 +291,7 @@ class CoreGeneSequences(RunConfig):
              self.config, self.blast_dir, "conserved"
          ).run_blast("conserved", use_cores)
 
-    def run_coregeneanalysis(self):
+    def main(self):
         G.logger("Run: run_coregeneanalysis(" + self.target + ")")
         self.run_prank()
         self.run_consesus_sequences()

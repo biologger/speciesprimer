@@ -13,7 +13,8 @@ from basicfunctions import HelperFunctions as H
 from scripts.configuration import Config
 from scripts.configuration import CLIconf
 from scripts.configuration import PipelineStatsCollector
-from scripts.datacollection import DataCollection
+from scripts.datacollection import GenomeDownload
+from scripts.datacollection import Annotation
 from scripts.qualitycontrol import QualityControl
 from scripts.coregenes import PangenomeAnalysis
 from scripts.coregenes import CoreGenes
@@ -213,10 +214,10 @@ def get_configuration_from_file(target, conf_from_file):
     config = CLIconf(
         minsize, maxsize, mpprimer, exception, target, path,
         intermediate, qc_gene, mfold, skip_download,
-        assemblylevel, nontargetlist, skip_tree, nolist,
+        assemblylevel, skip_tree, nolist,
         offline, ignore_qc, mfethreshold, customdb,
         blastseqs, probe, virus, genbank,
-        evalue, nuc_identity, runmode, strains)
+        evalue, nuc_identity, runmode, strains, nontargetlist)
 
     return config
 
@@ -224,18 +225,18 @@ def get_configuration_from_file(target, conf_from_file):
 def run_pipeline_for_target(target, config):
     print("\nStart searching primer for " + target)
     G.logger("> Start searching primer for " + target)
-    target_dir = os.path.join(config.path, target)
-    PipelineStatsCollector(target_dir).write_stat(
+    PipelineStatsCollector(config).write_stat(
         target + " pipeline statistics:")
-    PipelineStatsCollector(target_dir).write_stat(
+    PipelineStatsCollector(config).write_stat(
         "Start: " + str(time.ctime()))
-    newconfig = DataCollection(config).collect()
+    newconfig = DataCollection(config).main()
+    newconfig.save_config()
     if newconfig != 0:
         config = newconfig
     if config.virus is True:
         config.qc_gene = []
 
-    QualityControl(config).quality_control()
+    QualityControl(config).main()
     PangenomeAnalysis(config).run_pangenome_analysis()
 
     if "strain" in config.runmode:
@@ -264,11 +265,12 @@ def get_configuration_from_args(target, args):
         args.minsize, args.maxsize, args.mpprimer, args.exception,
         target, args.path, args.intermediate,
         args.qc_gene, args.mfold, args.skip_download,
-        args.assemblylevel, nontargetlist,
+        args.assemblylevel,
         args.skip_tree, args.nolist, args.offline,
         args.ignore_qc, args.mfethreshold, args.customdb,
         args.blastseqs, args.probe, args.virus, args.genbank,
-        args.evalue, args.nuc_identity, args.runmode, args.strains)
+        args.evalue, args.nuc_identity, args.runmode, args.strains,
+        nontargetlist)
 
     if args.configfile:
         exitstat = H.advanced_pipe_config(args.configfile)
@@ -346,7 +348,7 @@ def main(mode=None):
                 "fatal error while working on", target,
                 "check logfile", logfile]
             target_dir = os.path.join(config.path, config.target)
-            PipelineStatsCollector(target_dir).write_stat(
+            PipelineStatsCollector(config).write_stat(
                 "Error: " + str(time.ctime()))
             print(" ".join(msg))
             print(exc)

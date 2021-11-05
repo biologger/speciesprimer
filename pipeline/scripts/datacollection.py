@@ -10,6 +10,7 @@ import urllib
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from Bio import SeqIO
 from Bio import Entrez
 from ipywidgets import widgets
 from scripts.configuration import errors
@@ -26,7 +27,7 @@ tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
 
 Entrez.tool = "SpeciesPrimer pipeline"
 
-class DataCollection(RunConfig):
+class GenomeDownload(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
         self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
@@ -153,7 +154,7 @@ class DataCollection(RunConfig):
         statmsg = "genome assemblies from NCBI: " + str(len(link_list))
         if self.config.assemblylevel == ["offline"]:
             statmsg = "genome assemblies from NCBI: 0 (offline/skip download)"
-        G.comm_log(statmsg)
+        G.comm_log(statmsg, self.output)
         PipelineStatsCollector(self.config).write_stat(statmsg)
         return statmsg
 
@@ -241,6 +242,7 @@ class DataCollection(RunConfig):
             self.prepare_dirs()
             pan = os.path.join(self.pangenome_dir, "gene_presence_absence.csv")
             if os.path.isfile(pan):
+                G.comm_log("> Found pangenome directory, skip data collection")
                 self.progress.value = 1.0
                 return 0
 
@@ -265,8 +267,103 @@ class DataCollection(RunConfig):
 
             self.create_GI_list()
 
-            if self.config.intermediate is False:
-                if os.path.isdir(self.annotation_dir):
-                    shutil.rmtree(self.annotation_dir)
+            return self.config
 
-        return self.config
+class Annotation(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
+        self.annot_report_path = Path(self.genomedata_dir, "annotation_report.csv")
+
+    def count_contigs(self, filepath):
+        contigs = list(SeqIO.parse(filepath, "fasta"))
+        if len(contigs) >= self.contiglimit:
+            dir_tree, filename = os.path.split(filepath)
+            self.move_to_excluded(dir_tree, filename)
+            return "max contig"
+        return "passed QC"
+
+    def start_prokka(self, inputfile, outputname):
+        if self.config.virus:
+            genus = 'Genus'
+            kingdom = "Viruses"
+        else:
+            genus = self.target.split("_")[0]
+            kingdom = "Bacteria"
+        outdir = str(Path(self.annotation_dir, outputname))
+        prokka_cmd = [
+            "prokka",
+            "--kingdom", kingdom,
+            "--outdir", outdir,
+            "--genus", genus,
+            "--locustag", outputname,
+            "--prefix", outputname,
+            "--cpus", "0",
+            str(inputfile)
+        ]
+        G.comm_log(outputname + " annotation required")
+        try:
+            G.run_subprocess(prokka_cmd, True, True, False)
+        except (KeyboardInterrupt, SystemExit):
+            G.keyexit_rollback(
+                "annotation", dp=outdir)
+            raise
+
+    def annotation(self, filepath, accession):
+        G.create_directory(self.annotation_dir)
+        fmts = ["fna", "gff", "ffn"]
+        dirs = [self.fna_dir, self.gff_dir, self.ffn_dir ]
+        testlist = []
+        for d in dirs:
+            for filename in os.listdir(d):
+                if filename.startswith(accession):
+                    testlist.append(1)
+        if testlist != [1, 1, 1]:
+            if os.path.isfile(filepath):
+                self.start_prokka(filepath, accession)
+                outdir = str(Path(self.annotation_dir, accession))
+                for filename in os.listdir(outdir):
+                    for i, fmt in enumerate(fmts):
+                        if filename.endswith(fmt):
+                            fromdir = Path(outdir, filename)
+                            todir = Path(dirs[i], filename)
+                            shutil.copy(fromdir, todir)
+            else:
+                return "failed"
+        return "annotated"
+
+    def main(self):
+        with self.output:
+            G.comm_log("Start Annotation")
+            if os.path.isdir(self.pangenome_dir):
+                G.comm_log("> Found pangenome directory, skip Annotation ")
+                self.progress.value = 1.0
+            else:
+                qc_files = []
+                max_contigs = []
+                annotations = []
+                accessions = []
+                genomic_files = os.listdir(self.genomic_dir)
+                total = len(genomic_files)
+                for i, filename in enumerate(genomic_files):
+                    self.progress.value = i/total
+                    accession = H.accession_from_filename(filename)
+                    filepath = Path(self.genomic_dir, filename)
+                    accessions.append(accession)
+                    qc_files.append(filename)
+                    max_contigs.append(self.count_contigs(filepath))
+                    annotations.append(self.annotation(filepath, accession))
+
+                annotation_dict = {
+                    "filename": qc_files,
+                    "Max_contigs": max_contigs,
+                    "Annotated": annotations}
+
+                annotation_df = pd.DataFrame(
+                    data = annotation_dict,
+                    index=accessions)
+
+                print(annotation_df)
+
+                annotation_df.to_csv(self.annot_report_path)

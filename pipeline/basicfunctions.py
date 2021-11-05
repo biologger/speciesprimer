@@ -49,8 +49,8 @@ class GeneralFunctions:
             cmd, printcmd=True, logcmd=True, printoption=True):
         if logcmd:
             GeneralFunctions().logger("Run " + " ".join(cmd))
-        if printcmd:
-            print("Run " + " ".join(cmd))
+        if (logcmd and printcmd):
+            GeneralFunctions().comm_log("Run " + " ".join(cmd))
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -59,7 +59,7 @@ class GeneralFunctions:
                 output = process.stdout.readline().decode().strip()
                 if output:
                     if printoption:
-                        print(output)
+                        GeneralFunctions().comm_log(output)
                 else:
                     break
 
@@ -70,8 +70,8 @@ class GeneralFunctions:
     def run_shell(cmd, printcmd=True, logcmd=True, log=True):
         if logcmd:
             GeneralFunctions().logger("Run " + cmd)
-        if printcmd:
-            print("\nRun " + cmd)
+        if (logcmd and printcmd):
+            GeneralFunctions().comm_log("Run " + cmd)
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, shell=True)
@@ -143,6 +143,8 @@ class GeneralFunctions:
                             print(
                                 '\rprogress ' + str(status) + " % ["
                                 + str(start) + str(ending) + "]", end='')
+                    elif verbosity:
+                        verbosity.value = len(outputlist)/total
                 except Exception as exc:
                     msg = (
                         '%r generated an exception: %s' % (item, exc)
@@ -401,15 +403,13 @@ class HelperFunctions:
 
             error = taxidresult['ErrorList']
             info = "No taxid was found on NCBI\nError: " + str(error)
-            print(info)
-            GeneralFunctions().logger("> " + info)
+            GeneralFunctions().comm_log("> " + info)
             return None, None
         except OSError:
             info = (
                 "ERROR: Taxid for " + target
                 + " not found, please check internet connection")
-            print(info)
-            GeneralFunctions().logger("> " + info)
+            GeneralFunctions().comm_log("> " + info)
             time.sleep(2)
             raise
 
@@ -436,19 +436,16 @@ class HelperFunctions:
                 if synwarn != []:
                     info = ("Warning synonyms for this species were found...")
                     info2 = ("Adding synonyms to exception in config.json.")
-                    print("\n" + info)
-                    print(synwarn)
-                    print(info2 + "\n")
-                    GeneralFunctions().logger("> " + info)
-                    GeneralFunctions().logger(synwarn)
-                    GeneralFunctions().logger("> " + info2)
+                    GeneralFunctions().comm_log("> " + info)
+                    GeneralFunctions().comm_log(synwarn)
+                    GeneralFunctions().comm_log("> " + info2)
                     return synwarn
             return None
         except OSError:
             info = (
                 "SpeciesPrimer is unable to connect to the Entrez server,"
                 " please check the internet connection and try again later")
-            print(info)
+            GeneralFunctions().comm_log(info)
             logging.error("> " + info, exc_info=True)
             from speciesprimer import errors
             errors.append([target, info])
@@ -482,7 +479,7 @@ class HelperFunctions:
                     with open(tmp_db_path, 'w') as f:
                         f.write(json.dumps(tmp_db))
                 else:
-                    print("Not a valid email adress")
+                    GeneralFunctions().comm_log("Not a valid email adress")
                     HelperFunctions().get_email_for_Entrez()
             return email
 
@@ -503,7 +500,7 @@ class HelperFunctions:
                 with open(tmp_db_path, 'w') as f:
                     f.write(json.dumps(tmp_db))
             else:
-                print("Not a valid email adress")
+                GeneralFunctions().comm_log("Not a valid email adress")
                 HelperFunctions().get_email_for_Entrez()
             return email
 
@@ -609,7 +606,7 @@ class ParallelFunctions:
 
 
         GeneralFunctions().logger("> Start index non-target DB " + db_name)
-        print("\nStart index " + db_name)
+        GeneralFunctions().comm_log("\nStart index " + db_name)
         start = time.time()
         cmd = ["IndexDB.py", inputfilepath, "-k", "9"]
         try:
@@ -623,6 +620,6 @@ class ParallelFunctions:
         GeneralFunctions().logger(
             "Run: index_Database(" + db_name + ") time: "
             + str(timedelta(seconds=end)))
-        print("Done indexing " + db_name)
+        GeneralFunctions().comm_log("Done indexing " + db_name)
         GeneralFunctions().logger("> Done indexing " + db_name)
         return 0
