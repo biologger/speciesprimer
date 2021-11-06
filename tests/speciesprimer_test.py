@@ -101,11 +101,12 @@ def config():
             args.minsize, args.maxsize, args.mpprimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
-            args.assemblylevel, nontargetlist,
+            args.assemblylevel, 
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode, args.strains,
+            nontargetlist)
 
     config.save_config()
 
@@ -120,16 +121,16 @@ def reconfiguration():
             args.minsize, args.maxsize, args.mpprimer, args.exception,
             args.target, args.path, args.intermediate,
             args.qc_gene, args.mfold, args.skip_download,
-            args.assemblylevel, nontargetlist,
+            args.assemblylevel,
             args.skip_tree, args.nolist, args.offline,
             args.ignore_qc, args.mfethreshold, args.customdb,
             args.blastseqs, args.probe, args.virus, args.genbank,
-            args.evalue, args.nuc_identity, args.runmode, args.strains)
+            args.evalue, args.nuc_identity, args.runmode, args.strains,
+            nontargetlist)
     return config
 
 
 def compare_ref_files(results_dir, ref_dir):
-
     resfileslist = []
     reffileslist = []
     resrecords = []
@@ -236,7 +237,6 @@ def test_CLIconf(config):
 
 
 def test_auto_run_config():
-
     def prepare_tmp_db():
         t = os.path.join(BASE_PATH, "testfiles", "tmp_config.json")
         # Docker only
@@ -301,10 +301,11 @@ def test_auto_run_config():
         tmpconfig = CLIconf(
             minsize, maxsize, mpprimer, exception, target, path,
             intermediate, qc_gene, mfold, skip_download,
-            assemblylevel, nontargetlist, skip_tree,
+            assemblylevel, skip_tree,
             nolist, offline, ignore_qc, mfethreshold, customdb,
             blastseqs, probe, virus, genbank,
-            evalue, nuc_identity, runmode, strains)
+            evalue, nuc_identity, runmode, strains,
+            nontargetlist)
 
         tmpconfig.save_config()
 

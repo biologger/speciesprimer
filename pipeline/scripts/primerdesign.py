@@ -20,6 +20,7 @@ from scripts.configuration  import PipelineStatsCollector
 from scripts.blastscripts import BlastPrep
 from scripts.blastscripts import Blast
 from scripts.blastscripts import BlastParser
+from ipywidgets import widgets
 
 # paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +33,8 @@ class PrimerDesign(RunConfig):
         RunConfig.__init__(self, configuration)
         self.p3dict = {}
         self.p3settings = os.path.join(dict_path, "p3parameters")
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def run_primer3(self):
         G.logger("Run: run_primer3(" + self.target + ")")
@@ -152,19 +155,30 @@ class PrimerDesign(RunConfig):
         p3_summary = Path(self.primer_dir, "primer3_summary.csv")
         df[header].to_csv(p3_summary, index=False)
 
-    def run_primerdesign(self):
-        abbrev = H.abbrev(self.config.target)
-        G.comm_log("> Start primer design")
-        self.run_primer3()
-        p3_output = os.path.join(self.primer_dir, "primer3_output")
-        annot_dict = self.get_annotation_info()
-        p3data = self.read_primeroutput(p3_output)
-        primerinfos = []
-        for primerdata in p3data:
-            p_info = self.collect_primerdata(primerdata, annot_dict, abbrev)
-            if p_info:
-                primerinfos.extend(p_info)
-        self.save_primer3_summary(primerinfos)
+    def main(self):
+        with self.output:
+            abbrev = H.abbrev(self.config.target)
+            G.comm_log("> Start primer design")
+            self.run_primer3()
+            self.progress.value = 0.8
+            p3_output = os.path.join(self.primer_dir, "primer3_output")
+            annot_dict = self.get_annotation_info()
+            p3data = self.read_primeroutput(p3_output)
+            primerinfos = []
+            for primerdata in p3data:
+                p_info = self.collect_primerdata(primerdata, annot_dict, abbrev)
+                if p_info:
+                    primerinfos.extend(p_info)
+
+            if len(primerinfos) != 0:
+                self.save_primer3_summary(primerinfos)
+                self.progress.value = 1.0
+                return 0
+            else:
+                error_msg = "No primers found"
+                G.comm_log(error_msg)
+                errors.append([self.target, error_msg])
+                return 1
 
 
 class PrimerQualityControl(RunConfig):

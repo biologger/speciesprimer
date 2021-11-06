@@ -135,6 +135,10 @@ class QualityControl(RunConfig):
             if os.path.isdir(self.pangenome_dir):
                 G.comm_log("> Found pangenome directory, skip QC ")
                 self.progress.value = 1.0
+                return 0
+            elif self.config.virus is True:
+                G.comm_log("No QC for viral genomes available, skip QC")
+                return 0
             else:
                 accessions = []
                 for filename in os.listdir(self.genomic_dir):
@@ -157,6 +161,7 @@ class QualityControl(RunConfig):
                     SeqIO.write(qc_sequences, qcblast_input, "fasta")
                     qc_df = self.qc_blast(qc_gene)
                     self.remove_offtarget_genomes(qc_df)
-                    self.progress.value = i/total
+                    self.progress.value = (i+1)/total
 
                 self.collect_qc_infos()
+                return 0

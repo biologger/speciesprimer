@@ -42,8 +42,6 @@ class GeneralFunctions:
                 print(string_to_log)
 
 
-
-
     @staticmethod
     def run_subprocess(
             cmd, printcmd=True, logcmd=True, printoption=True):
@@ -97,9 +95,9 @@ class GeneralFunctions:
 
         def check_output():
             while True:
-                output = process.stdout.readline().decode().strip()
-                if output:
-                    outputlist.append(output)
+                sh_output = process.stdout.readline().decode().strip()
+                if sh_output:
+                    outputlist.append(sh_output)
                 else:
                     break
         while process.poll() is None:
@@ -108,7 +106,8 @@ class GeneralFunctions:
         return outputlist
 
     @staticmethod
-    def run_parallel(function, input_list, args=False, verbosity="bar"):
+    def run_parallel(
+            function, input_list, progress, args=False, verbosity="bar"):
         outputlist = []
         total = len(input_list)
         start = None
@@ -130,8 +129,9 @@ class GeneralFunctions:
             for future in concurrent.futures.as_completed(future_seq):
                 item = future_seq[future]
                 try:
-                    output = future.result()
-                    outputlist.append(output)
+                    para_output = future.result()
+                    outputlist.append(para_output)
+                    progress.value = (len(outputlist)+1)/total
                     if verbosity == "bar":
                         percent = round(100 / total * len(outputlist), 0)
                         if percent == percent // 1:
@@ -140,11 +140,10 @@ class GeneralFunctions:
                                 bar = int(status / 2)
                                 start = bar * "*"
                                 ending = (50 - bar) * " "
-                            print(
-                                '\rprogress ' + str(status) + " % ["
-                                + str(start) + str(ending) + "]", end='')
-                    elif verbosity:
-                        verbosity.value = len(outputlist)/total
+                                print(
+                                    '\rprogress ' + str(status) + " % ["
+                                    + str(start) + str(ending) + "]", end='')
+
                 except Exception as exc:
                     msg = (
                         '%r generated an exception: %s' % (item, exc)

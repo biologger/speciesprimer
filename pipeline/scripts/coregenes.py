@@ -19,7 +19,7 @@ from scripts.configuration import PipelineStatsCollector
 from scripts.blastscripts import Blast
 from scripts.blastscripts import BlastPrep
 from scripts.blastscripts import BlastParser
-
+import basicfunctions
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 
@@ -99,9 +99,26 @@ class PangenomeAnalysis(RunConfig):
                     return 2
                 shutil.rmtree(self.pangenome_dir)
 
-            self.get_numberofgenomes()
+            genomes = self.get_numberofgenomes()
+            if len(genomes) == 0:
+                error_msg = "Error: No genomes survived QC"
+                G.comm_log("> " + error_msg)
+                errors.append([self.target, error_msg])
+                # add some error code to add tipps and tricks messages
+                return 1
+
+            if len(genomes) < 2:
+                error_msg = "Error: Less than two genomes survived QC"
+                G.comm_log("> " + error_msg)
+                errors.append([self.target, error_msg])
+                # add some error code to add tipps and tricks messages
+                return 1
+
+            self.progress.value = 0.1
             self.run_roary()
+            self.progress.value = 0.6
             self.run_fasttree()
+            self.progress.value = 1.0
             return 0
 
 
@@ -140,7 +157,7 @@ class CoreGenes(RunConfig):
             for i, acc in enumerate(accessions):
                 ffn_path = Path(self.ffn_dir, acc + ".ffn")
                 loci = coregenes[acc].to_list()
-                self.progress.value = i/total
+                self.progress.value = i+1/total
                 with open(ffn_path) as f:
                     records = SeqIO.parse(f, "fasta")
                     for rec in records:
@@ -171,10 +188,13 @@ class CoreGenes(RunConfig):
         ffn_df.columns = ["Accession", "Locus", "Sequence"]
         locustags = ffn_df.set_index(["Locus"])
         with open(self.singlecopy, "r") as f:
-            reader = csv.reader(f)
-            for row in reader:
+            lines = f.readlines()
+            total = len(lines)
+            reader = csv.reader(lines)
+            for i, row in enumerate(reader):
                 gene = self.check_genename(row[0])
                 outfile = os.path.join(self.fasta_dir, gene + ".fasta")
+                self.progress.value = i+1/total
                 if not os.path.isdir(outfile):
                     with open(outfile, "w") as r:
                         for item in row[1:]:
@@ -187,14 +207,21 @@ class CoreGenes(RunConfig):
                             SeqIO.write(record, r, "fasta")
 
     def main(self):
-        G.comm_log("> Collect results of pan-genome analysis")
-        G.create_directory(self.fasta_dir)
-        coregenes = self.get_singlecopy_genes()
-        ffn_df = self.get_sequences_from_ffn(coregenes)
-        self.get_fasta(ffn_df)
+        with self.output:
+            G.comm_log("> Collect results of pan-genome analysis")
+            G.create_directory(self.fasta_dir)
+            coregenes = self.get_singlecopy_genes()
+            if len(coregenes.index) == 0:
+                error_msg = "No single copy core genes found"
+                G.comm_log(error_msg)
+                errors.append([self.target, error_msg])
+                return 1
+            ffn_df = self.get_sequences_from_ffn(coregenes)
+            self.get_fasta(ffn_df)
+            return 0
 
 
-class CoreGeneSequences(RunConfig):
+class CoreGeneAlignments(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
         self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
@@ -206,28 +233,52 @@ class CoreGeneSequences(RunConfig):
         inputfiles = [f.split(".fasta")[0] for f in os.listdir(self.fasta_dir)]
         outputfiles = [f.split(".best.fas")[0] for f in os.listdir(self.alignments_dir)]
         todo = list(set(inputfiles) - set(outputfiles))
+        if len(todo) == 0:
+            G.comm_log("> Found " + str(len(outputfiles)) + " alignments")
+            self.progress.value = 1.0
+            return 0
         cmds = [
             ["prank", "-d=" + os.path.join(self.fasta_dir, f + ".fasta"),
-            " -o=" + os.path.join(self.alignments_dir, f)] for f in todo]
+            "-o=" + os.path.join(self.alignments_dir, f)] for f in todo]
         try:
-            G.run_parallel(G.read_shelloutput, cmds)
+            G.run_parallel(basicfunctions.GeneralFunctions.read_shelloutput, cmds, self.progress)
         except (KeyboardInterrupt, SystemExit):
             G.keyexit_rollback(
                 "Prank MSA run", dp=self.alignments_dir)
             raise
 
+    def main(self):
+        with self.output:
+            G.logger("Run: CoreGeneAlignments(" + self.target + ")")
+            self.run_prank()
+            return 0
+
+class CoreGeneSequences(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
+
     def run_consesus_sequences(self):
         G.comm_log("> Find consensus sequence for aligned core gene sequences")
         G.create_directory(self.consensus_dir)
-        inputfiles = [f.split(".best.fas")[0] for f in os.listdir(self.alignments_dir)]
-        outputfiles = [f.split("_consensus.fas")[0] for f in os.listdir(self.consensus_dir)]
+        inputfiles = [
+            f.split(".best.fas")[0] for f in os.listdir(self.alignments_dir)]
+        outputfiles = [
+            f.split(
+                "_consensus.fas")[0] for f in os.listdir(self.consensus_dir)]
         todo = list(set(inputfiles) - set(outputfiles))
+        if len(todo) == 0:
+            self.progress.value = 1.0
+            return 0
         cmds = [
-            ["consambig", "-sequence", os.path.join(self.alignments_dir, f + ".best.fas"),
-            "-outseq", os.path.join(self.consensus_dir, f + "_consensus.fas"), "-name",
+            ["consambig", "-sequence",
+             os.path.join(self.alignments_dir,f + ".best.fas"),
+            "-outseq",
+            os.path.join(self.consensus_dir, f + "_consensus.fas"), "-name",
              f + "_consensus", "-auto"] for f in todo]
         try:
-            G.run_parallel(G.read_shelloutput, cmds)
+            G.run_parallel(basicfunctions.GeneralFunctions.read_shelloutput, cmds, self.progress)
         except (KeyboardInterrupt, SystemExit):
             G.keyexit_rollback(
                 "consensus run", dp=self.consensus_dir)
@@ -280,26 +331,41 @@ class CoreGeneSequences(RunConfig):
             G.comm_log(error_msg)
             errors.append([self.target, error_msg])
             return 1
+        return 0
 
-        return conserved_recs
+    def main(self):
+        with self.output:
+            G.logger("Run: run_coregeneanalysis(" + self.target + ")")
+            self.run_consesus_sequences()
+            exitstatus = self.find_conserved_sequences()
+            return exitstatus
+
+class ConservedBlast(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def run_blastsearch(self, conserved_seqs):
         use_cores = BlastPrep(
              self.blast_dir, conserved_seqs, "conserved",
              self.config.blastseqs).run_blastprep()
-        Blast(
+        blast = Blast(
              self.config, self.blast_dir, "conserved"
-         ).run_blast("conserved", use_cores)
+         )
+        self.progress = blast.progress
+        self.output = blast.output
+        blast.run_blast("conserved", use_cores)
 
     def main(self):
-        G.logger("Run: run_coregeneanalysis(" + self.target + ")")
-        self.run_prank()
-        self.run_consesus_sequences()
-        conserved_seqs = self.find_conserved_sequences()
-        if conserved_seqs == 1:
-            return 1
-        blastsum = os.path.join(self.blast_dir, "BLAST_results_summary.csv")
-        if not os.path.isfile(blastsum):
-            self.run_blastsearch(conserved_seqs)
-        BlastParser(self.config).run_blastparser()
+        with self.output:
+            blastsum = os.path.join(self.blast_dir, "BLAST_results_summary.csv")
+            if not os.path.isfile(blastsum):
+                f = os.path.join(self.blast_dir, H.abbrev(self.target) + "_conserved_seqs.fas")
+                conserved_seqs = list(SeqIO.parse(f, "fasta"))
+                self.run_blastsearch(conserved_seqs)
+
+            exitstatus = BlastParser(self.config).run_blastparser()
+            self.progress.value = 1.0
+            return exitstatus
 

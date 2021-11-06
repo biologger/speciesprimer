@@ -212,7 +212,7 @@ class GenomeDownload(RunConfig):
             URLS = f.readlines()
             total = len(URLS)
             for i, URL in enumerate(URLS):
-                self.progress.value = i/total
+                self.progress.value = (i+1)/total
                 URL = URL.strip()
                 filename = Path(URL).parts[-1]
                 if self.download_is_required(filename):
@@ -264,10 +264,8 @@ class GenomeDownload(RunConfig):
                     G.run_subprocess(
                         ["gunzip", filepath], False, True, False)
             os.chdir(self.target_dir)
-
             self.create_GI_list()
-
-            return self.config
+            return 0
 
 class Annotation(RunConfig):
     def __init__(self, configuration):
@@ -339,6 +337,7 @@ class Annotation(RunConfig):
             if os.path.isdir(self.pangenome_dir):
                 G.comm_log("> Found pangenome directory, skip Annotation ")
                 self.progress.value = 1.0
+                return 0
             else:
                 qc_files = []
                 max_contigs = []
@@ -347,7 +346,7 @@ class Annotation(RunConfig):
                 genomic_files = os.listdir(self.genomic_dir)
                 total = len(genomic_files)
                 for i, filename in enumerate(genomic_files):
-                    self.progress.value = i/total
+                    self.progress.value = (i+1)/total
                     accession = H.accession_from_filename(filename)
                     filepath = Path(self.genomic_dir, filename)
                     accessions.append(accession)
@@ -364,6 +363,6 @@ class Annotation(RunConfig):
                     data = annotation_dict,
                     index=accessions)
 
-                print(annotation_df)
-
                 annotation_df.to_csv(self.annot_report_path)
+
+                return 0

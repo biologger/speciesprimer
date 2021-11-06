@@ -11,6 +11,7 @@ import multiprocessing
 import pandas as pd
 import numpy as np
 from datetime import timedelta
+from ipywidgets import widgets
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -97,6 +98,8 @@ class Blast(RunConfig):
         RunConfig.__init__(self, configuration)
         self.directory = directory
         self.mode = mode
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def get_blast_cmd(self, blastfile, filename, cores):
         fmt_file = os.path.join(dict_path, "blastfmt6.csv")
@@ -139,11 +142,12 @@ class Blast(RunConfig):
     def run_blast(self, name, use_cores):
         G.logger("Run: run_blast - Start BLAST")
         blastfiles = self.search_blastfiles(self.directory)
-        if len(blastfiles) > 0:
+        total = len(blastfiles)
+        if total > 0:
             blastfiles.sort(key=lambda x: int(x.split("part-")[1]))
             start = time.time()
             os.chdir(self.directory)
-            for blastfile in blastfiles:
+            for i, blastfile in enumerate(blastfiles):
                 blast_cmd = False
                 part = str(blastfile).split("-")[1]
                 filename = name + "_" + part + "_results.csv"
@@ -160,19 +164,20 @@ class Blast(RunConfig):
                             blastfile, filename, use_cores)
                     else:
                         info = "Skip Blast step for " + blastfile
-                        print("\n" + info)
-                        G.logger("> " + info)
+                        G.comm_log("> " + info)
+                        self.progress.value = i/total
 
                 if blast_cmd:
                     try:
                         G.run_subprocess(blast_cmd)
+                        self.progress.value = i/total
                     except (KeyboardInterrupt, SystemExit):
                         G.keyexit_rollback(
                             "BLAST search", dp=self.directory, fn=filename)
                         raise
 
             duration = time.time() - start
-            G.logger(
+            G.comm_log(
                 "> Blast duration: "
                 + str(timedelta(seconds=duration)).split(".")[0])
             os.chdir(self.target_dir)
@@ -468,7 +473,8 @@ class BlastParser(RunConfig):
 
     def write_primer3_input(self, selected_seqs):
         G.create_directory(self.primer_dir)
-        conserved_seqs = os.path.join(self.blast_dir, "conserved_seqs.fas")
+        conserved_seqs = os.path.join(
+            self.blast_dir, H.abbrev(self.target) + "_conserved_seqs.fas")
         conserved_seq_dict = SeqIO.to_dict(SeqIO.parse(conserved_seqs, "fasta"))
         file_path = os.path.join(self.primer_dir, "primer3_input")
         controlfile_path = os.path.join(self.primer_dir, ".primer3_input")
