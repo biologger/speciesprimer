@@ -13,6 +13,7 @@ from Bio import Entrez
 import tempfile
 from collections import Counter
 from datetime import timedelta
+import pandas as pd
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 dict_path = os.path.join(pipe_dir, "dictionaries")
@@ -230,6 +231,34 @@ class HelperFunctions:
             accession = "_".join(accession.split("_")[0:2])
             accession = ".".join(accession.split("v"))
         return accession
+
+    @staticmethod
+    def get_primerinfo(primer_dir, selected_seqs=[], mode="primer"):
+        p3_summary = os.path.join(primer_dir, "primer3_summary.csv")
+        p_df = pd.read_csv(p3_summary, index_col=0)
+        if mode == "primer":
+            keys = [
+                'Primer fwd seq', 'Primer rev seq']
+        if mode == "mfold":
+            keys = ['Amplicon sequence']
+        if mode == "results":
+            keys = p_df.columns
+            ppc_file = os.path.join(
+                primer_dir,
+                "MFEprimer_template_results.csv")
+            ppc_df = pd.read_csv(ppc_file)
+            ppc_df.loc[:, "primer"] = ppc_df.loc[:, "FpID"].str.split(
+                                            "_").str[0:-1].str.join("_")
+            ppc_df = ppc_df.set_index("primer")
+            ppc_dict = ppc_df["PPC"].to_dict()
+            p_df.loc[:, "PPC"] = p_df.index.map(ppc_dict)
+            return p_df.loc[selected_seqs, keys].reset_index()
+
+        if selected_seqs == []:
+            data = p_df.loc[:, keys].reset_index().to_numpy()
+        else:
+            data = p_df.loc[selected_seqs, keys].reset_index().to_numpy()
+        return data
 
     @staticmethod
     def advanced_pipe_config(path_to_configfile):
@@ -604,7 +633,6 @@ class ParallelFunctions:
             return msg
 
 
-        GeneralFunctions().logger("> Start index non-target DB " + db_name)
         GeneralFunctions().comm_log("\nStart index " + db_name)
         start = time.time()
         cmd = ["IndexDB.py", inputfilepath, "-k", "9"]
@@ -616,9 +644,8 @@ class ParallelFunctions:
                     "DB indexing", dp=primer_qc_dir, search=db_name)
             raise
         end = time.time() - start
-        GeneralFunctions().logger(
+        GeneralFunctions().comm_log(
             "Run: index_Database(" + db_name + ") time: "
             + str(timedelta(seconds=end)))
         GeneralFunctions().comm_log("Done indexing " + db_name)
-        GeneralFunctions().logger("> Done indexing " + db_name)
         return 0

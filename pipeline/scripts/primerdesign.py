@@ -20,7 +20,9 @@ from scripts.configuration  import PipelineStatsCollector
 from scripts.blastscripts import BlastPrep
 from scripts.blastscripts import Blast
 from scripts.blastscripts import BlastParser
-from ipywidgets import widgets
+from ipywidgets import widgets, VBox, HBox
+from IPython.display import display
+from IPython.display import HTML
 
 # paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -185,11 +187,43 @@ class PrimerQualityControl(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
         self.p3_summary = Path(self.primer_dir, "primer3_summary.csv")
-        self.start = time.time()
-        self.mfethreshold = self.config.mfethreshold
-        self.referencegenomes = 10
-        self.offtargetdb = []
         self.primerlist = []
+
+    def get_primerinfo(self, primer_dir, selected_seqs=[], mode="primer"):
+        p_df = pd.read_csv(self.p3_summary, index_col=0)
+        if mode == "primer":
+            keys = [
+                'Primer fwd seq', 'Primer rev seq']
+        if mode == "mfold":
+            keys = ['Amplicon sequence']
+        if mode == "results":
+            keys = p_df.columns
+            ppc_file = os.path.join(
+                self.primer_dir,
+                "MFEprimer_template_results.csv")
+            ppc_df = pd.read_csv(ppc_file)
+            ppc_df.loc[:, "primer"] = ppc_df.loc[:, "FpID"].str.split(
+                                            "_").str[0:-1].str.join("_")
+            ppc_df = ppc_df.set_index("primer")
+            ppc_dict = ppc_df["PPC"].to_dict()
+            p_df.loc[:, "PPC"] = p_df.index.map(ppc_dict)
+            return p_df.loc[selected_seqs, keys].reset_index()
+
+        if selected_seqs == []:
+            data = p_df.loc[:, keys].reset_index().to_numpy()
+        else:
+            data = p_df.loc[selected_seqs, keys].reset_index().to_numpy()
+        return data
+
+
+
+class PrimerBlast(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
+        self.p3_summary = Path(self.primer_dir, "primer3_summary.csv")
+        self.start = time.time()
 
     def collect_primer(self):
         G.create_directory(self.primerblast_dir)
@@ -202,7 +236,7 @@ class PrimerQualityControl(RunConfig):
             errors.append([self.target, error_msg])
             return 1
 
-        info = "potential primer pair(s): " + str(primerpairs)
+        info = "Potential primer pair(s): " + str(primerpairs)
         G.comm_log("> " + info)
         PipelineStatsCollector(self.config).write_stat(info)
 
@@ -229,35 +263,34 @@ class PrimerQualityControl(RunConfig):
                 self.primerblast_dir, primerlist,
                 "primer", self.config.blastseqs)
             use_cores = prep.run_blastprep()
-            Blast(self.config, self.primerblast_dir, "primer").run_blast(
-                "primer", use_cores)
-            BlastParser(self.config, "primer").run_blastparser()
+            pblast = Blast(self.config, self.primerblast_dir, "primer")
+            self.progress.value = pblast.progress.value
+            self.output = pblast.output
+            pblast.run_blast("primer", use_cores)
+            self.progress.value = 1.0
 
-    def get_primerinfo(self, selected_seqs=[], mode="primer"):
-        p_df = pd.read_csv(self.p3_summary, index_col=0)
-        if mode == "primer":
-            keys = [
-                'Primer fwd seq', 'Primer rev seq']
-        if mode == "mfold":
-            keys = ['Amplicon sequence']
-        if mode == "results":
-            keys = p_df.columns
-            ppc_file = os.path.join(
-                self.primer_dir,
-                "MFEprimer_template_results.csv")
-            ppc_df = pd.read_csv(ppc_file)
-            ppc_df.loc[:, "primer"] = ppc_df.loc[:, "FpID"].str.split(
-                                            "_").str[0:-1].str.join("_")
-            ppc_df = ppc_df.set_index("primer")
-            ppc_dict = ppc_df["PPC"].to_dict()
-            p_df.loc[:, "PPC"] = p_df.index.map(ppc_dict)
-            return p_df.loc[selected_seqs, keys].reset_index()
+    def main(self):
+        with self.output:
+            primer_records = self.collect_primer()
+            if primer_records != 1:
+                self.primer_blast(primer_records)
+                return 0
+            return 1
 
-        if selected_seqs == []:
-            data = p_df.loc[:, keys].reset_index().to_numpy()
-        else:
-            data = p_df.loc[selected_seqs, keys].reset_index().to_numpy()
-        return data
+
+class MFEprimerQC(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.p3_summary = Path(self.primer_dir, "primer3_summary.csv")
+        self.outputlayout={
+            'border': '1px solid black', 'width': 'auto',
+            'height': '350px','overflow': 'auto'}
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
+        self.referencegenomes = 10
+        self.mfethreshold = self.config.mfethreshold
+        self.offtargetdb = []
+        self.primerlist = []
 
     def create_template_db_file(self):
         df = pd.read_csv(self.p3_summary)[["Primer name", "Template sequence"]]
@@ -270,7 +303,7 @@ class PrimerQualityControl(RunConfig):
         SeqIO.write(recs, file_path, "fasta")
 
     def create_assembly_db_file(self):
-        qc_report = Path(self.target_dir, "QC_report.csv")
+        qc_report = Path(self.reports_dir, "inputfiles_report.csv")
         qcdf = pd.read_csv(qc_report, index_col=0)
         if self.config.ignore_qc is False:
             qcdf = qcdf[~qcdf.iloc[:, -2].isna()]
@@ -291,9 +324,11 @@ class PrimerQualityControl(RunConfig):
         file_path = os.path.join(self.primer_qc_dir, "genomic.sequences")
         SeqIO.write(recs, file_path, "fasta")
 
-    def prepare_MFEprimer_Dbs(self):
+    def prepare_MFEprimer_Dbs(self, dbsubprogress):
         self.create_template_db_file()
+        dbsubprogress.children[0].value = 1.0
         self.create_assembly_db_file()
+        dbsubprogress.children[1].value = 1.0
         self.offtargetdb = ["template.sequences"]
         for filename in os.listdir(self.primer_qc_dir):
             if (
@@ -307,33 +342,24 @@ class PrimerQualityControl(RunConfig):
         # parallelization try
         pool = multiprocessing.Pool()
         results = [
-            pool.apply_async(P.index_database, args=(inputfilepath,))
-            for inputfilepath in inputdbs]
+            pool.apply_async(
+                P.index_database, args=(inputfilepath,))
+                    for inputfilepath in inputdbs]
         output = [p.get() for p in results]
         for item in output:
             if item:
                 errors.append([self.target, item])
 
-    def MFEprimer_QC(self):
-        info_msg = "Start primer quality control(" + self.target + ")"
-        G.comm_log("> " + info_msg)
-        os.chdir(self.primer_qc_dir)
-        for dbname in self.offtargetdb:
-            primerinfos = self.get_primerinfo(self.primerlist, mode="primer")
-            result = self.run_MFEprimer(dbname, primerinfos)
-            self.primerlist = self.interpret_MFEprimer_results(
-                                                result, dbname, primerinfos)
+        dbsubprogress.children[2].value = 1.0
 
-        return self.primerlist
-
-    def run_MFEprimer(self, db_file, primerinfos):
+    def run_MFEprimer(self, db_file, primerinfos, subprogress):
         db_name = db_file.split(".")[0]
         G.comm_log("> Start MFEprimer with " + db_name + " DB")
-        template_results = G.run_parallel(
-                P.MFEprimer_run, primerinfos,
-                [db_file, self.primer_qc_dir])
-        header = template_results[0][0].split("\t")
-        rawdata = [r[1:] for r in template_results if len(r) > 1]
+        mfe_results = G.run_parallel(
+                P.MFEprimer_run, primerinfos, subprogress,
+                args=[db_file, self.primer_qc_dir])
+        header = mfe_results[0][0].split("\t")
+        rawdata = [r[1:] for r in mfe_results if len(r) > 1]
         data = [i.split("\t") for item in rawdata for i in item]
         df = pd.DataFrame(data, columns=header)
         fp = os.path.join(
@@ -341,6 +367,33 @@ class PrimerQualityControl(RunConfig):
             "MFEprimer_" + db_name + "_results.csv")
         df.to_csv(fp, index=False)
         return df
+
+    def gui_subprogress(self):
+        dbsubprogress = VBox([
+            widgets.FloatProgress(value=0, min=0.0, max=1.0),
+            widgets.FloatProgress(value=0, min=0.0, max=1.0),
+            widgets.FloatProgress(value=0, min=0.0, max=1.0)])
+        dbsublabel = VBox([
+            widgets.Label("Templates"),
+            widgets.Label("Assemblies"),
+            widgets.Label("Indexing")])
+        subprogress = VBox([
+            widgets.FloatProgress(value=0, min=0.0, max=1.0),
+            widgets.FloatProgress(value=0, min=0.0, max=1.0),
+            widgets.FloatProgress(value=0, min=0.0, max=1.0)])
+        sublabel = VBox([
+            widgets.Label("Templates"),
+            widgets.Label("Off-targets"),
+            widgets.Label("Assemblies (Secondary amplicons)")])
+        remain_label = VBox([
+            widgets.Label(""),
+            widgets.Label(""),
+            widgets.Label("")])
+        display(HTML('<p> Database creation </p>'))
+        display(HBox([dbsubprogress, dbsublabel]))
+        display(HTML('<p> MFEprimer runs </p>'))
+        display(HBox([subprogress, sublabel, remain_label]))
+        return dbsubprogress, subprogress, remain_label
 
     def interpret_MFEprimer_results(self, result, dbname, primerinfos):
         db_name = dbname.split(".")[0]
@@ -375,6 +428,43 @@ class PrimerQualityControl(RunConfig):
             "Continue QC with " + str(len(primerlist)) + " primer pairs", True)
         return primerlist
 
+    def main(self):
+        with self.output:
+            info_msg = "Start primer quality control(" + self.target + ")"
+            G.comm_log("> " + info_msg)
+            os.chdir(self.primer_qc_dir)
+            dbsubprogress, subprogress, remain_label = self.gui_subprogress()
+            self.prepare_MFEprimer_Dbs(dbsubprogress)
+            dbsubcount = [s.value for s in dbsubprogress.children]
+            self.progress.value = sum(dbsubcount)/6
+
+            for i, dbname in enumerate(self.offtargetdb):
+                partial_prog = subprogress.children[i]
+                primerinfos = H.get_primerinfo(
+                    self.primer_dir, self.primerlist, mode="primer")
+                result = self.run_MFEprimer(dbname, primerinfos, partial_prog)
+                self.primerlist = self.interpret_MFEprimer_results(
+                                    result, dbname, primerinfos)
+                remain_label.children[i].value = (
+                    "\t# Primer pairs passed: " + str(len(self.primerlist)))
+                subcount = [s.value for s in subprogress.children]
+                self.progress.value = (sum(dbsubcount) + sum(subcount))/6
+
+            if len(self.primerlist) == 0:
+                return 1
+            primerdf = pd.DataFrame(self.primerlist)
+            fp = Path(self.primer_qc_dir, "mfe_primerlist.csv")
+            primerdf.to_csv(fp, index=False, header=False)
+            return 0
+
+
+class MFoldQC(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.p3_summary = Path(self.primer_dir, "primer3_summary.csv")
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
+
     def mfold_analysis(self, mfoldinputlist):
         results = []
         info = "Start mfold analysis of PCR products"
@@ -402,6 +492,7 @@ class PrimerQualityControl(RunConfig):
             result = self.parse_mfold_results(primername, fullname + ".det")
             results.extend(result)
             os.chdir(self.mfold_dir)
+            self.progress.value = (i+1)/tot
         print()
         primerlist = self.interpret_mfold_results(results)
         G.comm_log(
@@ -441,6 +532,27 @@ class PrimerQualityControl(RunConfig):
         passed = df.query('dG > @self.config.mfold')["Primer name"].unique()
         primerlist = list(set(passed) - set(failed))
         return primerlist
+
+    def main(self):
+        with self.output:
+            fp = Path(self.primer_qc_dir, "mfe_primerlist.csv")
+            df = pd.read_csv(fp, header=None)
+            passed_primerlist = df.iloc[:, 0].to_list()
+            mfoldinput = H.get_primerinfo(
+                self.primer_dir, passed_primerlist, mode="mfold")
+            passed_primerlist = self.mfold_analysis(mfoldinput)
+            if len(passed_primerlist) == 0:
+                return 1
+            primerdf = pd.DataFrame(passed_primerlist)
+            fp = Path(self.primer_qc_dir, "mfold_primerlist.csv")
+            primerdf.to_csv(fp, index=False, header=False)
+            return 0
+
+class MPprimerDimerQC(RunConfig):
+    def __init__(self, configuration):
+        RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def run_MPprimer_dimer_check(self, primer):
         p_name = primer[0]
@@ -487,6 +599,7 @@ class PrimerQualityControl(RunConfig):
             print('\rprogress ' + str(i+1) + "/" + str(tot), end='')
             output = self.run_MPprimer_dimer_check(primerdata)
             results.extend(output)
+            self.progress.value = (i+1)/tot
         print()
         primerlist = self.interpret_primerdimer_results(results)
         info = "Primer pairs left after primer QC: " + str(len(primerlist))
@@ -506,34 +619,26 @@ class PrimerQualityControl(RunConfig):
         primerlist = list(set(passed) - set(failed))
         return primerlist
 
-    def run_primer_qc(self):
-        primer_records = self.collect_primer()
-        if primer_records != 1:
-            self.primer_blast(primer_records)
-            self.prepare_MFEprimer_Dbs()
-            passed_primerlist = self.MFEprimer_QC()
-            mfoldinput = self.get_primerinfo(passed_primerlist, mode="mfold")
-            passed_primerlist = self.mfold_analysis(mfoldinput)
-            dimer_input = self.get_primerinfo(passed_primerlist, mode="primer")
+    def main(self):
+        with self.output:
+            fp = Path(self.primer_qc_dir, "mfold_primerlist.csv")
+            df = pd.read_csv(fp, header=None)
+            passed_primerlist = df.iloc[:, 0].to_list()
+            dimer_input = H.get_primerinfo(
+                self.primer_dir, passed_primerlist, mode="primer")
             passed_primerlist = self.check_primerdimers(dimer_input)
-            results_df = self.get_primerinfo(passed_primerlist, mode="results")
-
-            duration = time.time() - self.start
-            G.comm_log(
-                "> PrimerQC time: "
-                + str(timedelta(seconds=duration)).split(".")[0])
+            results_df = H.get_primerinfo(
+                self.primer_dir, passed_primerlist, mode="results")
 
             if results_df.empty:
                 error_msg = "No compatible primers found"
                 G.comm_log("> " + error_msg)
                 errors.append([self.target, error_msg])
+                return 1
 
             results_df = results_df.sort_values("PPC", ascending=False)
-            fp = Path(self.target_dir, "primer_report.csv")
+            fp = Path(self.reports_dir, "primer_report.csv")
             results_df.to_csv(fp, index=False)
-            return results_df
+            return 0
 
-        error_msg = "No compatible primers found"
-        G.comm_log("> " + error_msg)
-        errors.append([self.target, error_msg])
-        return pd.DataFrame()
+

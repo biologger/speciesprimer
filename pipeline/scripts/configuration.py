@@ -147,6 +147,7 @@ class RunConfig():
         self.target = configuration.target
         self.target_dir = os.path.join(self.config.path, self.target)
         self.config_dir = os.path.join(self.target_dir, "config")
+        self.reports_dir = os.path.join(self.target_dir, "reports")
         self.genomedata_dir = os.path.join(self.target_dir, "genomedata")
         self.genomic_dir = os.path.join(self.genomedata_dir, "genomic_fna")
         self.ex_dir = os.path.join(self.genomedata_dir, "excluded_genomes")
@@ -170,7 +171,7 @@ class RunConfig():
         self.summ_dir = os.path.join(self.config.path, "Summary", self.target)
         self.contiglimit = 500
         self.outputlayout={
-            'border': '1px solid black', 'width': '65%',
+            'border': '1px solid black', 'width': 'auto',
             'height': '200px','overflow': 'auto'}
 
 

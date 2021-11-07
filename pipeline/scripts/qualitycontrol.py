@@ -33,7 +33,7 @@ class QualityControl(RunConfig):
         RunConfig.__init__(self, configuration)
         self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
         self.output = widgets.Output(layout=self.outputlayout)
-        self.annot_report_path = Path(self.genomedata_dir, "annotation_report.csv")
+        self.annot_report_path = Path(self.reports_dir, "annotation_report.csv")
 
     def move_to_excluded(self, dir_tree, filename=None):
         if self.config.ignore_qc is False:
@@ -128,7 +128,7 @@ class QualityControl(RunConfig):
             qc_data.columns = [qc_gene, qc_gene + " Blast"]
             reports.append(qc_data)
         qc_infos = qc_meta.join(reports, how="outer")
-        qc_infos.to_csv(Path(self.target_dir, "inputfiles_report.csv"))
+        qc_infos.to_csv(Path(self.reports_dir, "inputfiles_report.csv"))
 
     def main(self):
         with self.output:

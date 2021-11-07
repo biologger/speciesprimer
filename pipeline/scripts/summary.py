@@ -4,6 +4,7 @@
 import os
 import time
 import shutil
+from ipywidgets import widgets
 from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
 from scripts.configuration import RunConfig
@@ -12,6 +13,8 @@ from scripts.configuration  import PipelineStatsCollector
 class Summary(RunConfig):
     def __init__(self, configuration):
         RunConfig.__init__(self, configuration)
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def copy_primerresults(self):
         aka = H.abbrev(self.target)
@@ -20,7 +23,7 @@ class Summary(RunConfig):
         if os.path.isfile(filepath):
             filepath = os.path.join(
                 self.summ_dir, aka + "_primer" + today + ".csv")
-        fp = os.path.join(self.target_dir, "primer_report.csv")
+        fp = os.path.join(self.reports_dir, "primer_report.csv")
         try:
             shutil.copy(fp, filepath)
         except OSError:
@@ -68,18 +71,21 @@ class Summary(RunConfig):
             except OSError:
                 pass
 
-    def run_summary(self):
-        G.logger("Run: run_summary(" + self.target + ")")
-        G.create_directory(self.summ_dir)
-        self.copy_primerresults()
-        self.copy_mostcommon_hits()
-        self.copy_pangenomeinfos()
-        self.copy_config()
-        PipelineStatsCollector(
-            self.config).write_stat("End: " + str(time.ctime()))
-        self.copy_pipelinestats()
-        msg = [
-            "SpeciesPrimer run finished for", self.target,
-            "\n", "End:", time.ctime(), "\n", "See results in",
-            self.summ_dir]
-        G.comm_log(" ".join(msg))
+    def main(self):
+        with self.output:
+            G.logger("Run: run_summary(" + self.target + ")")
+            G.create_directory(self.summ_dir)
+            self.copy_primerresults()
+            self.copy_mostcommon_hits()
+            self.copy_pangenomeinfos()
+            self.copy_config()
+            PipelineStatsCollector(
+                self.config).write_stat("End: " + str(time.ctime()))
+            self.copy_pipelinestats()
+            msg = [
+                "SpeciesPrimer run finished for", self.target,
+                "\n", "End:", time.ctime(), "\n", "See results in",
+                self.summ_dir]
+            G.comm_log(" ".join(msg))
+            self.progress.value = 1.0
+            return 0

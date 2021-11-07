@@ -39,7 +39,7 @@ class PangenomeAnalysis(RunConfig):
 
     def get_numberofgenomes(self):
         inputgenomes = len(os.listdir(self.gff_dir))
-        msg = ["genome assemblies for pan-genome analysis:", str(inputgenomes)]
+        msg = ["Number of genome assemblies for pan-genome analysis:", str(inputgenomes)]
         PipelineStatsCollector(self.config).write_stat(" ".join(msg))
         return inputgenomes
 
@@ -143,8 +143,8 @@ class CoreGenes(RunConfig):
         coregenes = coregenes.iloc[:, 13:]
         coregenes.to_csv(self.singlecopy, header=False)
         stats = PipelineStatsCollector(self.config)
-        stats.write_stat("core genes: " + str(len(data.index)))
-        stats.write_stat("single copy core genes: " + str(len(coregenes)))
+        stats.write_stat("Number of core genes: " + str(len(data.index)))
+        stats.write_stat("Number of single copy core genes: " + str(len(coregenes)))
         G.comm_log("core genes: " + str(len(data.index)))
         G.comm_log("single copy core genes: " + str(len(coregenes)))
         return coregenes

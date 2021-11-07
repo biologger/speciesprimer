@@ -83,8 +83,7 @@ class BlastPrep():
 
 
     def run_blastprep(self):
-        G.logger("Run: run_blastprep - Preparing files for BLAST")
-        print("\nPreparing files for BLAST")
+        G.comm_log("Run: run_blastprep - Preparing files for BLAST")
         self.create_listdict()
         self.get_equalgroups()
         cores = multiprocessing.cpu_count()
@@ -94,7 +93,6 @@ class BlastPrep():
 
 class Blast(RunConfig):
     def __init__(self, configuration, directory, mode):
-        print("Start BLAST")
         RunConfig.__init__(self, configuration)
         self.directory = directory
         self.mode = mode
@@ -165,12 +163,12 @@ class Blast(RunConfig):
                     else:
                         info = "Skip Blast step for " + blastfile
                         G.comm_log("> " + info)
-                        self.progress.value = i/total
+                        self.progress.value = (i+1)/total
 
                 if blast_cmd:
                     try:
                         G.run_subprocess(blast_cmd)
-                        self.progress.value = i/total
+                        self.progress.value = (i+1)/total
                     except (KeyboardInterrupt, SystemExit):
                         G.keyexit_rollback(
                             "BLAST search", dp=self.directory, fn=filename)
@@ -197,7 +195,6 @@ class BlastParser(RunConfig):
 
     def blastresult_files(self, blast_dir):
         blastresults = []
-        print("Run: blastresults_files(" + self.target + ")")
         for files in [f for f in os.listdir(blast_dir) if f.endswith("results.csv")]:
             file_path = os.path.join(blast_dir, files)
             if file_path not in blastresults:
@@ -227,11 +224,11 @@ class BlastParser(RunConfig):
         else:
             return
 
-        print("\n" + error_msg + "\n")
+        G.comm_log("\n" + error_msg + "\n")
         logging.error("> " + error_msg, exc_info=True)
         errors.append([self.target, error_msg])
         os.remove(filename)
-        print("removed " + filename)
+        G.comm_log("removed " + filename)
         raise BlastDBError(error_msg)
 
     def check_seq_ends(self, rejected):
@@ -381,11 +378,11 @@ class BlastParser(RunConfig):
         speciesdata_dfs = []
         blastresults = self.blastresult_files(blast_dir)
         excluded_gis = self.get_excluded_gis()
-        print("Excluded GI(s):", excluded_gis)
+        G.comm_log("Excluded GI(s):", excluded_gis)
         fmt_file = os.path.join(dict_path, "blastfmt6.csv")
         header = list(pd.read_csv(fmt_file, header=None)[1].dropna())
         for i, filename in enumerate(blastresults):
-            print(
+            G.comm_log(
                 "\nopen BLAST result file " + str(i+1)
                 + "/" + str(len(blastresults)))
             try:
@@ -413,8 +410,7 @@ class BlastParser(RunConfig):
         if self.mode == "quality_control":
             if len(accept.index) == 0:
                 error_msg = "No Quality Control results found."
-                print(error_msg)
-                G.logger("> " + error_msg)
+                G.comm_log("> " + error_msg)
                 errors.append([self.target, error_msg])
 
             return accept
@@ -492,7 +488,7 @@ class BlastParser(RunConfig):
                         + str(self.config.minsize) + "-"
                         + str(self.config.maxsize) + probe + "\n=\n")
 
-            partial_file = os.path.join(os.getcwd(), "partialseqs.csv")
+            partial_file = os.path.join(self.primer_dir, "partialseqs.csv")
             if os.path.isfile(partial_file):
                 parts = pd.read_csv(partial_file, header=None)
                 seq_id = parts[0].to_list()
@@ -505,18 +501,55 @@ class BlastParser(RunConfig):
                         + "\nPRIMER_PRODUCT_SIZE_RANGE="
                         + str(self.config.minsize) + "-"
                         + str(self.config.maxsize) + probe + "\n=\n")
+
         self.changed_primer3_input(file_path, controlfile_path)
+
+
+    def run_blastparser(self):
+        specific_ids = self.bp_parse_results(self.blast_dir)
+        self.write_primer3_input(specific_ids)
+        duration = time.time() - self.start
+        info = ("Species specific conserved sequences: "
+                + str(len(specific_ids)))
+        G.comm_log(
+            "> Blast parser time: "
+            + str(timedelta(seconds=duration)).split(".")[0])
+        G.comm_log("> " + info)
+        PipelineStatsCollector(self.config).write_stat(info)
+
+        if len(specific_ids) == 0:
+            msg = "> No conserved sequences without non-target match found"
+            G.comm_log(msg)
+            errors.append([self.target, msg])
+            return 1
+
+        return 0
+
+class PrimerBlastParser(RunConfig):
+    def __init__(self, configuration, results="conserved"):
+        RunConfig.__init__(self, configuration)
+        self.exception = configuration.exception
+        self.evalue = self.config.evalue
+        self.nuc_identity = self.config.nuc_identity
+        self.nontargetlist = configuration.nontargetlist
+        self.selected = []
+        self.mode = "primer"
+        self.start = time.time()
+        self.maxgroupsize = 25000
+        self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+        self.output = widgets.Output(layout=self.outputlayout)
 
     def find_primerbinding_offtarget_seqs(self, df):
         df.loc[:, "Primer pair"] = df.loc[:, "Query Seq-id"].str.split("_").str[0:-1].apply(
-                                                                        lambda x: '_'.join(x))
+                lambda x: '_'.join(x))
         df.sort_values(['Start of alignment in subject'], inplace=True)
 
         fwd_df = df[df["Query Seq-id"].str.endswith("_F")]
         rev_df =  df[df["Query Seq-id"].str.endswith("_R")]
         int_df = pd.merge(
                     fwd_df, rev_df, how ='inner',
-                    on =['Subject accession', 'Primer pair'], suffixes=("_F", "_R"))
+                    on =['Subject accession', 'Primer pair'],
+                    suffixes=("_F", "_R"))
 
         f = int_df[[
             'Subject accession', 'Start of alignment in subject_F',
@@ -534,15 +567,15 @@ class BlastParser(RunConfig):
         return common
 
     def get_primerBLAST_DBIDS(self, offtarget):
-        print("\nGet sequence accessions of BLAST hits\n")
-        G.logger("> Get sequence accessions of BLAST hits")
+        G.comm_log("> Get sequence accessions of BLAST hits")
         G.create_directory(self.primer_qc_dir)
         overhang=2000
         output_path = os.path.join(self.primer_qc_dir, "primerBLAST_DBIDS.csv")
         if os.path.isfile(output_path):
             return 0
         # data manipulation
-        strandfilter = offtarget['Start of alignment in subject'] > offtarget['End of alignment in subject']
+        strandfilter = offtarget[
+            'Start of alignment in subject'] > offtarget['End of alignment in subject']
         offtarget.loc[strandfilter, "Start overhang"] = offtarget.loc[strandfilter, 'End of alignment in subject'] - overhang
         offtarget.loc[~strandfilter, "Start overhang"] = offtarget.loc[~strandfilter,'Start of alignment in subject'] - overhang
         offtarget.loc[strandfilter, "End overhang"] = offtarget.loc[strandfilter, 'End of alignment in subject'] + overhang
@@ -562,7 +595,7 @@ class BlastParser(RunConfig):
         collection = []
         for i in range(1, max_range,  stepsize):
             j = i + overhang*2 + self.config.maxsize
-            sub = offtarget[offtarget["Start overhang"].between(i, j, inclusive=True)]
+            sub = offtarget[offtarget["Start overhang"].between(i, j, inclusive='both')]
             mini = sub.groupby(["Subject accession"])["Start overhang"].min()
             maxi = sub.groupby(["Subject accession"])["End overhang"].max()
             submax = pd.concat([mini, maxi], axis=1)
@@ -577,32 +610,13 @@ class BlastParser(RunConfig):
             msg = (
                 "Error did not find any sequences for non-target DB. "
                 + "Please check the species list and/or BLAST database")
-            print(msg)
-            G.logger("> " + msg)
+            G.comm_log("> " + msg)
             errors.append([self.target, msg])
             return 1
 
         results.index.name = "accession"
         results.to_csv(output_path, header=None)
         return 0
-
-    def write_sequences(self, fasta_seqs, range_dict, filename):
-        recs = []
-        for item in fasta_seqs:
-            fulldesc = item[0]
-            desc = " ".join(fulldesc.split(" ")[1:])
-            acc = fulldesc.split(".")[0][1::]
-            acc_desc = fulldesc.split(":")[0][1::]
-            seqrange = fulldesc.split(":")[1].split(" ")[0].split("-")
-            fullseq = "".join(item[1::])
-            for start, stop in range_dict[acc]:
-                desc_range = str(int(seqrange[0]) + start) + "_" + str(int(seqrange[0]) + stop)
-                acc_id = acc_desc + "_" + desc_range
-                seq = fullseq[start:stop]
-                rec = SeqRecord(Seq(seq), id=acc_id, description=desc)
-                recs.append(rec)
-
-        SeqIO.write(recs, filename, "fasta")
 
     def write_nontarget_sequences(self):
         # faster but requires more RAM
@@ -637,7 +651,7 @@ class BlastParser(RunConfig):
                 G.comm_log("Start writing " + filename)
                 G.comm_log("Start DB extraction")
                 fasta_seqs = G.run_parallel(
-                        P.get_seq_fromDB, one_extraction, db)
+                        P.get_seq_fromDB, one_extraction, self.progress, args=db)
                 try:
                     self.write_sequences(fasta_seqs, range_dict, filepath)
                 except (KeyboardInterrupt, SystemExit):
@@ -647,36 +661,38 @@ class BlastParser(RunConfig):
             else:
                 G.comm_log("Skip writing " + filename)
 
-    def run_blastparser(self):
-        if self.mode == "primer":
-            print("Start primer blast parser")
-            offtarget = self.bp_parse_results(self.primerblast_dir)
+    def write_sequences(self, fasta_seqs, range_dict, filename):
+        recs = []
+        for item in fasta_seqs:
+            fulldesc = item[0]
+            desc = " ".join(fulldesc.split(" ")[1:])
+            acc = fulldesc.split(".")[0][1::]
+            acc_desc = fulldesc.split(":")[0][1::]
+            seqrange = fulldesc.split(":")[1].split(" ")[0].split("-")
+            fullseq = "".join(item[1::])
+            for start, stop in range_dict[acc]:
+                desc_range = str(int(seqrange[0]) + start) + "_" + str(int(seqrange[0]) + stop)
+                acc_id = acc_desc + "_" + desc_range
+                seq = fullseq[start:stop]
+                rec = SeqRecord(Seq(seq), id=acc_id, description=desc)
+                recs.append(rec)
+
+        SeqIO.write(recs, filename, "fasta")
+
+    def main(self):
+        with self.output:
+            G.comm_log("Start primer blast parser")
+            bp = BlastParser(self.config)
+            bp.mode = "primer"
+            offtarget = bp.bp_parse_results(self.primerblast_dir)
             db_seqs = self.find_primerbinding_offtarget_seqs(offtarget)
-            self.get_primerBLAST_DBIDS(db_seqs)
+            exitstatus = self.get_primerBLAST_DBIDS(db_seqs)
             self.write_nontarget_sequences()
+            if exitstatus != 1:
+                self.progress.value = 1.0
 
             duration = time.time() - self.start
-            G.logger(
+            G.comm_log(
                 "> Primer blast parser time: "
                 + str(timedelta(seconds=duration)).split(".")[0])
-            print(timedelta(seconds=duration))
-        else:
-            specific_ids = self.bp_parse_results(self.blast_dir)
-            self.write_primer3_input(specific_ids)
-            duration = time.time() - self.start
-            info = ("species specific conserved sequences: "
-                    + str(len(specific_ids)))
-            G.logger(
-                "> Blast parser time: "
-                + str(timedelta(seconds=duration)).split(".")[0])
-            print(timedelta(seconds=duration))
-            G.logger("> " + info)
-            PipelineStatsCollector(self.config).write_stat(info)
-
-            if len(specific_ids) == 0:
-                msg = "> No conserved sequences without non-target match found"
-                G.comm_log(msg)
-                errors.append([self.target, msg])
-                return 1
-
-            return 0
+            return exitstatus

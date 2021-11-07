@@ -272,13 +272,14 @@ class Annotation(RunConfig):
         RunConfig.__init__(self, configuration)
         self.progress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
         self.output = widgets.Output(layout=self.outputlayout)
-        self.annot_report_path = Path(self.genomedata_dir, "annotation_report.csv")
+        self.annot_report_path = Path(self.reports_dir, "annotation_report.csv")
 
     def count_contigs(self, filepath):
         contigs = list(SeqIO.parse(filepath, "fasta"))
         if len(contigs) >= self.contiglimit:
+            from scripts.qualitycontrol import QualityControl
             dir_tree, filename = os.path.split(filepath)
-            self.move_to_excluded(dir_tree, filename)
+            QualityControl(self.config).move_to_excluded(dir_tree, filename)
             return "max contig"
         return "passed QC"
 
@@ -363,6 +364,7 @@ class Annotation(RunConfig):
                     data = annotation_dict,
                     index=accessions)
 
+                G.create_directory(self.reports_dir)
                 annotation_df.to_csv(self.annot_report_path)
 
                 return 0

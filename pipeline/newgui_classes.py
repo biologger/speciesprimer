@@ -3,28 +3,36 @@
 
 import os
 import io
-import sys
 import json
 import codecs
+import signal
+import logging
+
 import pandas as pd
 from pathlib import Path
 from IPython.display import display
 from IPython.display import HTML
-from IPython.display import clear_output
-from traitlets import traitlets
-
-#sys.path.append('speciesprimer/pipeline')
 
 import speciesprimer
-# reload for changes in code
-import importlib
-importlib.reload(speciesprimer)
-
-from basicfunctions import GeneralFunctions as G
 from basicfunctions import HelperFunctions as H
-
-from ipywidgets import widgets, interactive, interactive_output, Layout, VBox, HBox, Label
-
+from ipywidgets import widgets, Layout, VBox, HBox, Label
+from scripts.configuration import Config
+from scripts.configuration import CLIconf
+from scripts.datacollection import GenomeDownload
+from scripts.datacollection import Annotation
+from scripts.qualitycontrol import QualityControl
+from scripts.coregenes import PangenomeAnalysis
+from scripts.coregenes import CoreGenes
+from scripts.coregenes import CoreGeneAlignments
+from scripts.coregenes import CoreGeneSequences
+from scripts.coregenes import ConservedBlast
+from scripts.primerdesign import PrimerDesign
+from scripts.primerdesign import PrimerBlast
+from scripts.blastscripts import PrimerBlastParser
+from scripts.primerdesign import MFEprimerQC
+from scripts.primerdesign import MFoldQC
+from scripts.primerdesign import MPprimerDimerQC
+from scripts.summary import Summary
 
 layout = Layout(width="auto")
 
@@ -188,7 +196,7 @@ class SpeciesPrimerConfiguration(object):
         accordion = widgets.Accordion(
             children=[applet],
             titles=["SpeciesPrimer configuration"],
-            layout=layout)
+            layout=layout, selected_index=None)
         accordion.set_title(0, "SpeciesPrimer configuration")
 
         display(accordion)
@@ -577,7 +585,8 @@ class Settings(object):
             description='Species:',
             disabled=False
             )
-        self.accordion = widgets.Accordion(children=self.configstore.widget_list)
+        self.accordion = widgets.Accordion(
+            children=self.configstore.widget_list, selected_index=None)
         for i, title in enumerate(self.configstore.titles):
             self.accordion.set_title(i, title)
 
@@ -754,7 +763,7 @@ class TargetSelection(object):
 
         accordion = widgets.Accordion(
             children=[dashboard],
-            layout=layout)
+            layout=layout, selected_index=None)
         accordion.set_title(0, "New run configuration")
         display(accordion)
 
@@ -778,7 +787,7 @@ class TargetSelection(object):
 
         accordion = widgets.Accordion(
             children=[dashboard],
-            layout=layout)
+            layout=layout, selected_index=None)
         accordion.set_title(0, "Search existing configuration")
         display(accordion)
 
@@ -795,3 +804,192 @@ class TargetSelection(object):
             self.configstore.specieslist = specieslist
             sel = Settings(self.output, self.configstore)
             sel.change_user_settings()
+
+
+
+
+class RunViz(object):
+    def __init__(self):
+        self.wids = []
+        self.dicts = []
+        self.dash = widgets.Tab()
+        self.species = []
+
+    def create_viz(self, species, configs, stages):
+        self.species = species
+        for i, sp in enumerate(species):
+            d = {}
+            suboutput = []
+            subprogress = []
+            d.update({"DataCollection": GenomeDownload(configs[i])})
+            d.update({"Annotation": Annotation(configs[i])})
+            d.update({"QualityControl": QualityControl(configs[i])})
+            d.update({"PangenomeAnalysis": PangenomeAnalysis(configs[i])})
+            d.update({"CoreGenes": CoreGenes(configs[i])})
+            d.update({"CoreGeneAlignments": CoreGeneAlignments(configs[i])})
+            d.update({"CoreGeneSequences": CoreGeneSequences(configs[i])})
+            d.update({"ConservedBlast": ConservedBlast(configs[i])})
+            d.update({"PrimerDesign": PrimerDesign(configs[i])})
+            d.update({"PrimerBlast": PrimerBlast(configs[i])})
+            d.update({"PrimerBlastParser": PrimerBlastParser(configs[i])})
+            d.update({"MFEprimerQC": MFEprimerQC(configs[i])})
+            d.update({"MFoldQC": MFoldQC(configs[i])})
+            d.update({"MPprimerDimerQC": MPprimerDimerQC(configs[i])})
+            d.update({"Summary": Summary(configs[i])})
+
+            self.dicts.append(d)
+            for stage in stages:
+                suboutput.append(d[stage].output)
+                subprogress.append(d[stage].progress)
+
+
+            subdashboard = []
+            for n, out in enumerate(suboutput):
+                accordion = widgets.Accordion(
+                    children=[out], selected_index=None)
+                accordion.set_title(0, stages[n])
+                subprog_dash = HBox([subprogress[n], Label(stages[n] + " progress")])
+                subdashboard.append(
+                    VBox([accordion, subprog_dash]))
+
+            groupdash0 = widgets.Accordion(children=
+                [VBox(subdashboard[0:3])], selected_index=None, titles=["Input genomes"])
+            groupdash0.set_title(0, "Input genomes")
+            groupdash1 = widgets.Accordion(children=
+                [VBox(subdashboard[4:8])], selected_index=None)
+            groupdash1.set_title(0, "Core Genes")
+            groupdash2 = widgets.Accordion(children=
+                [VBox(subdashboard[8:-1])], selected_index=None)
+            groupdash2.set_title(0, "Primer design")
+
+            groupdashboard = VBox([groupdash0, groupdash1, groupdash2, subdashboard[-1]])
+
+            self.wids.append(groupdashboard)
+        self.dash.children = self.wids
+        for i, sp in enumerate(species):
+            self.dash.set_title(i, sp)
+
+class OverallProgress(object):
+    def __init__(self, RunViz):
+        self.RV = RunViz
+        self.statusprogress = widgets.FloatProgress(value=0, min=0.0, max=1.0)
+
+        self.speciesprogress = HBox([
+            VBox([widgets.FloatProgress(value=0, min=0.0, max=1.0) for d in self.RV.dicts]),
+            VBox([Label(sp) for sp in self.RV.species])])
+
+        display(HBox([self.statusprogress, Label("Progress")]))
+        display(self.speciesprogress)
+
+    def update_progress(self):
+        vals = [d[k].progress.value for d in self.RV.dicts for k in d.keys()]
+        total = len(vals)
+        update = sum(vals)
+        self.statusprogress.value = float(update/total)
+        for i, d in enumerate(self.RV.dicts):
+            vals = [d[k].progress.value for k in d.keys()]
+            total = len(vals)
+            update = sum(vals)
+            self.speciesprogress.children[0].children[i].value = float(update/total)
+
+class StartPipelineRuns(object):
+    def __init__(self, configstore):
+        self.configstore = configstore
+        self.output = widgets.Output()
+        self.run_list = list(self.configstore.settings_dict.keys())
+        self.speciesnames = widgets.SelectMultiple(
+            options=self.run_list,
+            value=self.run_list,
+            description='Species:',
+            disabled=False
+            )
+        self.status = widgets.HTML(
+            value='<p style="color:orange;">Waiting </p>',
+            placeholder='Status',
+            description='<b>Status:</b>',
+        )
+        self.speciesnames.observe(self.selection_change, names='value')
+        self.run_button = widgets.Button(description='Run pipeline',
+                        style={'description_width': 'initial'}
+                    )
+        self.update_button = widgets.Button(description='Update targets',
+                        style={'description_width': 'initial'}
+                    )
+        self.label = widgets.Label(value=' for ' + ", ".join(self.speciesnames.value))
+        self.species = []
+        self.stages = [
+            "DataCollection", "Annotation",
+            "QualityControl", "PangenomeAnalysis",
+            "CoreGenes", "CoreGeneAlignments",
+            "CoreGeneSequences", "ConservedBlast",
+            "PrimerDesign", "PrimerBlast",
+            "PrimerBlastParser", "MFEprimerQC",
+            "MFoldQC", "MPprimerDimerQC",
+            "Summary"]
+
+    def selection_change(self, change):
+        self.label.value = ' for: ' + ", ".join(change["new"])
+
+    def run_runs(self, RV, OP):
+        def exitatsigterm(signalNumber, frame):
+            raise SystemExit('GUI stop')
+        try:
+            signal.signal(signal.SIGTERM, exitatsigterm)
+            self.status.value = '<p id="blinking"> <span style="color:green;"><b>Running</b>  </span> </p>'
+            for i, sp in enumerate(self.species):
+                for stage in self.stages:
+                    exitstatus = RV.dicts[i][stage].main()
+                    OP.update_progress()
+                    if exitstatus !=0 and exitstatus !=2:
+                        print(sp, stage)
+                        print("Unexpected exitstatus")
+                        print(exitstatus)
+                        break
+
+        except (KeyboardInterrupt, SystemExit):
+            logging.error(
+                "SpeciesPrimer was stopped while working on " + sp,
+                exc_info=True)
+            raise
+
+        finally:
+            self.status.value = '<p style="color:red;"><b>Stopped</b> </p>'
+
+    def start_run(self, event):
+        with self.output:
+            self.output.clear_output()
+            configs = []
+            self.species = list(self.speciesnames.value)
+            for target in self.species:
+                conf = Config(mode="auto", config_dict=self.configstore.settings_dict)
+                configuration = conf.get_config(target)
+                nontargetlist = H.create_non_target_list(target)
+                config = CLIconf(*configuration, nontargetlist)
+                config.set_gui()
+                configs.append(config)
+
+            RV = RunViz()
+            RV.create_viz(species=self.species, configs=configs, stages=self.stages)
+
+            OP = OverallProgress(RV)
+            display(RV.dash)
+            self.run_runs(RV, OP)
+
+    def update_species(self, event):
+        self.run_list = list(self.configstore.settings_dict.keys())
+        self.speciesnames.options = self.run_list
+
+    def init_runs(self):
+        display(HTML("<h3>SpeciesPrimer configuration: </h3>"))
+        SpeciesPrimerConfiguration().pipeline_configuration()
+        display(HTML("<h3>Select targets and settings: </h3>"))
+        targetselection = TargetSelection(self.configstore)
+        targetselection.new_targets()
+        targetselection.old_targets()
+        display(HTML("<h3>Start SpeciesPrimer runs: </h3>"))
+        self.run_list = list(self.configstore.settings_dict.keys())
+        self.update_button.on_click(self.update_species)
+        self.run_button.on_click(self.start_run)
+        dash = VBox([
+            self.speciesnames, HBox([self.update_button, self.run_button, self.label]), self.status, self.output])
+        display(dash)
