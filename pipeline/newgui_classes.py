@@ -11,7 +11,8 @@ import logging
 import pandas as pd
 from pathlib import Path
 from IPython.display import display
-from IPython.display import HTML
+from IPython.display import HTML, Markdown
+import ipyvuetify as v
 
 import speciesprimer
 from basicfunctions import HelperFunctions as H
@@ -36,6 +37,124 @@ from scripts.summary import Summary
 
 layout = Layout(width="auto")
 
+class GuiNavigation(object):
+    def __init__(self):
+        self.btns = self.menu_buttons()
+
+        display(
+            v.Layout(
+                pa_4=True, _metadata={'mount_id': 'content-nav'},
+                column=True, children=self.btns)
+        )
+        
+        self.btns[-3].on_event('click', self.help_on_click)
+        
+    def help_on_click(self, widget, event, data):
+            content_main =  v.Layout(
+                            _metadata={'mount_id': 'content-main'},
+                            children=[
+                                "this is the help menu"])
+    
+            display(content_main)
+    
+    
+    
+
+    def menu_buttons(self):
+        pages = [
+            "Home", "Configuration",
+            "Select targets",
+            "Pipeline runs", "Documentation"]
+
+        btns = [v.Btn(class_='mx-2 Primary', children=[page]) for page in pages
+        ]
+        gitbtn = v.Btn(class_='mx-2 Primary', children=["GitHub"],
+                href = 'https://github.com/biologger/speciesprimer',
+                target = '_blank')
+        helpbtn = v.Btn(class_='mx-2 Primary', children=[
+                    v.Icon(left=True, children=[
+                    'mdi-email-edit-outline'
+                ]),
+                "Help"],
+                href = 'mailto:biologger@protonmail.com?subject=SpeciesPrimer Support',
+                target   = '_blank')
+
+
+        btns.append(gitbtn)
+        btns.append(helpbtn)
+
+        return btns
+
+
+class HelpMenu(object):
+    def __init__(self):
+        pass
+    def rtfd(self):
+        helpnames = [
+            "Contents", "Tutorial", "Pipeline setup",
+            "Primer design", "Troubleshooting", "Custom BLAST DB",
+            "Docker Proxy setup", "Docker Problems",
+            "Experimental", "CLI tips & tricks"]
+        filenames = [
+            '/docs/tableofcontents.md', '/docs/tutorial.md',
+            '/docs/pipelinesetup.md', '/docs/primerdesign.md',
+            '/docs/troubleshooting.md', '/docs/customdbtutorial.md',
+            '/docs/dockerproxy.md', '/docs/dockertroubleshooting.md',
+            '/docs/virus.md', '/docs/cmdlineonly.md'
+                    ]
+        filedict = dict(zip(helpnames, filenames))
+
+        helpbtns = [v.Btn(class_='Primary', children=[i]) for i in helpnames]
+        toolbar = v.Toolbar(
+            children=[
+                v.ToolbarTitle(children=["Read the docs"]),
+                v.Spacer(), # Fills empty space
+                v.ToolbarItems(children=helpbtns)
+            ],
+            app=True,  # If true, the other widgets float under on scroll
+            shrink_on_scroll = True
+        )
+
+
+        return toolbar, helpbtns, filedict
+
+    def test(self):
+        from ipywidgets import widgets
+        import ipyvuetify as v
+
+        md_out = widgets.Output()
+
+
+
+        display(self.content_main)
+
+
+
+        toolbar, helpbtns, filedict = self.rtfd()
+
+        def help_on_click(widget, event, data):
+            with self.output:
+                self.output.clear_output()
+                self.content_main =  v.Layout(
+                                _metadata={'mount_id': 'content-main'},
+                                children=[
+                                    toolbar])
+
+                display(self.content_main)
+
+
+        btns[-3].on_event('click', help_on_click)
+
+        def md_on_click(widget, event, data):
+            with md_out:
+                md_out.clear_output()
+                param = widget.children[0]
+                with open(filedict[param]) as f:
+                    md = "\n".join(f.readlines())
+                    display(Markdown(md))
+
+        for btn in helpbtns:
+            btn.on_event('click', md_on_click)
 
 class SpeciesPrimerConfiguration(object):
     def __init__(self):
@@ -186,20 +305,46 @@ class SpeciesPrimerConfiguration(object):
         label=Label("Alternative path for settings:")
         alt_path = widgets.Text(value="/pipeline/dictionaries")
 
-        r0 = self.selection
-        r1 = HBox([self.upwid, savewid])
-        r2 = HBox([reswid, displaywid])
-        r3 = VBox([label, alt_path])
-        controls = VBox([r0, r1, r2, ])#r3])
-        applet = HBox([controls, self.output])
+        # r0 = self.selection
+        # r1 = HBox([self.upwid, savewid])
+        # r2 = HBox([reswid, displaywid])
+        # r3 = VBox([label, alt_path])
 
-        accordion = widgets.Accordion(
-            children=[applet],
-            titles=["SpeciesPrimer configuration"],
-            layout=layout, selected_index=None)
-        accordion.set_title(0, "SpeciesPrimer configuration")
 
-        display(accordion)
+
+        # test = (
+
+
+        #     v.Html(tag='div', class_='d-flex flex-row', children=[
+
+        #     v.Html(tag='div', class_='d-flex flex-column', children=[
+        #         self.upwid,
+        #         reswid
+        #     ]),
+        #     v.Html(tag='div', class_='d-flex flex-column', children=[
+        #         savewid,
+        #         displaywid
+        #     ]),
+
+        #     v.Html(tag='div', class_='d-flex', align_content="center", children=[
+
+        #     self.selection,
+        # ]),
+
+        #     self.output
+        # ])
+        # )
+
+        # content_main =  v.Layout(
+        #                     _metadata={'mount_id': 'content-main'},
+        #                     wrap=True, align_center=True,
+        #                     children=[
+        #                         test])
+
+
+
+
+        # display(content_main)
 
         self.selection.observe(self.on_selection_change, names='value')
         self.upwid.observe(self.on_upload_change, names='value')
