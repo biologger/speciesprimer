@@ -39,122 +39,106 @@ layout = Layout(width="auto")
 
 class GuiNavigation(object):
     def __init__(self):
-        self.btns = self.menu_buttons()
-
-        display(
-            v.Layout(
-                pa_4=True, _metadata={'mount_id': 'content-nav'},
-                column=True, children=self.btns)
-        )
-        
-        self.btns[-3].on_event('click', self.help_on_click)
-        
-    def help_on_click(self, widget, event, data):
-            content_main =  v.Layout(
-                            _metadata={'mount_id': 'content-main'},
-                            children=[
-                                "this is the help menu"])
-    
-            display(content_main)
-    
-    
-    
-
-    def menu_buttons(self):
-        pages = [
-            "Home", "Configuration",
-            "Select targets",
-            "Pipeline runs", "Documentation"]
-
-        btns = [v.Btn(class_='mx-2 Primary', children=[page]) for page in pages
-        ]
-        gitbtn = v.Btn(class_='mx-2 Primary', children=["GitHub"],
-                href = 'https://github.com/biologger/speciesprimer',
-                target = '_blank')
-        helpbtn = v.Btn(class_='mx-2 Primary', children=[
-                    v.Icon(left=True, children=[
-                    'mdi-email-edit-outline'
-                ]),
-                "Help"],
-                href = 'mailto:biologger@protonmail.com?subject=SpeciesPrimer Support',
-                target   = '_blank')
-
-
-        btns.append(gitbtn)
-        btns.append(helpbtn)
-
-        return btns
-
-
-class HelpMenu(object):
-    def __init__(self):
         pass
-    def rtfd(self):
+
+    def add_menu_buttons(self):
+        item1 = v.ListItem(link=True,
+            href = 'https://github.com/biologger/speciesprimer',
+            target = '_blank',
+            children=[
+                v.ListItemIcon(children=[
+                    v.Icon(children=["mdi-code-tags"]),
+
+                ]),
+                v.ListItemContent(children=[
+                    v.ListItemTitle(children=["GitHub"])
+                ])])
+
+        item2 = v.ListItem(link=True,
+            href = 'mailto:biologger@protonmail.com?subject=SpeciesPrimer Support',
+            target = '_blank',
+            children=[
+                v.ListItemIcon(children=[
+                    v.Icon(children=["mdi-email-edit-outline"]),
+                ]),
+                v.ListItemContent(children=[
+                    v.ListItemTitle(children=["Support"])
+                ])])
+
+        return [item1, item2]
+
+    def menu_list(self, pages, buttons=True):
+        list_items = []
+        for page in pages:
+            if buttons:
+                item = v.ListItem(link=True, children=[
+                    v.ListItemContent(children=[
+                        v.ListItemTitle(children=[
+                            v.Btn(children=[page])])])])
+
+            else:
+                item = v.ListItem(link=True, children=[
+                    v.ListItemContent(children=[
+                        v.ListItemTitle(children=[page])
+                    ])])
+            list_items.append(item)
+
+        return list_items
+
+    def create_guinavbar(self, pages):
+        list_items = self.menu_list(pages, False)
+        btns = self.add_menu_buttons()
+        list_items.extend(btns)
+
+        content_nav = v.List(
+            class_="text-left",
+            _metadata={'mount_id':'content-nav'},
+            column=True,
+            children=list_items
+            )
+        return list_items, content_nav
+
+    def create_helpmenu(self):
         helpnames = [
-            "Contents", "Tutorial", "Pipeline setup",
+            "Introduction", "Tutorial", "Pipeline setup",
             "Primer design", "Troubleshooting", "Custom BLAST DB",
             "Docker Proxy setup", "Docker Problems",
             "Experimental", "CLI tips & tricks"]
+
         filenames = [
-            '/docs/tableofcontents.md', '/docs/tutorial.md',
+            '/README.md', '/docs/tutorial.md',
             '/docs/pipelinesetup.md', '/docs/primerdesign.md',
             '/docs/troubleshooting.md', '/docs/customdbtutorial.md',
             '/docs/dockerproxy.md', '/docs/dockertroubleshooting.md',
-            '/docs/virus.md', '/docs/cmdlineonly.md'
-                    ]
-        filedict = dict(zip(helpnames, filenames))
+            '/docs/virus.md', '/docs/cmdlineonly.md']
 
-        helpbtns = [v.Btn(class_='Primary', children=[i]) for i in helpnames]
-        toolbar = v.Toolbar(
-            children=[
-                v.ToolbarTitle(children=["Read the docs"]),
-                v.Spacer(), # Fills empty space
-                v.ToolbarItems(children=helpbtns)
-            ],
-            app=True,  # If true, the other widgets float under on scroll
-            shrink_on_scroll = True
-        )
+        filecontent = []
 
+        for i, fn in enumerate(filenames):
+            with open(fn) as f:
+                content = "".join(f.readlines())
+                if helpnames[i] == "Introduction":
+                    start = content.index("# Introduction")
+                    content = content[start::]
+                filecontent.append(content)
 
-        return toolbar, helpbtns, filedict
+        helplist_items = self.menu_list(helpnames, buttons=False)
+        men = [
+            v.ListItem(children=[
+                v.ListItemIcon(children=[
+                    v.Icon(children=["menu"])]),
+                    v.ListItemTitle(children=["Help topics"])]),
+            v.Card(
+                children=helplist_items)]
 
-    def test(self):
-        from ipywidgets import widgets
-        import ipyvuetify as v
+        helpnav = v.NavigationDrawer(
+        permanent=True,
+        floating=True, expand_on_hover= True, mini_variant=True,
+        mini_variant_width="30px", width="180px",
+        children=men)
 
-        md_out = widgets.Output()
+        return helplist_items, helpnav, filecontent
 
-
-
-        display(self.content_main)
-
-
-
-        toolbar, helpbtns, filedict = self.rtfd()
-
-        def help_on_click(widget, event, data):
-            with self.output:
-                self.output.clear_output()
-                self.content_main =  v.Layout(
-                                _metadata={'mount_id': 'content-main'},
-                                children=[
-                                    toolbar])
-
-                display(self.content_main)
-
-
-        btns[-3].on_event('click', help_on_click)
-
-        def md_on_click(widget, event, data):
-            with md_out:
-                md_out.clear_output()
-                param = widget.children[0]
-                with open(filedict[param]) as f:
-                    md = "\n".join(f.readlines())
-                    display(Markdown(md))
-
-        for btn in helpbtns:
-            btn.on_event('click', md_on_click)
 
 class SpeciesPrimerConfiguration(object):
     def __init__(self):
@@ -846,6 +830,8 @@ class TargetSelection(object):
         self.example_input = str(
         "Lactobacillus helveticus,\nLactobacillus delbrueckii,"
         "\nLactococcus lactis subsp. lactis""")
+        self.output = widgets.Output()
+        self.newoutput = widgets.Output()
 
     def submit_species(self, event):
         with self.newoutput:
@@ -870,7 +856,7 @@ class TargetSelection(object):
         with self.output:
             self.output.clear_output()
             if self.targets.value == "":
-                print("Search for config files")
+                #print("Search for config files")
                 config_files = self.configstore.search_configfile_paths(
                                                     self.searchpath_input.value)
             else:
@@ -891,13 +877,14 @@ class TargetSelection(object):
                 display(self.button_change)
                 display(settings_df)
 
+
             else:
-                print(
+                msg = (
                     "No config files found in path:",
                     Path(self.searchpath_input.value))
+                display(msg)
 
     def new_targets(self):
-        self.newoutput = widgets.Output()
         button_send = widgets.Button(
                         description='Submit',
                         style={'description_width': 'initial'}
@@ -906,39 +893,33 @@ class TargetSelection(object):
         vbox_result = widgets.VBox([button_send, self.newoutput])
         dashboard = VBox([self.target_selection, vbox_result])
 
-        accordion = widgets.Accordion(
-            children=[dashboard],
-            layout=layout, selected_index=None)
-        accordion.set_title(0, "New run configuration")
-        display(accordion)
+        return dashboard, self.newoutput
 
 
     def old_targets(self):
-        self.output = widgets.Output()
-        label = "Directory to search for config files"
-        self.searchpath_input = widgets.Text(value="/primerdesign", layout=layout)
-        box = VBox([Label(label), self.searchpath_input])
-        button_send = widgets.Button(
-                        description='Submit',
-                        style={'description_width': 'initial'}
-                    )
-        self.button_change = widgets.Button(
-                description='Change Settings',
-                style={'description_width': 'initial'}
-            )
 
-        comment = Label("Leave empty to search for all files in the path")
-        dashboard = VBox([box, self.target_selection, comment, button_send, self.output])
+        with self.output:
+            self.output.clear_output()
+            label = "Directory to search for config files"
+            self.searchpath_input = widgets.Text(value="/primerdesign", layout=layout)
+            box = VBox([Label(label), self.searchpath_input])
+            button_send = widgets.Button(
+                            description='Submit',
+                            style={'description_width': 'initial'}
+                        )
+            self.button_change = widgets.Button(
+                    description='Change Settings',
+                    style={'description_width': 'initial'}
+                )
 
-        accordion = widgets.Accordion(
-            children=[dashboard],
-            layout=layout, selected_index=None)
-        accordion.set_title(0, "Search existing configuration")
-        display(accordion)
+            comment = Label("Leave empty to search for all files in the path")
+            dashboard = VBox([box, self.target_selection, comment, button_send, self.output])
 
-        button_send.on_click(self.search_old_targets)
-        self.button_change.on_click(self.change_settings)
 
+            button_send.on_click(self.search_old_targets)
+            self.button_change.on_click(self.change_settings)
+
+        return dashboard
 
     def change_settings(self, event):
         with self.output:
