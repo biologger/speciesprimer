@@ -13,12 +13,12 @@ import json
 import shutil
 import signal
 import urllib.request
+from pathlib import Path
 from html.parser import HTMLParser
 from basicfunctions import GeneralFunctions as G
 
 pipe_dir = os.path.dirname(os.path.abspath(__file__))
 tmp_db_path = os.path.join(pipe_dir, 'tmp_config.json')
-
 
 class htmllinkparser(HTMLParser):
     StartTags = list()
@@ -48,10 +48,11 @@ class config:
             "https": "file:/blastdb/tmp/mockfiles/download.html",
             "extend": [".nog", ".nsd", ".nsi"]}}
 
-    def __init__(self, db, db_dir, delete, test, https=True):
+    def __init__(self, db, db_dir, delete, test, troubleshoot=False, https=True):
         self.db = db
         self.db_dir = db_dir
         self.delete = delete
+        self.troubleshoot = troubleshoot
         if test:
             self.baseurl = self.urldict['test']['base']
             self.httpurl = self.urldict['test']['https']
@@ -81,6 +82,10 @@ def commandline():
         help="Select nt or ref_prok_rep_genomes", default="nt",
         choices=["nt", "ref_prok_rep_genomes"])
 
+    parser.add_argument(
+        "-t", "--troubleshoot", action="store_true",
+        help="Managed downloads in case of problems", default=False)
+
     parser.add_argument('--test', action="store_true", help=argparse.SUPPRESS)
 
     return parser
@@ -101,7 +106,10 @@ def wget_download(filename, conf):
     archivename = filename.split(".md5")[0]
     url = conf.httpurl + "/" + archivename
     logger("> Downloading..." + archivename)
-    wget.download(url, archivename)
+    if conf.troubleshoot is True:
+        managed_download(url, conf.db_dir)
+    else:
+        wget.download(url, archivename)
     try:
         dbfile = check_md5(filename)
     except Exception:
@@ -111,8 +119,39 @@ def wget_download(filename, conf):
         if os.path.isfile(filename):
             os.remove(filename)
         raise
+
     extract_archives(dbfile, conf)
 
+def managed_download(url, dest):
+    """
+    Managed downloads could help for situations with a poor internet connection
+    when md5checksum failes repeatedly. Targeting https page, will lower overall
+    traffic (when problems occur) as entire files do not have to get fully downloaded repeatedly.
+    """
+    try:
+        from pySmartDL import SmartDL, HashFailedException
+    except ImportError:
+        logger("pySmartDL required for troubleshoot, try downloading")
+        import subprocess
+        subprocess.run(["pip3", "install", "pySmartDL"])
+        time.sleep(0.5)
+        from pySmartDL import SmartDL, HashFailedException
+
+    md5_file = str(Path(dest, url.split("/")[-1] + ".md5"))
+    with open(md5_file, "r") as f:
+        for line in f:
+            md5sumcheck = line.split("  ")[0].strip()
+            filenamecheck = line.split("  ")[1].strip()
+
+    obj = SmartDL(url, dest, progress_bar=True) #connect_default_logger=True)
+    obj.add_hash_verification('md5', md5sumcheck)
+    try:
+            obj.start()
+            path = obj.get_dest()
+            return path
+    except HashFailedException:
+            print("Hash check failed!")
+            return
 
 def check_md5(inputfile):
     archivename = inputfile.split(".md5")[0]
@@ -154,7 +193,6 @@ def compare_md5_archive(inputfile, conf):
                 wget_download(inputfile, conf)
             except Exception:
                 logging.error("", exc_info=True)
-            extract_archives(archivename, conf)
 
 
 def compare_md5_files(filename, conf):
@@ -306,7 +344,6 @@ def logger(string_to_log):
 def exitatsigterm(signalNumber, frame):
     raise SystemExit('GUI stop')
 
-
 def get_DB(mode=False):
     today = time.strftime("%Y_%m_%d", time.localtime())
     if mode == "auto":
@@ -326,7 +363,7 @@ def get_DB(mode=False):
                 test = True
         except KeyError:
             test = False
-
+        troubleshoot = False
         logging.basicConfig(
             filename=os.path.join(
                 "/", "primerdesign",
@@ -338,6 +375,8 @@ def get_DB(mode=False):
         args = parser.parse_args()
         delete = args.delete
         test = args.test
+        troubleshoot = args.troubleshoot
+
         if args.dbpath:
             if args.dbpath.endswith("/"):
                 blastdb_dir = args.dbpath
@@ -355,7 +394,7 @@ def get_DB(mode=False):
 
     G.create_directory(os.path.join(blastdb_dir, "md5_files"))
 
-    conf = config(db, blastdb_dir, delete, test)
+    conf = config(db, blastdb_dir, delete, test, troubleshoot)
 
     logger("Start Download of NCBI " + db + " BLAST database")
     get_md5files(conf)
