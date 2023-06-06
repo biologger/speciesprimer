@@ -35,27 +35,32 @@ class config:
         "nt": {
             "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
+            "https": "https://ftp.ncbi.nlm.nih.gov/blast/db/",
             "extend": [".nhd", ".nhi", ".nog"]},
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
+            "https": "https://ftp.ncbi.nlm.nih.gov/blast/db/",
             "extend": [".nog"]},
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
+            "https": "file:/blastdb/tmp/mockfiles/download.html",
             "extend": [".nog", ".nsd", ".nsi"]}}
 
-    def __init__(self, db, db_dir, delete, test):
+    def __init__(self, db, db_dir, delete, test, https=True):
         self.db = db
         self.db_dir = db_dir
         self.delete = delete
         if test:
             self.baseurl = self.urldict['test']['base']
-            self.httpurl = self.urldict['test']['http']
+            self.httpurl = self.urldict['test']['https']
             self.extract_end = self.baseend + self.urldict['test']['extend']
         else:
             self.baseurl = self.urldict[db]['base']
             self.httpurl = self.urldict[db]['http']
+            if https is True:
+                self.httpurl = self.urldict[db]['https']
             self.extract_end = self.baseend + self.urldict[db]['extend']
 
 
@@ -94,7 +99,7 @@ def md5Checksum(filePath):
 
 def wget_download(filename, conf):
     archivename = filename.split(".md5")[0]
-    url = conf.baseurl + "/" + archivename
+    url = conf.httpurl + "/" + archivename
     logger("> Downloading..." + archivename)
     wget.download(url, archivename)
     try:
@@ -271,7 +276,7 @@ def get_md5files(conf):
     filelist = parser.StartTags
     for filename in filelist:
         if filename.startswith(conf.db + ".") and filename.endswith(".tar.gz.md5"):
-            url = conf.baseurl + filename
+            url = conf.httpurl + filename
             if not os.path.isfile(filename):
                 logger("> Downloading..." + filename)
                 wget.download(url, filename)
