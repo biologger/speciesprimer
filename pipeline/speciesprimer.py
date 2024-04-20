@@ -11,9 +11,11 @@ import fnmatch
 import signal
 import re
 import shutil
+import subprocess
 import multiprocessing
 import wget
 import json
+import jsonlines
 import urllib
 import itertools
 from itertools import islice
@@ -201,126 +203,82 @@ class DataCollection():
                 for gi in removed_gis:
                     f.write(gi + "\n")
 
-    def get_ncbi_links(self, taxid, maxrecords=2000):
+    def get_ncbi_accessions(self, taxid, accession=None):
+        """
+        Get a summary of the genomes to download from NCBI
 
-        def collect_genomedata(taxid, email):
-            genomedata = []
-            # 02/12/18 overwrite file because assembly level can change
-            Entrez.email = email
-            assembly_search = Entrez.esearch(
-                db="assembly",
-                term="txid" + str(taxid) + "[Orgn]",
-                retmax=maxrecords)
-
-            assembly_record = Entrez.read(assembly_search)
-            uidlist = assembly_record["IdList"]
-            assembly_efetch = Entrez.efetch(
-                db="assembly",
-                id=uidlist,
-                rettype="docsum",
-                retmode="xml")
-
-            assembly_records = Entrez.read(assembly_efetch)
-
-            with open("genomicdata.json", "w") as f:
-                f.write(json.dumps(assembly_records))
-
-            with open("genomicdata.json", "r") as f:
-                for line in f:
-                    gen_dict = json.loads(line)
-
-            for assembly in gen_dict['DocumentSummarySet']['DocumentSummary']:
-                accession = assembly["AssemblyAccession"]
-                name = assembly["AssemblyName"]
-                status = assembly["AssemblyStatus"]
-                ftp_path = assembly["FtpPath_RefSeq"]
-                if ftp_path == "":
-                    ftp_link = "None"
-                else:
-                    ftp_link = (
-                        ftp_path + "/" + ftp_path.split("/")[-1]
-                        + "_genomic.fna.gz"
-                    )
-                data = [accession, name, status, ftp_link]
-                genomedata.append(data)
-
-            return genomedata
-
-        def get_links(linkdata):
-            statusdict = {
-                "complete": "Complete Genome", "chromosome": "Chromosome",
-                "scaffold": "Scaffold", "contig": "Contig",
-                "offline": "Offline"}
-            links = []
-            if self.config.assemblylevel == ["all"]:
-                for item in linkdata:
-                    if not item[3] == "None":
-                        links.append(item[3])
+        accessions is a list of accessions to download, for testing purposes
+        """
+        # NCBI has changed the structure of the database and will discard asseblies
+        # so I have to switch to ncbi datasets genomes
+        # the following code is a draft and not working
+        def collect_genomedata(taxid, accession=None):
+            """
+            Get a summary of the genomes to download from NCBI
+            accession to download, for testing purposes
+            """
+            import jsonlines
+            if accession is not None:
+                # for testing purposes
+                cmd = ["datasets", "summary", "genome", "accession", str(accession),">", "genomicdata.jsonl"]
             else:
-                for status in self.config.assemblylevel:
-                    for item in linkdata:
-                        if item[2] == statusdict[status]:
-                            if not item[3] == "None":
-                                links.append(item[3])
+                cmd = [
+                    "datasets", "summary", "genome", "taxon", str(taxid),
+                    "--assembly-level", ','.join(self.config.assemblylevel), 
+                    "--report", "genome",
+                    "--exclude-atypical",
+                    "--as-json-lines",
+                    "--assembly-version", "latest",
+                    "--assembly-source", "refseq", ">", "genomicdata.jsonl"
+                        ]
+            
+            G.run_shell(" ".join(cmd), printcmd=False, logcmd=True, log=True)
 
-            return links
+            accessions = []
+            with jsonlines.open('genomicdata.jsonl') as reader:
+                for obj in reader.iter(type=dict, skip_invalid=True):
+                    if "reports" in obj.keys():
+                        for report in obj["reports"]:
+                            if "accession" in report.keys():
+                                accessions.append(report["accession"])
+                    else:
+                        if "accession" in obj.keys():
+                            accessions.append(obj["accession"])   
 
-        def write_links(link_list):
-            with open("genomic_links.txt", "w") as f:
-                for link in link_list:
-                    f.write(link + "\n")
+            with open("genome_accessions.txt", "w") as f:
+                for accession in accessions:
+                    f.write(accession + "\n")
 
-        G.logger("Run: ncbi_genome_links(" + self.target + ")")
+            return accessions
+
+        G.logger("Run: get_ncbi_accessions(" + self.target + ")")
         os.chdir(self.config_dir)
-        email = H.get_email_for_Entrez()
-        genomedata = collect_genomedata(taxid, email)
-        time.sleep(1)
-        link_list = get_links(genomedata)
+        accessions = collect_genomedata(taxid, accession=accession)
+        filtered_accessions = self.filter_accessions_for_download()
         msg = " genome assemblies are available for download"
-        statmsg = "genome assemblies from NCBI: " + str(len(link_list))
+        statmsg = "genome assemblies from NCBI: " + str(len(accessions))
         if self.config.assemblylevel == ["offline"]:
             msg = "Skip download / Working offline"
             statmsg = "genome assemblies from NCBI: 0 (offline/skip download)"
             info = msg
         else:
-            info = str(len(link_list)) + " " + msg
+            info = str(len(accessions)) + " " + msg
         print(info)
         G.logger("> " + info)
         PipelineStatsCollector(self.target_dir).write_stat(statmsg)
 
-        write_links(link_list)
         os.chdir(self.target_dir)
 
+        return accessions
 
-    def check_download_files(self, input_line):
-        line = input_line.strip()
-        zip_file = line.split("/")[-1]
-        name_start = (
-            zip_file.split(".")[0]
-            + "v" + zip_file.split(".")[1].split("_")[0])
-        directories = [self.gff_dir, self.ffn_dir]
-        gff = False
-        ffn = False
-        genomic = False
-        for directory in directories:
-            for files in [f for f in os.listdir(directory)]:
-                if files.startswith(name_start):
-                    if directory == self.gff_dir:
-                        if files.endswith(".gff"):
-                            gff = True
-                    elif directory == self.ffn_dir:
-                        if files.endswith(".ffn"):
-                            ffn = True
-        for files in [f for f in os.listdir(self.genomic_dir)]:
-            if files == zip_file.split(".gz")[0]:
-                genomic = True
-        if (gff and ffn) is True:
-            status = True
-        elif genomic is True:
-            status = "Extracted"
-        else:
-            status = False
-        return status
+    def check_downloaded_files(self):
+        """New function to check if the files were already downloaded"""
+        accessions = []
+        for fp in os.listdir(self.genomic_dir):
+            if ("GCF" or "GCA") in fp and fp.endswith("_genomic.fna"):
+                accession = "_".join(fp.split("/")[-1].split("_")[0:2])
+                accessions.append(accession)
+        return accessions
 
     def get_excluded_assemblies(self):
         excluded = []
@@ -336,73 +294,53 @@ class DataCollection():
                             excluded.append(line)
         return excluded
 
+    def filter_accessions_for_download(self):
+        excluded = self.get_excluded_assemblies()
+        downloaded = self.check_downloaded_files()
+        accessions = []
+        with open(os.path.join(self.config_dir, "genome_accessions.txt")) as r:
+            lines = r.readlines()
+            for line in lines:
+                accessions.append(line.strip())
+
+        filtered = [acc for acc in accessions if acc not in downloaded and acc not in excluded]
+        with open(os.path.join(self.config_dir, "download_accessions.txt"), "w") as r:
+            for accession in filtered:
+                r.write(accession + "\n")
+        return filtered
+    
+    def flatten_genome_output(self):
+        """
+        Flatten the output genomes in the output directory.
+        """
+        genome_dirs_tree = "ncbi_dataset_genomes/ncbi_dataset/data"
+        for fp in os.listdir(genome_dirs_tree):
+            fp = os.path.join(genome_dirs_tree, fp)
+            if os.path.isdir(fp):
+                for fn in os.listdir(fp):
+                    shutil.move(os.path.join(fp, fn), fn)
+        shutil.rmtree("ncbi_dataset_genomes")   
+        os.remove("ncbi_dataset_genomes.zip")
+
     def ncbi_download(self):
         G.logger("Run: ncbi_download(" + self.target + ")")
         G.create_directory(self.gff_dir)
         G.create_directory(self.ffn_dir)
         G.create_directory(self.fna_dir)
-        excluded = self.get_excluded_assemblies()
         os.chdir(self.genomic_dir)
-        with open(os.path.join(self.config_dir, "genomic_links.txt")) as r:
-            for line in r:
-                zip_file = line.split("/")[-1].strip()
-                target_path = os.path.join(self.genomic_dir, zip_file)
-                ftp_path = line.strip()
-                file_status = self.check_download_files(line)
-                if file_status is True:
-                    info = "all required files found for " + zip_file
-                    G.logger(info)
-                elif file_status == "Extracted":
-                    info = "extracted fna file already exists for " + zip_file
-                    G.logger(info)
-                else:
-                    if os.path.isfile(target_path):
-                        info = "File already downloaded " + zip_file
-                        G.logger(info)
-                    else:
-                        if [
-                                ex for ex in excluded
-                                if zip_file.startswith(".".join(ex.split("v")))
-                        ]:
-                            msg = " already in excludedassemblies"
-                            print(zip_file + msg)
-                            G.logger(zip_file + msg)
-                        else:
-                            print_msg = "\n\nDownload..." + zip_file + "\n"
-                            info = "Downloaded " + zip_file
-                            try:
-                                print(print_msg)
-                                wget.download(ftp_path)
-                                print("\n")
-                                G.logger(info)
-                            except urllib.error.HTTPError:
-                                try:
-                                    print("\ntry again\n")
-                                    print(print_msg)
-                                    wget.download(ftp_path)
-                                    print("\n")
-                                    G.logger(info)
-                                except urllib.error.HTTPError:
-                                    try:
-                                        print("\ntry a last time\n")
-                                        print(print_msg)
-                                        wget.download(ftp_path)
-                                        print("\n")
-                                        G.logger(info)
-                                    except urllib.error.HTTPError:
-                                        error_msg = (
-                                            "SpeciesPrimer in unable to "
-                                            "connect to the NCBI FTP server. "
-                                            "Please check internet connection "
-                                            "and NCBI FTP server status")
-                                        print(error_msg)
-                                        G.logger("> " + error_msg)
-                                        errors.append([self.target, error_msg])
-                                        raise
+        
+        accession_file = str(os.path.join(self.config_dir, "download_accessions.txt"))
 
-        for files in os.listdir(self.genomic_dir):
-            if files.endswith(".gz"):
-                G.run_subprocess(["gunzip", files], False, True, False)
+        cmd = ["datasets", "download", "genome", "accession", "--inputfile", accession_file, "--dehydrated", "--include", "genome", "--filename", "ncbi_dataset_genomes.zip"]
+        cmd2 = ["unzip", "-o", "ncbi_dataset_genomes.zip", "-d", "ncbi_dataset_genomes"]
+        # allows continue download if interrupted
+        cmd3 = ["datasets", "rehydrate", "--directory", "ncbi_dataset_genomes"]
+
+        G.run_subprocess(cmd, printcmd=False, logcmd=True, printoption=True)
+        G.run_subprocess(cmd2, printcmd=False, logcmd=True, printoption=True)
+        G.run_subprocess(cmd3, printcmd=False, logcmd=True, printoption=True)
+   
+        self.flatten_genome_output()
         os.chdir(self.target_dir)
 
     def copy_genome_files(self):
@@ -647,7 +585,7 @@ class DataCollection():
                 self.add_synonym_exceptions(syn)
 
             self.create_taxidlist(taxid)
-            self.get_ncbi_links(taxid)
+            self.get_ncbi_accessions(taxid)
             if not self.config.skip_download:
                 self.ncbi_download()
             else:
@@ -3663,34 +3601,45 @@ class Summary:
                 pass
 
     def get_genome_infos(self):
+        """Get the genome information from the genomicdata.jsonl file and add it to the g_info_dict"""
+        # to do adapt to new NCBI API style and create the files based on gemomicdata.jsonl
         G.logger("Run: get_genome_infos(" + self.target + ")")
-        genome_data = []
-        genomedata = os.path.join(self.config_dir, "genomicdata.json")
-        if os.path.isfile(genomedata):
-            with open(genomedata) as q:
-                for line in q:
-                    records = json.loads(line)
+        genomedata = os.path.join(self.config_dir, "genomicdata.jsonl")
+        with jsonlines.open(genomedata) as reader:
+            for obj in reader.iter(type=dict, skip_invalid=True):
+                if "reports" in obj.keys():
 
-            for result in records['DocumentSummarySet']['DocumentSummary']:
-                accession = result["AssemblyAccession"]
-                name = result["AssemblyName"]
-                status = result["AssemblyStatus"]
-                strain = "unknown"
-                infraspecieslist = result['Biosource']['InfraspeciesList']
-                for i, item in enumerate(infraspecieslist):
-                    if len(item) > 0:
-                        strain = infraspecieslist[i]['Sub_value']
+                    for report in obj["reports"]:
+                        accession = report['accession']
+                        name = report['assembly_info']['assembly_name']
+                        status = report['assembly_info']['assembly_level']
 
-                data = [accession, name, status, strain]
-                genome_data.append(data)
+                        try:
+                            strain = report['organism']['infraspecific_names']['strain']
+                        except KeyError:
+                            strain = "unknown"
 
-            for item in genome_data:
-                accession = item[0]
-                if accession in self.g_info_dict.keys():
-                    ncbi_info = {
-                        "name": item[1], "strain": item[3],
-                        "assemblystatus": item[2]}
-                    self.g_info_dict[item[0]].update(ncbi_info)
+                        if accession in self.g_info_dict.keys():
+                            ncbi_info = {
+                                "name": name, "strain": strain,
+                                "assemblystatus": status}
+                            self.g_info_dict[accession].update(ncbi_info)
+
+                else:
+                    accession = obj['accession']
+                    name = obj['assembly_info']['assembly_name']
+                    status = obj['assembly_info']['assembly_level']
+
+                    try:
+                        strain = obj['organism']['infraspecific_names']['strain']
+                    except KeyError:
+                        strain = "unknown"
+
+                    if accession in self.g_info_dict.keys():
+                        ncbi_info = {
+                            "name": name, "strain": strain,
+                            "assemblystatus": status}
+                        self.g_info_dict[accession].update(ncbi_info)
 
     def write_genome_info(self):
         G.logger("Run: write_genome_info(" + self.target + ")")
@@ -3984,7 +3933,7 @@ def commandline():
         " The current settings files will be overwritten")
     # Version
     parser.add_argument(
-        "-V", "--version", action="version", version="%(prog)s 2.1.2")
+        "-V", "--version", action="version", version="%(prog)s 2.1.3")
     return parser
 
 def citation():

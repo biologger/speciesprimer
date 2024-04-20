@@ -246,22 +246,6 @@ def test_auto_run_config():
 
 
 def test_DataCollection(config, monkeypatch):
-    dtd_path = os.path.join(
-            "/", "root", ".config", "biopython", "Bio", "Entrez", "DTDs")
-    dtd1 = os.path.join(dtd_path, "esummary_assembly.dtd")
-    dtd2 = os.path.join(dtd_path, "efetch.dtd")
-    mockdtd1 = os.path.join(
-                    testfiles_dir, "entrezmocks", "esummary_assembly.dtd")
-    mockdtd2 = os.path.join(
-                    testfiles_dir, "entrezmocks", "efetch.dtd")
-    mocks = [mockdtd1, mockdtd2]
-    if not os.path.isdir(dtd_path):
-        G.create_directory(dtd_path)
-    for i, filepath in enumerate([dtd1, dtd2]):
-        if not os.path.isfile(filepath):
-            shutil.copy(mocks[i], filepath)
-
-
     from speciesprimer import DataCollection
     shutil.rmtree(os.path.join(config.path, config.target))
     downdir = os.path.join(
@@ -405,65 +389,45 @@ def test_DataCollection(config, monkeypatch):
         if os.path.isfile(filepath):
             os.remove(filepath)
 
-    def mocked_urlopen_fail(monkeypatch):
-        import urllib.error
-        import urllib.request
+    def test_ncbi_download(taxid):
+        """
+        ncbi_download now requires internet connection for testing
+        
+        """
 
-        def mocked(url, data):
-            raise urllib.error.HTTPError(url, 400, "Bad request", None, None)
+        DC.get_ncbi_accessions(taxid, accession="GCF_902362325.1")
+        
+        accessions = []
+        with open(os.path.join(DC.config_dir, "download_accessions.txt")) as f:
+            for line in f:
+                accession = line.strip()
+                accessions.append(accession)
+        
+        assert accessions == ["GCF_902362325.1"]
 
-        monkeypatch.setattr(urllib.request, "urlopen", mocked)
-
-        with pytest.raises(urllib.error.HTTPError):
-            DC.ncbi_download()
-
-    def test_ncbi_download(taxid, monkeypatch):
-        def mock_getsummary(db, term, retmax):
-            mockfile = os.path.join(
-                    testfiles_dir, "entrezmocks", "getsummarymock.xml")
-            f = open(mockfile)
-            return f
-
-        def mock_getlinks(db, id, rettype, retmode):
-            mockfile = os.path.join(
-                    testfiles_dir, "entrezmocks", "getlinksmock.xml")
-            f = open(mockfile)
-            return f
-
-        monkeypatch.setattr(Entrez, "esearch", mock_getsummary)
-        monkeypatch.setattr(Entrez, "efetch", mock_getlinks)
-
-        DC.get_ncbi_links(taxid, 1)
         DC.ncbi_download()
+            
         filepath = os.path.join(
             DC.target_dir, "genomic_fna",
             "GCF_902362325.1_MGYG-HGUT-00020_genomic.fna")
+        
         # will not download the file a second time
         # because it is already extracted
         time.sleep(2)
-        DC.ncbi_download()
-        # prep annotated files
-        os.remove(filepath)
-        dirs = [DC.gff_dir, DC.ffn_dir, DC.fna_dir]
-        for direct in dirs:
-            G.create_directory(direct)
-        mockname = "GCF_902362325v1_2019118"
-        endings = ["fna", "gff", "ffn"]
-        for end in endings:
-            filepath = os.path.join(
-                    DC.target_dir, end + "_files", mockname + "." + end)
-            with open(filepath, "w") as f:
-                f.write("Mock " + mockname + "." + end)
-        # No download since annotated files are present
-        DC.ncbi_download()
-        annotation_dirs, annotated = DC.run_prokka()
-        assert annotation_dirs == []
-        assert annotated == []
-        assert os.path.isfile(filepath + ".gz") is False
-        for direct in dirs:
-            shutil.rmtree(direct)
-        for direct in dirs:
-            G.create_directory(direct)
+
+        DC.get_ncbi_accessions(taxid, "GCF_902362325.1")
+        
+        accessions = []
+        with open(os.path.join(DC.config_dir, "download_accessions.txt")) as f:
+            for line in f:
+                accession = line.strip()
+                accessions.append(accession)
+        
+        assert accessions == []
+        
+        # as the download is that fast we will not bother to exclude already annotated files
+        # if the original genomic_fna file was deleted (user responsibility)
+
         # test excluded files
         excluded_dir = os.path.join(
                 DC.config.path, "excludedassemblies", DC.config.target)
@@ -475,10 +439,19 @@ def test_DataCollection(config, monkeypatch):
         assert annotation_dirs == []
         # will not download the file because it is in excluded list
         time.sleep(2)
-        DC.ncbi_download()
-        assert os.path.isfile(filepath) is False
+
+        DC.get_ncbi_accessions(taxid, "GCF_902362325.1")
+        
+        accessions = []
+        with open(os.path.join(DC.config_dir, "download_accessions.txt")) as f:
+            for line in f:
+                accession = line.strip()
+                accessions.append(accession)
+        
+        assert accessions == []
+
         shutil.rmtree(excluded_dir)
-        mocked_urlopen_fail(monkeypatch)
+  
         fna = os.path.join(config.path, config.target, "genomic_fna")
         shutil.rmtree(fna)
         G.create_directory(fna)
@@ -518,7 +491,7 @@ def test_DataCollection(config, monkeypatch):
     test_maxcontigs(config)
     DC.prepare_dirs()
     test_get_taxid(config.target, monkeypatch)
-    test_ncbi_download("28038", monkeypatch)
+    test_ncbi_download("28038")
     test_syn_exceptions(config)
     test_create_GI_list()
     G.create_directory(DC.gff_dir)

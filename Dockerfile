@@ -6,6 +6,13 @@ LABEL maintainer="biologger@protonmail.com"
 COPY . /
 COPY boot.sh /
 
+# include ncbi datasets and dataformats for genome download to keep speciesprimer alive for now
+RUN curl -o /programs/datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/datasets' && \
+    curl -o /programs/dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/dataformat' && \
+    chmod +x /programs/datasets /programs/dataformat
+
+RUN pip3 install --no-cache-dir jsonlines pandas
+
 # Set env variables and change mod
 ENV FLASK_APP="/pipeline/gui/speciesprimergui.py"
 ENV LC_ALL=C.UTF-8
