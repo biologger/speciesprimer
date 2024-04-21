@@ -3605,17 +3605,34 @@ class Summary:
         # to do adapt to new NCBI API style and create the files based on gemomicdata.jsonl
         G.logger("Run: get_genome_infos(" + self.target + ")")
         genomedata = os.path.join(self.config_dir, "genomicdata.jsonl")
-        with jsonlines.open(genomedata) as reader:
-            for obj in reader.iter(type=dict, skip_invalid=True):
-                if "reports" in obj.keys():
+        if os.path.isfile(genomedata):
+            with jsonlines.open(genomedata) as reader:
+                for obj in reader.iter(type=dict, skip_invalid=True):
+                    if "reports" in obj.keys():
 
-                    for report in obj["reports"]:
-                        accession = report['accession']
-                        name = report['assembly_info']['assembly_name']
-                        status = report['assembly_info']['assembly_level']
+                        for report in obj["reports"]:
+                            accession = report['accession']
+                            name = report['assembly_info']['assembly_name']
+                            status = report['assembly_info']['assembly_level']
+
+                            try:
+                                strain = report['organism']['infraspecific_names']['strain']
+                            except KeyError:
+                                strain = "unknown"
+
+                            if accession in self.g_info_dict.keys():
+                                ncbi_info = {
+                                    "name": name, "strain": strain,
+                                    "assemblystatus": status}
+                                self.g_info_dict[accession].update(ncbi_info)
+
+                    else:
+                        accession = obj['accession']
+                        name = obj['assembly_info']['assembly_name']
+                        status = obj['assembly_info']['assembly_level']
 
                         try:
-                            strain = report['organism']['infraspecific_names']['strain']
+                            strain = obj['organism']['infraspecific_names']['strain']
                         except KeyError:
                             strain = "unknown"
 
@@ -3624,22 +3641,6 @@ class Summary:
                                 "name": name, "strain": strain,
                                 "assemblystatus": status}
                             self.g_info_dict[accession].update(ncbi_info)
-
-                else:
-                    accession = obj['accession']
-                    name = obj['assembly_info']['assembly_name']
-                    status = obj['assembly_info']['assembly_level']
-
-                    try:
-                        strain = obj['organism']['infraspecific_names']['strain']
-                    except KeyError:
-                        strain = "unknown"
-
-                    if accession in self.g_info_dict.keys():
-                        ncbi_info = {
-                            "name": name, "strain": strain,
-                            "assemblystatus": status}
-                        self.g_info_dict[accession].update(ncbi_info)
 
     def write_genome_info(self):
         G.logger("Run: write_genome_info(" + self.target + ")")

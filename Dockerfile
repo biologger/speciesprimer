@@ -1,4 +1,4 @@
-FROM biologger/speciesprimerdeps:V2.1.3
+FROM biologger/speciesprimerdeps:v2.1.3
 
 LABEL maintainer="biologger@protonmail.com"
 
