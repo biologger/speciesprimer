@@ -224,13 +224,16 @@ class DataCollection():
             else:
                 cmd = [
                     "datasets", "summary", "genome", "taxon", str(taxid),
-                    "--assembly-level", ','.join(self.config.assemblylevel), 
                     "--report", "genome",
                     "--exclude-atypical",
                     "--as-json-lines",
                     "--assembly-version", "latest",
-                    "--assembly-source", "refseq", ">", "genomicdata.jsonl"
-                        ]
+                    "--assembly-source", "refseq"
+                    ]
+                if self.config.assemblylevel != ["offline"] and self.config.assemblylevel != ["all"]:
+                    assembly_level = ','.join([al for al in self.config.assemblylevel if not al in ["offline", "all"]])
+                    cmd.extend(["--assembly-level", assembly_level])
+                cmd.extend([">", "genomicdata.jsonl"])
             
             G.run_shell(" ".join(cmd), printcmd=False, logcmd=True, log=True)
 
