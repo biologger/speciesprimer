@@ -179,7 +179,8 @@ def assert_ref_files(nolist=False):
 
     ref_files = [
         "core_gene_alignment.aln", "Lb_curva_tree.nwk",
-        "Lb_curva_primer.csv", "Lb_curva_qc_sequences_details.csv",
+        "Lb_curva_primer.csv",
+        "Lb_curva_qc_sequences_details.csv",
         "mostcommonhits.csv", "Lb_curva_qc_sequences.csv", configfile,
         stats]
 
