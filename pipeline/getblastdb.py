@@ -35,33 +35,28 @@ class config:
         "nt": {
             "base":"ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "https": "https://ftp.ncbi.nlm.nih.gov/blast/db/",
             "extend": [".nhd", ".nhi", ".nog"]},
         "ref_prok_rep_genomes": {
             "base": "ftp://ftp.ncbi.nlm.nih.gov/blast/db/",
             "http": "http://ftp.ncbi.nlm.nih.gov/blast/db/",
-            "https": "https://ftp.ncbi.nlm.nih.gov/blast/db/",
             "extend": [".nog"]},
         "test": {
             "base": "file:/blastdb/tmp/mockfiles/download/",
             "http": "file:/blastdb/tmp/mockfiles/download.html",
-            "https": "file:/blastdb/tmp/mockfiles/download.html",
             "extend": [".nog", ".nsd", ".nsi"]}}
 
-    def __init__(self, db, db_dir, delete, test, troubleshoot=False, https=True):
+    def __init__(self, db, db_dir, delete, test, troubleshoot=False):
         self.db = db
         self.db_dir = db_dir
         self.delete = delete
         self.troubleshoot = troubleshoot
         if test:
             self.baseurl = self.urldict['test']['base']
-            self.httpurl = self.urldict['test']['https']
+            self.httpurl = self.urldict['test']['http']
             self.extract_end = self.baseend + self.urldict['test']['extend']
         else:
             self.baseurl = self.urldict[db]['base']
             self.httpurl = self.urldict[db]['http']
-            if https is True:
-                self.httpurl = self.urldict[db]['https']
             self.extract_end = self.baseend + self.urldict[db]['extend']
 
 
@@ -81,12 +76,11 @@ def commandline():
         "-db", "--database", type=str,
         help="Select nt or ref_prok_rep_genomes", default="nt",
         choices=["nt", "ref_prok_rep_genomes"])
-
     parser.add_argument(
         "-t", "--troubleshoot", action="store_true",
         help="Managed downloads in case of problems", default=False)
-
     parser.add_argument('--test', action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("-V", "--version", action="version", version="%(prog)s 2.1.3")
 
     return parser
 
@@ -104,7 +98,7 @@ def md5Checksum(filePath):
 
 def wget_download(filename, conf):
     archivename = filename.split(".md5")[0]
-    url = conf.httpurl + "/" + archivename
+    url = conf.baseurl.replace("ftp://", "https://") + "/" + archivename
     logger("> Downloading..." + archivename)
     if conf.troubleshoot is True:
         managed_download(url, conf.db_dir)
@@ -307,14 +301,14 @@ def extract_archives(dbfile, conf):
 
 def get_md5files(conf):
     os.chdir(conf.db_dir)
-    r = urllib.request.urlopen(conf.httpurl)
+    r = urllib.request.urlopen(conf.httpurl.replace("http://", "https://"))
     parser = htmllinkparser()
     content = str(r.read())
     parser.feed(content)
     filelist = parser.StartTags
     for filename in filelist:
         if filename.startswith(conf.db + ".") and filename.endswith(".tar.gz.md5"):
-            url = conf.httpurl + filename
+            url = conf.baseurl.replace("ftp://", "https://") + filename
             if not os.path.isfile(filename):
                 logger("> Downloading..." + filename)
                 wget.download(url, filename)

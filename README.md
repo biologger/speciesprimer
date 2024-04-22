@@ -3,7 +3,6 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://img.shields.io/badge/License-GPLv3-blue.svg)
 [![Build Status](https://travis-ci.com/biologger/speciesprimer.svg?branch=master)](https://travis-ci.com/biologger/speciesprimer)
-[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)](https://img.shields.io/docker/cloud/build/biologger/speciesprimer)
 [![codecov](https://codecov.io/gh/biologger/speciesprimer/branch/master/graph/badge.svg)](https://codecov.io/gh/biologger/speciesprimer)
 [![CodeFactor](https://www.codefactor.io/repository/github/biologger/speciesprimer/badge)](https://www.codefactor.io/repository/github/biologger/speciesprimer)
 [![Publish](https://img.shields.io/badge/Publication-PeerJ-success)](https://doi.org/10.7717/peerj.8544)
@@ -17,6 +16,10 @@ New in SpeciesPrimer v2.1
 * Species synonyms are added to exceptions
 * Bugfixes and KeyboardInterrupt rollback
 * Simpler directory structure
+
+New in SpeciesPrimer v2.1.3
+* use datasets to download genomes (assembly db EOL by NCBI)
+* EOL of SpeciesPrimer GUI. Please use the command line. (see [Command line options](https://github.com/biologger/speciesprimer/tree/master#run-settings))
 
 
 ## Contents
@@ -42,7 +45,7 @@ New in SpeciesPrimer v2.1
 * Quad core processor
 * 16 GB RAM
 * SSD / fast hard disk (recommended)
-* 60 GB free space for nt database
+* 60 GB+ free space for nt database
 * 4.5 GB for the docker image
 * 5 - 20 GB for each analysis
 

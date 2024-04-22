@@ -463,7 +463,7 @@ def test_compare_corrupted_md5(delete_config):
         f.write(info)
 
     getblastdb.download_from_ftp([chmdfile], delete_config)
-    check_part_five(outcome=True)
+    check_part_five(outcome=False)
     remove_tmp_db()
     os.chdir("..")
     if os.path.isdir(tmpdir):
